@@ -9,7 +9,7 @@
 | `config.js` | 出し物名・日時・改竄の閾値・ミニゲームの内容など、変えたくなる値の置き場 |
 | `data/ranking.json` | 番付（上位10名） |
 | `data/results.json` | 結果データ（番号 → 相・兆・心付け・神託の一行） |
-| `assets/` | ロゴ（`logo.png` が原本、`logo.webp` がサイト用）、水晶玉のマーク（`mark-alpha.webp` 背景透過）、OGP画像、ファビコン |
+| `assets/` | ロゴ（`logo.png` が原本）、ロゴを分解したレイヤー（`layer-ball` `layer-hand` `layer-copy`。トップのスクロール演出で使う）、水晶玉のマーク（`mark-alpha.webp` 背景透過）、OGP画像、ファビコン |
 
 ## 公開する
 
