@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0908">
+  <meta name="robots" content="noindex">
+  <title>神託を受け取る — 縁ノ神託所</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       RESET / VARIABLES
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #0b0908;
+      --bg2:    #13100d;
+      --text:   #e9e1d3;
+      --muted:  #9c9182;
+      --faint:  #6a6157;
+      --line:   rgba(233, 225, 211, 0.12);
+      --gold:   #c8a35a;
+      --shu:    #c4382b;
+      --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+      --gothic: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+                "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif;
+    }
+
+    body {
+      min-height: 100svh;
+      font-family: var(--gothic);
+      color: var(--text);
+      background: radial-gradient(ellipse at 50% 100%, #24170c 0%, var(--bg) 65%) fixed, var(--bg);
+      line-height: 1.8;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 28px 16px 48px;
+    }
+
+    .back {
+      font-family: var(--mincho);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .state { margin-top: 28px; }
+    .state[hidden] { display: none; }
+
+    h1 {
+      font-family: var(--mincho);
+      font-weight: 800;
+      font-size: 28px;
+      line-height: 1.4;
+      letter-spacing: 0.06em;
+    }
+    .note { margin-top: 12px; font-size: 14px; color: var(--muted); }
+
+    /* ---------- 番号入力 ---------- */
+    form { margin-top: 32px; display: flex; gap: 8px; }
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: var(--bg2);
+      color: var(--text);
+      font-family: var(--mincho);
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border-radius: 0;
+      outline: none;
+    }
+    input:focus { border-color: var(--gold); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 22px;
+      border: 1px solid var(--gold);
+      background: transparent;
+      color: var(--gold);
+      font-family: var(--mincho);
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.16em;
+      text-decoration: none;
+      cursor: pointer;
+      border-radius: 0;
+    }
+    .btn.solid { background: var(--gold); color: var(--bg); }
+    .btn:disabled { opacity: 0.5; }
+
+    /* ---------- 結果 ---------- */
+    .card {
+      margin-top: 8px;
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      background: var(--bg2);
+      border: 1px solid var(--line);
+    }
+    .card img { display: block; width: 100%; height: 100%; }
+
+    .actions { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .hint { margin-top: 14px; font-size: 12px; color: var(--faint); text-align: center; }
+
+    .loading {
+      font-family: var(--mincho);
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      animation: breathe 1.8s infinite ease-in-out;
+    }
+    @keyframes breathe { 50% { opacity: 0.35; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .loading { animation: none; }
+    }
+  </style>
+  <script src="config.js"></script>
+</head>
+<body>
+<main class="page">
+  <a href="./" class="back">← 縁ノ神託所</a>
+
+  <!-- 番号入力 -->
+  <section class="state" id="st-form" hidden>
+    <h1>神託を受け取る</h1>
+    <p class="note">結果の紙に書かれた番号を入力してください。QRを読み込んだ場合は、この画面は出ません。</p>
+    <form id="form">
+      <input id="code" name="id" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="番号" aria-label="結果の紙の番号">
+      <button class="btn solid" type="submit">開く</button>
+    </form>
+    <p class="note" id="form-error" hidden></p>
+  </section>
+
+  <!-- 読み込み中 -->
+  <section class="state" id="st-loading" hidden>
+    <p class="loading">本を開いています</p>
+  </section>
+
+  <!-- 結果 -->
+  <section class="state" id="st-result" hidden>
+    <div class="card"><img id="img" alt="あなたの神託"></div>
+    <div class="actions">
+      <a class="btn" id="save" download="shintaku.png">保存する</a>
+      <button class="btn solid" id="share" type="button">シェアする</button>
+    </div>
+    <p class="hint">保存できない場合は、画像を長押ししてください。</p>
+  </section>
+</main>
+
+<canvas id="cv" width="1080" height="1920" hidden></canvas>
+
+<script>
+(function () {
+  var S = window.SITE;
+  var W = 1080, H = 1920;
+  var MINCHO = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif';
+
+  var $ = function (id) { return document.getElementById(id); };
+  function show(id) {
+    ["st-form", "st-loading", "st-result"].forEach(function (s) { $(s).hidden = s !== id; });
+  }
+  function yen(n) { return Number(n).toLocaleString("ja-JP"); }
+
+  /* ============================================================
+     データ取得
+  ============================================================ */
+  function lookup(id) {
+    if (S.resultsCsvUrl) {
+      return fetch(S.resultsCsvUrl, { cache: "no-store" })
+        .then(function (r) { return r.text(); })
+        .then(function (t) {
+          var rows = window.parseCsv(t);
+          for (var i = 0; i < rows.length; i++) {
+            if (rows[i].id.toUpperCase() === id) return rows[i];
+          }
+          return null;
+        });
+    }
+    return fetch("data/results.json", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (all) { return all[id] || null; });
+  }
+
+  /* ============================================================
+     描画ヘルパー
+  ============================================================ */
+  function font(weight, size) { return weight + " " + size + "px " + MINCHO; }
+
+  // 指定幅に収まる最大サイズを返す
+  function fit(ctx, text, weight, max, width) {
+    var size = max;
+    ctx.font = font(weight, size);
+    while (size > 24 && ctx.measureText(text).width > width) {
+      size -= 4;
+      ctx.font = font(weight, size);
+    }
+    return size;
+  }
+
+  // 日本語の折り返し（行頭禁則だけ見る）
+  var NO_HEAD = "、。，．」』）！？・ーっゃゅょァィゥェォッャュョ…";
+  function wrap(ctx, text, width) {
+    var lines = [], line = "";
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (ctx.measureText(line + c).width > width && line && NO_HEAD.indexOf(c) < 0) {
+        lines.push(line);
+        line = c;
+      } else {
+        line += c;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // 行数を変えずに幅を詰めて、最終行だけ短くなるのを防ぐ
+  function wrapBalanced(ctx, text, width) {
+    var lines = wrap(ctx, text, width);
+    if (lines.length < 2) return lines;
+    var best = lines;
+    for (var w = width - 10; w > width * 0.5; w -= 10) {
+      var l = wrap(ctx, text, w);
+      if (l.length > lines.length) break;
+      best = l;
+    }
+    return best;
+  }
+
+  function spaced(ctx, text, x, y, spacing, align) {
+    // letter-spacing 付きで1行描く（align: "center" | "left"）
+    var w = 0, i;
+    for (i = 0; i < text.length; i++) w += ctx.measureText(text[i]).width + (i ? spacing : 0);
+    var cx = align === "center" ? x - w / 2 : x;
+    var prev = ctx.textAlign;
+    ctx.textAlign = "left";
+    for (i = 0; i < text.length; i++) {
+      ctx.fillText(text[i], cx, y);
+      cx += ctx.measureText(text[i]).width + spacing;
+    }
+    ctx.textAlign = prev;
+  }
+
+  function noise(ctx, alpha) {
+    var img = ctx.getImageData(0, 0, W, H), d = img.data;
+    for (var i = 0; i < d.length; i += 4) {
+      var n = (Math.random() - 0.5) * 255 * alpha;
+      d[i] += n; d[i + 1] += n; d[i + 2] += n;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function seal(ctx, text, x, y, size, color, rot) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = size * 0.06;
+    ctx.strokeRect(-size / 2, -size / 2, size, size);
+    ctx.lineWidth = size * 0.02;
+    ctx.strokeRect(-size / 2 + size * 0.07, -size / 2 + size * 0.07, size * 0.86, size * 0.86);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    if (text.length === 1) {
+      ctx.font = font(800, size * 0.62);
+      ctx.fillText(text, 0, size * 0.03);
+    } else {
+      ctx.font = font(800, size * 0.36);
+      ctx.fillText(text[0], 0, -size * 0.19);
+      ctx.fillText(text[1], 0, size * 0.21);
+    }
+    ctx.restore();
+  }
+
+  /* ============================================================
+     通常デザイン（無・小・大）
+  ============================================================ */
+  var THEMES = {
+    mu:  { bg0: "#151413", bg1: "#0c0b0a", accent: "#8a8277", text: "#d8d2c8", glow: "rgba(160,150,140,0.10)" },
+    sho: { bg0: "#22170e", bg1: "#0b0908", accent: "#c8a35a", text: "#ece3d2", glow: "rgba(214,140,58,0.20)" },
+    dai: { bg0: "#3a2610", bg1: "#0e0a06", accent: "#e2bd6a", text: "#f4ead6", glow: "rgba(236,180,80,0.34)" },
+  };
+
+  function drawNormal(ctx, d, rank) {
+    var t = THEMES[rank.id];
+    var cx = W / 2;
+
+    // 背景と灯り
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, t.bg1); g.addColorStop(1, t.bg0);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    var r = ctx.createRadialGradient(cx, H * 0.38, 0, cx, H * 0.38, W * 0.9);
+    r.addColorStop(0, t.glow); r.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
+
+    // 枠
+    ctx.strokeStyle = t.accent;
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(56, 56, W - 112, H - 112);
+    ctx.globalAlpha = 0.2;
+    ctx.strokeRect(72, 72, W - 144, H - 144);
+    ctx.globalAlpha = 1;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+
+    // ヘッダ
+    ctx.fillStyle = t.accent;
+    ctx.font = font(700, 30);
+    spaced(ctx, S.name, cx, 178, 14, "center");
+
+    // 相
+    ctx.fillStyle = t.text;
+    ctx.globalAlpha = 0.6;
+    ctx.font = font(700, 34);
+    spaced(ctx, "あなたの相", cx, 340, 12, "center");
+    ctx.globalAlpha = 1;
+    var souSize = fit(ctx, d.sou, 800, 300, W - 240);
+    ctx.font = font(800, souSize);
+    ctx.shadowColor = t.glow; ctx.shadowBlur = 60;
+    spaced(ctx, d.sou, cx, 360 + souSize * 1.02, souSize * 0.08, "center");
+    ctx.shadowBlur = 0;
+
+    // 兆
+    var ky = 860;
+    ctx.strokeStyle = t.accent; ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - 300, ky); ctx.lineTo(cx + 300, ky); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = t.accent;
+    ctx.font = font(700, 32);
+    spaced(ctx, "引いた兆", cx, ky + 80, 12, "center");
+    ctx.fillStyle = t.text;
+    var kSize = fit(ctx, d.kizashi, 800, 104, W - 300);
+    ctx.font = font(800, kSize);
+    spaced(ctx, d.kizashi, cx, ky + 90 + kSize * 1.05, 10, "center");
+
+    // 心付け
+    var my = 1230;
+    ctx.fillStyle = t.accent;
+    ctx.font = font(700, 32);
+    spaced(ctx, "心付け", cx - 110, my, 12, "center");
+    ctx.fillStyle = t.text;
+    var amt = yen(d.amount);
+    ctx.font = font(800, 120);
+    var aw = ctx.measureText(amt).width;
+    ctx.font = font(700, 48);
+    var uw = ctx.measureText("縁").width;
+    var ax = cx - 110 - (aw + uw + 8) / 2;
+    ctx.textAlign = "left";
+    ctx.font = font(800, 120);
+    ctx.fillText(amt, ax, my + 136);
+    ctx.font = font(700, 48);
+    ctx.fillText("縁", ax + aw + 8, my + 136);
+    ctx.textAlign = "center";
+    seal(ctx, rank.name, cx + 250, my + 70, 170, rank.id === "mu" ? t.accent : "#c4382b", -0.08);
+
+    // 神託
+    var oy = 1500;
+    ctx.fillStyle = t.text;
+    ctx.font = font(700, 54);
+    var lines = wrapBalanced(ctx, "「" + d.oracle + "」", W - 260).slice(0, 3);
+    lines.forEach(function (ln, i) { ctx.fillText(ln, cx, oy + i * 84); });
+
+    // フッタ
+    ctx.fillStyle = t.text;
+    ctx.globalAlpha = 0.55;
+    ctx.font = font(500, 26);
+    if (d.name) ctx.fillText(d.name + " の神託", cx, H - 172);
+    ctx.font = font(500, 24);
+    spaced(ctx, S.event + "　" + S.className, cx, H - 120, 6, "center");
+    ctx.globalAlpha = 1;
+
+    noise(ctx, 0.05);
+  }
+
+  /* ============================================================
+     改竄デザイン — 紙に朱。明らかに別物に見せる
+  ============================================================ */
+  function drawKaizan(ctx, d) {
+    var cx = W / 2;
+    var PAPER = "#e9dcc2", INK = "#241a13", SHU = "#c4382b";
+
+    // 紙
+    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
+    var v = ctx.createRadialGradient(cx, H / 2, W * 0.3, cx, H / 2, H * 0.75);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(90,60,30,0.35)");
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+
+    // 罫線
+    ctx.strokeStyle = "rgba(36,26,19,0.08)";
+    ctx.lineWidth = 2;
+    for (var y = 120; y < H; y += 64) {
+      ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 60, y); ctx.stroke();
+    }
+
+    // ずれた走査線（書き換えの痕）
+    for (var i = 0; i < 9; i++) {
+      var gy = 260 + Math.random() * (H - 520);
+      ctx.fillStyle = i % 2 ? "rgba(196,56,43,0.18)" : "rgba(40,140,180,0.12)";
+      ctx.fillRect(0, gy, W, 4 + Math.random() * 14);
+    }
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+
+    // ヘッダ
+    ctx.fillStyle = SHU;
+    ctx.font = font(800, 34);
+    spaced(ctx, "改 竄 済", cx, 168, 28, "center");
+    ctx.fillStyle = INK;
+    ctx.font = font(700, 28);
+    spaced(ctx, S.name, cx, 218, 12, "center");
+
+    // 相（ずらし二重刷り）
+    ctx.globalAlpha = 0.6;
+    ctx.font = font(700, 32);
+    spaced(ctx, "あなたの相", cx, 360, 12, "center");
+    ctx.globalAlpha = 1;
+    var souSize = fit(ctx, d.sou, 800, 280, W - 260);
+    ctx.font = font(800, souSize);
+    var sy = 380 + souSize * 1.02;
+    ctx.fillStyle = "rgba(40,140,180,0.55)";
+    spaced(ctx, d.sou, cx - 10, sy, souSize * 0.08, "center");
+    ctx.fillStyle = "rgba(196,56,43,0.7)";
+    spaced(ctx, d.sou, cx + 10, sy + 4, souSize * 0.08, "center");
+    ctx.fillStyle = INK;
+    spaced(ctx, d.sou, cx, sy, souSize * 0.08, "center");
+
+    // 取り消された兆
+    var ky = 900;
+    ctx.fillStyle = INK;
+    ctx.globalAlpha = 0.45;
+    ctx.font = font(700, 30);
+    spaced(ctx, "引いた兆", cx, ky, 12, "center");
+    var kSize = fit(ctx, d.kizashi, 800, 96, W - 320);
+    ctx.font = font(800, kSize);
+    var kw = ctx.measureText(d.kizashi).width + (d.kizashi.length - 1) * 10;
+    spaced(ctx, d.kizashi, cx, ky + 20 + kSize, 10, "center");
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = SHU; ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.moveTo(cx - kw / 2 - 30, ky + 20 + kSize * 0.62);
+    ctx.lineTo(cx + kw / 2 + 30, ky + 20 + kSize * 0.5);
+    ctx.stroke();
+
+    ctx.fillStyle = SHU;
+    ctx.font = font(800, 52);
+    ctx.fillText("「この兆は、誤りでした。」", cx, ky + 210);
+
+    // 新しい神託
+    var oy = 1270;
+    ctx.fillStyle = INK;
+    ctx.font = font(700, 30);
+    spaced(ctx, "新しい神託", cx, oy, 12, "center");
+    ctx.font = font(800, 60);
+    var lines = wrapBalanced(ctx, d.oracle, W - 240).slice(0, 3);
+    lines.forEach(function (ln, i) { ctx.fillText(ln, cx, oy + 100 + i * 88); });
+
+    // 心付け
+    var my = 1680;
+    ctx.textAlign = "left";
+    ctx.font = font(700, 30);
+    ctx.fillText("心付け", 120, my - 60);
+    ctx.font = font(800, 96);
+    var amt = yen(d.amount);
+    ctx.fillText(amt, 120, my + 40);
+    var aw = ctx.measureText(amt).width;
+    ctx.font = font(700, 44);
+    ctx.fillText("縁", 120 + aw + 10, my + 40);
+    ctx.textAlign = "center";
+
+    // 大きな朱印
+    ctx.globalAlpha = 0.88;
+    seal(ctx, "改竄", W - 250, my - 10, 260, SHU, -0.14);
+    ctx.globalAlpha = 1;
+
+    // フッタ
+    ctx.fillStyle = INK;
+    ctx.globalAlpha = 0.6;
+    ctx.font = font(500, 24);
+    var foot = (d.name ? d.name + "　" : "") + S.event + "　" + S.className;
+    spaced(ctx, foot, cx, H - 72, 4, "center");
+    ctx.globalAlpha = 1;
+
+    noise(ctx, 0.07);
+  }
+
+  /* ============================================================
+     生成
+  ============================================================ */
+  var currentBlob = null;
+
+  function render(d) {
+    var amount = Number(String(d.amount).replace(/[^\d]/g, "")) || 0;
+    var data = {
+      name: d.name || "",
+      sou: d.sou || "—",
+      kizashi: d.kizashi || "—",
+      amount: amount,
+      oracle: d.oracle || "",
+    };
+    var rank = window.rankOf(amount);
+    var text = [S.name, S.event, S.className, data.name, data.sou, data.kizashi, data.oracle,
+                "あなたの相引いた兆心付け縁新しい神託この兆は、誤りでした。改竄済無小大0123456789,「」の　"].join("");
+
+    var fontsReady = document.fonts
+      ? Promise.all([
+          document.fonts.load(font(800, 100), text),
+          document.fonts.load(font(700, 100), text),
+          document.fonts.load(font(500, 100), text),
+        ])
+      : Promise.resolve();
+    var timeout = new Promise(function (res) { setTimeout(res, 4000); });
+
+    return Promise.race([fontsReady, timeout]).then(function () {
+      var cv = $("cv"), ctx = cv.getContext("2d");
+      ctx.clearRect(0, 0, W, H);
+      if (rank.id === "kaizan") drawKaizan(ctx, data); else drawNormal(ctx, data, rank);
+      return new Promise(function (res) { cv.toBlob(res, "image/png"); });
+    }).then(function (blob) {
+      currentBlob = blob;
+      var url = URL.createObjectURL(blob);
+      $("img").src = url;
+      $("save").href = url;
+      document.title = "神託 — " + data.sou + "・" + rank.name + " — " + S.name;
+      show("st-result");
+    });
+  }
+
+  $("share").addEventListener("click", function () {
+    if (!currentBlob) return;
+    var file = new File([currentBlob], "shintaku.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: S.name, text: S.name + "で神託を受けた。" }).catch(function () {});
+    } else {
+      $("save").click();
+    }
+  });
+
+  /* ============================================================
+     起動
+  ============================================================ */
+  var params = new URLSearchParams(location.search);
+  var id = (params.get("id") || "").trim().toUpperCase();
+
+  function open(code) {
+    show("st-loading");
+    lookup(code).then(function (row) {
+      if (!row) throw new Error("notfound");
+      return render(row);
+    }).catch(function (e) {
+      show("st-form");
+      $("code").value = code;
+      $("form-error").hidden = false;
+      $("form-error").textContent = e.message === "notfound"
+        ? "その番号の神託はまだ本に記されていません。書記の入力を少し待ってから、もう一度お試しください。"
+        : "読み込みに失敗しました。通信状況を確かめて、もう一度お試しください。";
+    });
+  }
+
+  $("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var code = $("code").value.trim().toUpperCase();
+    if (!code) return;
+    history.replaceState(null, "", "?id=" + encodeURIComponent(code));
+    open(code);
+  });
+
+  if (id) open(id); else show("st-form");
+})();
+</script>
+</body>
+</html>
