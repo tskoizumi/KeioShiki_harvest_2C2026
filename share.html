@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0b0908">
+  <meta name="theme-color" content="#fefefc">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <meta name="robots" content="noindex">
   <title>神託を受け取る — 縁ノ神託所</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,14 +18,13 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:     #0b0908;
-      --bg2:    #13100d;
-      --text:   #e9e1d3;
-      --muted:  #9c9182;
-      --faint:  #6a6157;
-      --line:   rgba(233, 225, 211, 0.12);
-      --gold:   #c8a35a;
-      --shu:    #c4382b;
+      --bg:     #fefefc;
+      --bg2:    #f5f3ee;
+      --text:   #1c1a1b;
+      --muted:  #5c5658;
+      --faint:  #9a9396;
+      --line:   rgba(28, 26, 27, 0.14);
+      --red:    #9f1111;
       --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
       --gothic: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
                 "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif;
@@ -33,7 +34,7 @@
       min-height: 100svh;
       font-family: var(--gothic);
       color: var(--text);
-      background: radial-gradient(ellipse at 50% 100%, #24170c 0%, var(--bg) 65%) fixed, var(--bg);
+      background: var(--bg2);
       line-height: 1.8;
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
@@ -55,6 +56,9 @@
       text-decoration: none;
     }
 
+    .mark { display: block; width: 140px; height: 140px; margin: 24px auto 0; }
+    .mark[hidden] { display: none; }
+
     .state { margin-top: 28px; }
     .state[hidden] { display: none; }
 
@@ -74,7 +78,7 @@
       min-width: 0;
       padding: 14px 16px;
       border: 1px solid var(--line);
-      background: var(--bg2);
+      background: var(--bg);
       color: var(--text);
       font-family: var(--mincho);
       font-weight: 700;
@@ -84,16 +88,16 @@
       border-radius: 0;
       outline: none;
     }
-    input:focus { border-color: var(--gold); }
+    input:focus { border-color: var(--red); }
 
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 14px 22px;
-      border: 1px solid var(--gold);
+      border: 1px solid var(--red);
       background: transparent;
-      color: var(--gold);
+      color: var(--red);
       font-family: var(--mincho);
       font-weight: 700;
       font-size: 15px;
@@ -102,7 +106,7 @@
       cursor: pointer;
       border-radius: 0;
     }
-    .btn.solid { background: var(--gold); color: var(--bg); }
+    .btn.solid { background: var(--red); color: var(--bg); }
     .btn:disabled { opacity: 0.5; }
 
     /* ---------- 結果 ---------- */
@@ -110,8 +114,8 @@
       margin-top: 8px;
       width: 100%;
       aspect-ratio: 9 / 16;
-      background: var(--bg2);
-      border: 1px solid var(--line);
+      background: var(--bg);
+      box-shadow: 0 1px 0 rgba(28, 26, 27, 0.05), 0 18px 32px -18px rgba(60, 30, 55, 0.45);
     }
     .card img { display: block; width: 100%; height: 100%; }
 
@@ -136,6 +140,7 @@
 <body>
 <main class="page">
   <a href="./" class="back">← 縁ノ神託所</a>
+  <img class="mark" src="assets/mark-alpha.webp" width="600" height="600" alt="" id="st-mark">
 
   <!-- 番号入力 -->
   <section class="state" id="st-form" hidden>
@@ -175,6 +180,7 @@
   var $ = function (id) { return document.getElementById(id); };
   function show(id) {
     ["st-form", "st-loading", "st-result"].forEach(function (s) { $(s).hidden = s !== id; });
+    $("st-mark").hidden = id === "st-result";
   }
   function yen(n) { return Number(n).toLocaleString("ja-JP"); }
 
@@ -291,74 +297,66 @@
   }
 
   /* ============================================================
-     通常デザイン（無・小・大）
+     通常デザイン（無・小・大）— ロゴと同じ白い紙
   ============================================================ */
+  var PAPER = "#fefefc", INK = "#1c1a1b", RED = "#9f1111", PLUM = "#663661";
   var THEMES = {
-    mu:  { bg0: "#151413", bg1: "#0c0b0a", accent: "#8a8277", text: "#d8d2c8", glow: "rgba(160,150,140,0.10)" },
-    sho: { bg0: "#22170e", bg1: "#0b0908", accent: "#c8a35a", text: "#ece3d2", glow: "rgba(214,140,58,0.20)" },
-    dai: { bg0: "#3a2610", bg1: "#0e0a06", accent: "#e2bd6a", text: "#f4ead6", glow: "rgba(236,180,80,0.34)" },
+    mu:  { band: "#9a9396", accent: "#9a9396", seal: "#9a9396" },
+    sho: { band: RED,       accent: RED,       seal: RED },
+    dai: { band: PLUM,      accent: PLUM,      seal: RED },
   };
 
-  function drawNormal(ctx, d, rank) {
+  function drawNormal(ctx, d, rank, mark) {
     var t = THEMES[rank.id];
     var cx = W / 2;
 
-    // 背景と灯り
-    var g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, t.bg1); g.addColorStop(1, t.bg0);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    var r = ctx.createRadialGradient(cx, H * 0.38, 0, cx, H * 0.38, W * 0.9);
-    r.addColorStop(0, t.glow); r.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
+    // 紙
+    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
+    var v = ctx.createRadialGradient(cx, H / 2, W * 0.4, cx, H / 2, H * 0.8);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(60,40,50,0.12)");
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
 
-    // 枠
-    ctx.strokeStyle = t.accent;
-    ctx.globalAlpha = 0.45;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(56, 56, W - 112, H - 112);
-    ctx.globalAlpha = 0.2;
-    ctx.strokeRect(72, 72, W - 144, H - 144);
-    ctx.globalAlpha = 1;
+    // 上下の色帯（位で色が変わる）
+    ctx.fillStyle = t.band;
+    ctx.fillRect(0, 0, W, 18);
+    ctx.fillRect(0, H - 18, W, 18);
 
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
 
-    // ヘッダ
-    ctx.fillStyle = t.accent;
-    ctx.font = font(700, 30);
-    spaced(ctx, S.name, cx, 178, 14, "center");
+    // マーク
+    if (mark) ctx.drawImage(mark, cx - 160, 70, 320, 320);
+    ctx.fillStyle = INK;
+    ctx.font = font(800, 34);
+    spaced(ctx, S.name, cx, 440, 14, "center");
 
     // 相
-    ctx.fillStyle = t.text;
-    ctx.globalAlpha = 0.6;
-    ctx.font = font(700, 34);
-    spaced(ctx, "あなたの相", cx, 340, 12, "center");
-    ctx.globalAlpha = 1;
-    var souSize = fit(ctx, d.sou, 800, 300, W - 240);
+    ctx.fillStyle = t.accent;
+    ctx.font = font(700, 32);
+    spaced(ctx, "あなたの相", cx, 560, 12, "center");
+    ctx.fillStyle = INK;
+    var souSize = fit(ctx, d.sou, 800, 240, W - 240);
     ctx.font = font(800, souSize);
-    ctx.shadowColor = t.glow; ctx.shadowBlur = 60;
-    spaced(ctx, d.sou, cx, 360 + souSize * 1.02, souSize * 0.08, "center");
-    ctx.shadowBlur = 0;
+    spaced(ctx, d.sou, cx, 580 + souSize * 1.0, souSize * 0.08, "center");
 
     // 兆
-    var ky = 860;
-    ctx.strokeStyle = t.accent; ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
+    var ky = 930;
+    ctx.strokeStyle = "rgba(28,26,27,0.18)"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(cx - 300, ky); ctx.lineTo(cx + 300, ky); ctx.stroke();
-    ctx.globalAlpha = 1;
     ctx.fillStyle = t.accent;
     ctx.font = font(700, 32);
     spaced(ctx, "引いた兆", cx, ky + 80, 12, "center");
-    ctx.fillStyle = t.text;
-    var kSize = fit(ctx, d.kizashi, 800, 104, W - 300);
+    ctx.fillStyle = INK;
+    var kSize = fit(ctx, d.kizashi, 800, 96, W - 300);
     ctx.font = font(800, kSize);
     spaced(ctx, d.kizashi, cx, ky + 90 + kSize * 1.05, 10, "center");
 
     // 心付け
-    var my = 1230;
+    var my = 1270;
     ctx.fillStyle = t.accent;
     ctx.font = font(700, 32);
     spaced(ctx, "心付け", cx - 110, my, 12, "center");
-    ctx.fillStyle = t.text;
+    ctx.fillStyle = INK;
     var amt = yen(d.amount);
     ctx.font = font(800, 120);
     var aw = ctx.measureText(amt).width;
@@ -371,104 +369,102 @@
     ctx.font = font(700, 48);
     ctx.fillText("縁", ax + aw + 8, my + 136);
     ctx.textAlign = "center";
-    seal(ctx, rank.name, cx + 250, my + 70, 170, rank.id === "mu" ? t.accent : "#c4382b", -0.08);
+    seal(ctx, rank.name, cx + 250, my + 70, 170, t.seal, -0.08);
 
     // 神託
-    var oy = 1500;
-    ctx.fillStyle = t.text;
-    ctx.font = font(700, 54);
+    var oy = 1560;
+    ctx.fillStyle = INK;
+    ctx.font = font(800, 54);
     var lines = wrapBalanced(ctx, "「" + d.oracle + "」", W - 260).slice(0, 3);
     lines.forEach(function (ln, i) { ctx.fillText(ln, cx, oy + i * 84); });
 
     // フッタ
-    ctx.fillStyle = t.text;
-    ctx.globalAlpha = 0.55;
-    ctx.font = font(500, 26);
-    if (d.name) ctx.fillText(d.name + " の神託", cx, H - 172);
-    ctx.font = font(500, 24);
-    spaced(ctx, S.event + "　" + S.className, cx, H - 120, 6, "center");
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#5c5658";
+    ctx.font = font(700, 26);
+    var foot = (d.name ? d.name + "　" : "") + S.event + "　" + S.className;
+    spaced(ctx, foot, cx, H - 80, 4, "center");
 
-    noise(ctx, 0.05);
+    noise(ctx, 0.04);
   }
 
   /* ============================================================
-     改竄デザイン — 紙に朱。明らかに別物に見せる
+     改竄デザイン — 白い紙を墨で塗りつぶす。明らかに別物に見せる
   ============================================================ */
-  function drawKaizan(ctx, d) {
+  function drawKaizan(ctx, d, mark) {
     var cx = W / 2;
-    var PAPER = "#e9dcc2", INK = "#241a13", SHU = "#c4382b";
+    var BLACK = "#141213", LIGHT = "#f4efe6", HOT = "#e0352b", CYAN = "rgba(120,200,230,0.6)";
 
-    // 紙
-    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
-    var v = ctx.createRadialGradient(cx, H / 2, W * 0.3, cx, H / 2, H * 0.75);
-    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(90,60,30,0.35)");
-    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    // 墨
+    ctx.fillStyle = BLACK; ctx.fillRect(0, 0, W, H);
+    var r = ctx.createRadialGradient(cx, 300, 0, cx, 300, 700);
+    r.addColorStop(0, "rgba(224,53,43,0.28)"); r.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
 
-    // 罫線
-    ctx.strokeStyle = "rgba(36,26,19,0.08)";
-    ctx.lineWidth = 2;
-    for (var y = 120; y < H; y += 64) {
-      ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 60, y); ctx.stroke();
-    }
-
-    // ずれた走査線（書き換えの痕）
+    // 走査線とずれ（書き換えの痕）
+    ctx.fillStyle = "rgba(224,53,43,0.06)";
+    for (var y = 0; y < H; y += 6) ctx.fillRect(0, y, W, 2);
     for (var i = 0; i < 9; i++) {
-      var gy = 260 + Math.random() * (H - 520);
-      ctx.fillStyle = i % 2 ? "rgba(196,56,43,0.18)" : "rgba(40,140,180,0.12)";
+      var gy = 120 + Math.random() * (H - 240);
+      ctx.fillStyle = i % 2 ? "rgba(224,53,43,0.22)" : "rgba(120,200,230,0.14)";
       ctx.fillRect(0, gy, W, 4 + Math.random() * 14);
     }
 
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
 
-    // ヘッダ
-    ctx.fillStyle = SHU;
-    ctx.font = font(800, 34);
-    spaced(ctx, "改 竄 済", cx, 168, 28, "center");
-    ctx.fillStyle = INK;
-    ctx.font = font(700, 28);
-    spaced(ctx, S.name, cx, 218, 12, "center");
+    // マーク（ずらし二重刷り）
+    if (mark) {
+      ctx.globalAlpha = 0.35;
+      ctx.drawImage(mark, cx - 150 - 14, 60, 300, 300);
+      ctx.drawImage(mark, cx - 150 + 14, 64, 300, 300);
+      ctx.globalAlpha = 1;
+      ctx.drawImage(mark, cx - 150, 62, 300, 300);
+    }
 
-    // 相（ずらし二重刷り）
+    ctx.fillStyle = HOT;
+    ctx.font = font(800, 40);
+    spaced(ctx, "改 竄 済", cx, 430, 28, "center");
+
+    // 相
+    ctx.fillStyle = LIGHT;
     ctx.globalAlpha = 0.6;
-    ctx.font = font(700, 32);
-    spaced(ctx, "あなたの相", cx, 360, 12, "center");
+    ctx.font = font(700, 30);
+    spaced(ctx, "あなたの相", cx, 530, 12, "center");
     ctx.globalAlpha = 1;
-    var souSize = fit(ctx, d.sou, 800, 280, W - 260);
+    var souSize = fit(ctx, d.sou, 800, 230, W - 260);
     ctx.font = font(800, souSize);
-    var sy = 380 + souSize * 1.02;
-    ctx.fillStyle = "rgba(40,140,180,0.55)";
+    var sy = 550 + souSize;
+    ctx.fillStyle = CYAN;
     spaced(ctx, d.sou, cx - 10, sy, souSize * 0.08, "center");
-    ctx.fillStyle = "rgba(196,56,43,0.7)";
+    ctx.fillStyle = "rgba(224,53,43,0.85)";
     spaced(ctx, d.sou, cx + 10, sy + 4, souSize * 0.08, "center");
-    ctx.fillStyle = INK;
+    ctx.fillStyle = LIGHT;
     spaced(ctx, d.sou, cx, sy, souSize * 0.08, "center");
 
     // 取り消された兆
-    var ky = 900;
-    ctx.fillStyle = INK;
+    var ky = 940;
+    ctx.fillStyle = LIGHT;
     ctx.globalAlpha = 0.45;
     ctx.font = font(700, 30);
     spaced(ctx, "引いた兆", cx, ky, 12, "center");
-    var kSize = fit(ctx, d.kizashi, 800, 96, W - 320);
+    var kSize = fit(ctx, d.kizashi, 800, 90, W - 320);
     ctx.font = font(800, kSize);
     var kw = ctx.measureText(d.kizashi).width + (d.kizashi.length - 1) * 10;
     spaced(ctx, d.kizashi, cx, ky + 20 + kSize, 10, "center");
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = SHU; ctx.lineWidth = 9;
+    ctx.strokeStyle = HOT; ctx.lineWidth = 9;
     ctx.beginPath();
     ctx.moveTo(cx - kw / 2 - 30, ky + 20 + kSize * 0.62);
     ctx.lineTo(cx + kw / 2 + 30, ky + 20 + kSize * 0.5);
     ctx.stroke();
 
-    ctx.fillStyle = SHU;
+    ctx.fillStyle = HOT;
     ctx.font = font(800, 52);
-    ctx.fillText("「この兆は、誤りでした。」", cx, ky + 210);
+    ctx.fillText("「この兆は、誤りでした。」", cx, ky + 200);
 
     // 新しい神託
-    var oy = 1270;
-    ctx.fillStyle = INK;
+    var oy = 1290;
+    ctx.fillStyle = LIGHT;
     ctx.font = font(700, 30);
     spaced(ctx, "新しい神託", cx, oy, 12, "center");
     ctx.font = font(800, 60);
@@ -476,7 +472,7 @@
     lines.forEach(function (ln, i) { ctx.fillText(ln, cx, oy + 100 + i * 88); });
 
     // 心付け
-    var my = 1680;
+    var my = 1700;
     ctx.textAlign = "left";
     ctx.font = font(700, 30);
     ctx.fillText("心付け", 120, my - 60);
@@ -489,19 +485,17 @@
     ctx.textAlign = "center";
 
     // 大きな朱印
-    ctx.globalAlpha = 0.88;
-    seal(ctx, "改竄", W - 250, my - 10, 260, SHU, -0.14);
-    ctx.globalAlpha = 1;
+    seal(ctx, "改竄", W - 250, my - 10, 260, HOT, -0.14);
 
     // フッタ
-    ctx.fillStyle = INK;
-    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = LIGHT;
+    ctx.globalAlpha = 0.55;
     ctx.font = font(500, 24);
-    var foot = (d.name ? d.name + "　" : "") + S.event + "　" + S.className;
-    spaced(ctx, foot, cx, H - 72, 4, "center");
+    var foot = (d.name ? d.name + "　" : "") + S.name + "　" + S.event + "　" + S.className;
+    spaced(ctx, foot, cx, H - 64, 4, "center");
     ctx.globalAlpha = 1;
 
-    noise(ctx, 0.07);
+    noise(ctx, 0.06);
   }
 
   /* ============================================================
@@ -531,10 +525,18 @@
       : Promise.resolve();
     var timeout = new Promise(function (res) { setTimeout(res, 4000); });
 
-    return Promise.race([fontsReady, timeout]).then(function () {
+    var markReady = new Promise(function (res) {
+      var img = new Image();
+      img.onload = function () { res(img); };
+      img.onerror = function () { res(null); };
+      img.src = "assets/mark-alpha.webp";
+    });
+
+    return Promise.all([Promise.race([fontsReady, timeout]), markReady]).then(function (r) {
+      var mark = r[1];
       var cv = $("cv"), ctx = cv.getContext("2d");
       ctx.clearRect(0, 0, W, H);
-      if (rank.id === "kaizan") drawKaizan(ctx, data); else drawNormal(ctx, data, rank);
+      if (rank.id === "kaizan") drawKaizan(ctx, data, mark); else drawNormal(ctx, data, rank, mark);
       return new Promise(function (res) { cv.toBlob(res, "image/png"); });
     }).then(function (blob) {
       currentBlob = blob;

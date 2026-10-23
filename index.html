@@ -4,12 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="収穫祭2026 2年C組 — 占い師は本に書かれた神託を読み上げる。ただし、心付けの額で読み方が変わる。">
-  <meta name="theme-color" content="#0b0908">
+  <meta name="theme-color" content="#fefefc">
   <!-- OGP -->
   <meta property="og:type"        content="website">
   <meta property="og:title"       content="縁ノ神託所 — 収穫祭2026 2年C組">
-  <meta property="og:description" content="神託は、心付け次第。ミニゲームで縁を稼ぎ、占い師に渡せ。">
-  <meta name="twitter:card"       content="summary">
+  <meta property="og:description" content="運命、賄賂で買いませんか？ ミニゲームで縁を稼ぎ、占い師に心付けを渡せ。">
+  <meta property="og:image"       content="assets/ogp.jpg">
+  <meta name="twitter:card"       content="summary_large_image">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <title>縁ノ神託所 — 収穫祭2026 2年C組</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,20 +25,21 @@
 
     /* ============================================================
        VARIABLES
+       ロゴの色から取っている（紙・墨・賄賂の赤・布の紫・水晶の水色）
     ============================================================ */
     :root {
-      --bg:       #0b0908;
-      --bg2:      #13100d;
-      --bg3:      #1b1612;
-      --text:     #e9e1d3;
-      --muted:    #9c9182;
-      --faint:    #6a6157;
-      --line:     rgba(233, 225, 211, 0.12);
-      --gold:     #c8a35a;
-      --gold-dim: rgba(200, 163, 90, 0.35);
-      --paper:    #e6d9bf;
-      --paper-ink:#2b2119;
-      --shu:      #c4382b;
+      --bg:       #fefefc;
+      --bg2:      #f5f3ee;
+      --ink:      #1c1a1b;
+      --text:     #1c1a1b;
+      --muted:    #5c5658;
+      --faint:    #9a9396;
+      --line:     rgba(28, 26, 27, 0.12);
+      --red:      #9f1111;
+      --red-soft: rgba(159, 17, 17, 0.28);
+      --plum:     #663661;
+      --sky:      #d6e8ef;
+      --paper-shadow: 0 1px 0 rgba(28, 26, 27, 0.05), 0 14px 28px -18px rgba(60, 30, 55, 0.35);
       --mincho:   "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
                   "YuMincho", "Noto Serif JP", serif;
       --gothic:   -apple-system, BlinkMacSystemFont, "Hiragino Sans",
@@ -67,13 +71,14 @@
       inset: 0;
       z-index: 1000;
       pointer-events: none;
-      opacity: 0.06;
+      opacity: 0.05;
+      mix-blend-mode: multiply;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
 
     a { color: inherit; }
 
-    ::selection { background: var(--gold); color: var(--bg); }
+    ::selection { background: var(--red); color: var(--bg); }
 
     .wrap {
       width: 100%;
@@ -83,21 +88,23 @@
     }
 
     .s { padding: 120px 0; border-top: 1px solid var(--line); }
+    .s.alt { background: var(--bg2); }
 
     .eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 12px;
       font-size: 12px;
+      font-weight: 600;
       letter-spacing: 0.32em;
-      color: var(--gold);
+      color: var(--red);
       margin-bottom: 24px;
     }
     .eyebrow::before {
       content: "";
       width: 28px;
-      height: 1px;
-      background: var(--gold);
+      height: 2px;
+      background: var(--red);
     }
 
     .h2 {
@@ -136,34 +143,39 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 24px;
-      background: rgba(11, 9, 8, 0);
+      background: rgba(254, 254, 252, 0);
       border-bottom: 1px solid transparent;
       transition: background 0.5s ease, border-color 0.5s ease;
     }
     #nav.solid {
-      background: rgba(11, 9, 8, 0.82);
+      background: rgba(254, 254, 252, 0.86);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom-color: var(--line);
     }
 
     .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-family: var(--mincho);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 16px;
       letter-spacing: 0.12em;
       text-decoration: none;
     }
+    .nav-logo img { width: 30px; height: 30px; }
 
     .nav-links { display: flex; gap: 22px; list-style: none; }
     .nav-links a {
       font-size: 12px;
+      font-weight: 600;
       letter-spacing: 0.14em;
       color: var(--muted);
       text-decoration: none;
       transition: color 0.3s;
     }
-    .nav-links a:hover { color: var(--text); }
+    .nav-links a:hover { color: var(--red); }
 
     @media (max-width: 720px) {
       .nav-links { display: none; }
@@ -174,58 +186,29 @@
     ============================================================ */
     #hero {
       position: relative;
-      height: 100svh;
-      min-height: 640px;
+      min-height: 100svh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 72px 24px 88px;
       overflow: hidden;
-      background: radial-gradient(ellipse at 50% 110%, #2a1a0e 0%, var(--bg) 60%);
-    }
-
-    /* 蝋燭の明かり */
-    .hero-glow {
-      position: absolute;
-      left: 50%;
-      bottom: -20%;
-      width: 120vmax;
-      height: 120vmax;
-      transform: translateX(-50%);
-      background: radial-gradient(circle, rgba(214, 140, 58, 0.22) 0%, rgba(214, 140, 58, 0.06) 30%, transparent 60%);
-      animation: flicker 5s infinite ease-in-out;
-      pointer-events: none;
-    }
-    @keyframes flicker {
-      0%, 100% { opacity: 1;    transform: translateX(-50%) scale(1); }
-      20%      { opacity: 0.82; transform: translateX(-50%) scale(0.98); }
-      45%      { opacity: 0.95; transform: translateX(-50%) scale(1.02); }
-      60%      { opacity: 0.78; transform: translateX(-50%) scale(0.99); }
-      80%      { opacity: 0.92; transform: translateX(-50%) scale(1.01); }
     }
 
     .hero-inner {
-      position: relative;
       display: flex;
-      flex-direction: row-reverse;
-      align-items: flex-start;
-      gap: clamp(28px, 6vw, 72px);
-      padding-bottom: 40px;
+      align-items: center;
+      gap: clamp(24px, 5vw, 64px);
     }
 
-    .hero-title {
-      writing-mode: vertical-rl;
-      font-family: var(--mincho);
-      font-weight: 800;
-      font-size: clamp(58px, 11vw, 120px);
-      line-height: 1;
-      letter-spacing: 0.14em;
-      text-shadow: 0 0 40px rgba(214, 140, 58, 0.25);
+    .hero-logo {
+      width: min(600px, 52vw);
+      height: auto;
+      aspect-ratio: 1;
+      animation: settle 1.4s var(--ease) both;
     }
-    .hero-title .no {
-      font-size: 0.55em;
-      color: var(--gold);
-      letter-spacing: 0;
-      margin: 0.1em 0;
+    @keyframes settle {
+      from { opacity: 0; transform: translateY(16px) rotate(-1deg); }
+      to   { opacity: 1; transform: none; }
     }
 
     .hero-side {
@@ -233,22 +216,24 @@
       flex-direction: column;
       align-items: center;
       gap: 28px;
-      padding-top: 0.6em;
     }
     .hero-side-text {
       writing-mode: vertical-rl;
       display: flex;
       gap: 18px;
     }
-    .hero-tagline {
+    .hero-title {
+      font-family: var(--mincho);
+      font-weight: 800;
+      font-size: clamp(44px, 6.4vw, 76px);
+      line-height: 1;
+      letter-spacing: 0.14em;
+    }
+    .hero-title .no { font-size: 0.55em; color: var(--red); letter-spacing: 0; margin: 0.1em 0; }
+    .hero-meta {
+      padding-top: 0.4em;
       font-family: var(--mincho);
       font-weight: 700;
-      font-size: clamp(18px, 2.6vw, 24px);
-      letter-spacing: 0.3em;
-    }
-    .hero-meta {
-      font-family: var(--mincho);
-      font-weight: 500;
       font-size: 13px;
       letter-spacing: 0.3em;
       color: var(--muted);
@@ -256,24 +241,23 @@
     }
 
     .hero-seal {
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       display: grid;
       place-items: center;
-      border: 2px solid var(--shu);
-      color: var(--shu);
+      border: 2px solid var(--red);
+      color: var(--red);
       font-family: var(--mincho);
       font-weight: 800;
       font-size: 12px;
       line-height: 1.1;
       text-align: center;
       transform: rotate(-8deg);
-      opacity: 0.85;
     }
 
     .scroll-cue {
       position: absolute;
-      bottom: 28px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -281,6 +265,7 @@
       align-items: center;
       gap: 10px;
       font-size: 10px;
+      font-weight: 600;
       letter-spacing: 0.4em;
       color: var(--faint);
       text-decoration: none;
@@ -288,7 +273,7 @@
     .scroll-cue::after {
       content: "";
       width: 1px;
-      height: 44px;
+      height: 40px;
       background: linear-gradient(var(--faint), transparent);
       animation: drip 2.4s infinite var(--ease);
       transform-origin: top;
@@ -299,13 +284,24 @@
       100% { transform: scaleY(1); opacity: 0; }
     }
 
+    @media (max-width: 720px) {
+      #hero { min-height: 0; padding: 64px 16px 96px; }
+      .hero-inner { flex-direction: column; gap: 8px; }
+      .hero-logo { width: 100%; max-width: 440px; }
+      .hero-side { flex-direction: row; align-items: center; gap: 18px; }
+      .hero-side-text { writing-mode: horizontal-tb; flex-direction: column; gap: 4px; align-items: center; }
+      .hero-title { font-size: 34px; letter-spacing: 0.1em; }
+      .hero-title .no { margin: 0 0.05em; }
+      .hero-meta { padding-top: 0; font-size: 12px; text-orientation: mixed; }
+    }
+
     /* ============================================================
        ABOUT
     ============================================================ */
     #about .h2 { max-width: 15em; }
     #about .h2 em {
       font-style: normal;
-      color: var(--gold);
+      color: var(--red);
     }
 
     .about-grid {
@@ -326,7 +322,7 @@
       font-weight: 800;
       font-size: 44px;
       line-height: 1.2;
-      color: var(--gold);
+      color: var(--plum);
     }
     .about-num small { font-size: 16px; margin-left: 4px; color: var(--text); }
     .about-label { margin-top: 10px; font-size: 14px; color: var(--muted); }
@@ -349,25 +345,24 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 16px;
-      counter-reset: step;
     }
     .flow-item {
       position: relative;
       padding: 28px 22px 26px;
-      background: var(--bg2);
-      border: 1px solid var(--line);
+      background: var(--bg);
+      box-shadow: var(--paper-shadow);
     }
     .flow-kanji {
       font-family: var(--mincho);
       font-weight: 800;
       font-size: 15px;
-      color: var(--gold);
+      color: var(--red);
       letter-spacing: 0.2em;
     }
     .flow-title {
       margin-top: 14px;
       font-family: var(--mincho);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 24px;
       letter-spacing: 0.08em;
     }
@@ -384,10 +379,9 @@
     .booth {
       margin-top: 72px;
       padding: 40px clamp(20px, 4vw, 44px);
-      border: 1px solid var(--gold-dim);
-      background:
-        linear-gradient(180deg, rgba(200, 163, 90, 0.05), transparent 60%),
-        var(--bg);
+      background: var(--bg);
+      box-shadow: var(--paper-shadow);
+      border-top: 4px solid var(--plum);
     }
     .booth-head {
       display: flex;
@@ -398,7 +392,7 @@
     }
     .booth-title {
       font-family: var(--mincho);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 22px;
       letter-spacing: 0.08em;
     }
@@ -414,11 +408,11 @@
       flex: 1 1 0;
       min-width: 0;
       padding-top: 16px;
-      border-top: 2px solid var(--faint);
+      border-top: 3px solid var(--line);
     }
-    .tl.long { flex-grow: 5; border-top-color: var(--gold); }
-    .tl-time { font-size: 11px; letter-spacing: 0.1em; color: var(--faint); }
-    .tl.long .tl-time { color: var(--gold); }
+    .tl.long { flex-grow: 5; border-top-color: var(--red); }
+    .tl-time { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--faint); }
+    .tl.long .tl-time { color: var(--red); }
     .tl-name { margin-top: 6px; font-size: 14px; line-height: 1.6; }
 
     .reading {
@@ -430,11 +424,11 @@
       border: 1px solid var(--line);
     }
     .reading > div { background: var(--bg); padding: 22px 20px; }
-    .reading-step { font-size: 11px; letter-spacing: 0.24em; color: var(--gold); }
+    .reading-step { font-size: 11px; font-weight: 600; letter-spacing: 0.24em; color: var(--plum); }
     .reading-name {
       margin-top: 6px;
       font-family: var(--mincho);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 18px;
     }
     .reading-text { margin-top: 6px; font-size: 13px; color: var(--muted); line-height: 1.8; }
@@ -446,9 +440,9 @@
         gap: 16px;
         padding: 12px 0 12px 16px;
         border-top: none;
-        border-left: 2px solid var(--faint);
+        border-left: 3px solid var(--line);
       }
-      .tl.long { border-left-color: var(--gold); padding-top: 28px; padding-bottom: 28px; }
+      .tl.long { border-left-color: var(--red); padding-top: 28px; padding-bottom: 28px; }
       .tl-time { width: 56px; flex-shrink: 0; margin-top: 2px; }
       .tl-name { margin-top: 0; }
       .reading { grid-template-columns: 1fr; }
@@ -461,19 +455,22 @@
       margin-top: 64px;
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
+      gap: 20px;
     }
     .game {
       position: relative;
       display: flex;
       flex-direction: column;
       padding: 32px 28px 28px;
-      background: var(--bg2);
-      border: 1px solid var(--line);
-      transition: border-color 0.4s, transform 0.4s var(--ease);
+      background: var(--bg);
+      box-shadow: var(--paper-shadow);
+      transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
     }
-    .game:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
-    .game.featured { border-color: var(--gold-dim); }
+    .game:hover {
+      transform: translateY(-3px) rotate(-0.3deg);
+      box-shadow: 0 1px 0 rgba(28, 26, 27, 0.05), 0 22px 36px -20px rgba(60, 30, 55, 0.45);
+    }
+    .game.featured { border-top: 4px solid var(--red); }
 
     .game-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .game-kana { font-size: 11px; letter-spacing: 0.24em; color: var(--faint); }
@@ -489,10 +486,11 @@
       padding: 4px 10px;
       border: 1px solid var(--line);
       font-size: 11px;
+      font-weight: 600;
       letter-spacing: 0.18em;
       color: var(--muted);
     }
-    .game.featured .game-role { border-color: var(--gold); color: var(--gold); }
+    .game.featured .game-role { border-color: var(--red); background: var(--red); color: var(--bg); }
     .game-text { margin-top: 14px; font-size: 14px; color: var(--muted); flex-grow: 1; }
 
     .game-stats {
@@ -503,8 +501,8 @@
     }
     .game-stats > div { padding-top: 14px; }
     .game-stats > div + div { padding-left: 18px; margin-left: 18px; border-left: 1px solid var(--line); }
-    .stat-k { font-size: 10px; letter-spacing: 0.24em; color: var(--faint); }
-    .stat-v { margin-top: 2px; font-family: var(--mincho); font-weight: 700; font-size: 17px; line-height: 1.5; }
+    .stat-k { font-size: 10px; font-weight: 600; letter-spacing: 0.24em; color: var(--faint); }
+    .stat-v { margin-top: 2px; font-family: var(--mincho); font-weight: 800; font-size: 17px; line-height: 1.5; }
 
     .games-note {
       margin-top: 28px;
@@ -552,40 +550,41 @@
 
     .rank[data-id="mu"]  .rank-name { color: var(--faint); }
     .rank[data-id="sho"] .rank-name { color: var(--text); }
-    .rank[data-id="dai"] .rank-name { color: var(--gold); }
+    .rank[data-id="dai"] .rank-name { color: var(--plum); }
 
-    /* 改竄 — ここだけ空気が違う */
+    /* 改竄 — 白い紙の中で、ここだけ墨で塗りつぶす */
     .rank.kaizan {
       position: relative;
       margin-top: 24px;
       padding: 40px 28px;
-      border: 1px solid var(--shu);
+      border-bottom: none;
+      color: #f4efe6;
       background:
-        repeating-linear-gradient(0deg, rgba(196, 56, 43, 0.06) 0 2px, transparent 2px 6px),
-        #160b09;
+        repeating-linear-gradient(0deg, rgba(159, 17, 17, 0.12) 0 2px, transparent 2px 6px),
+        var(--ink);
       overflow: hidden;
+      box-shadow: var(--paper-shadow);
     }
     .rank.kaizan .rank-name {
-      color: var(--shu);
-      text-shadow: 2px 0 rgba(0, 200, 255, 0.0);
+      color: #e0352b;
       animation: glitch 6s infinite steps(1);
     }
-    .rank.kaizan .rank-range { color: var(--text); }
-    .rank.kaizan .rank-attitude { font-family: var(--mincho); font-weight: 700; font-size: 18px; }
+    .rank.kaizan .rank-range { color: #f4efe6; }
+    .rank.kaizan .rank-attitude { font-family: var(--mincho); font-weight: 800; font-size: 18px; }
     @keyframes glitch {
       0%, 92%, 100% { transform: none; text-shadow: none; }
-      93% { transform: translateX(-3px) skewX(-6deg); text-shadow: 3px 0 rgba(80, 200, 255, 0.5); }
-      95% { transform: translateX(2px); text-shadow: -3px 0 rgba(196, 56, 43, 0.8); }
-      97% { transform: translateX(-1px) skewX(4deg); text-shadow: 2px 0 rgba(80, 200, 255, 0.4); }
+      93% { transform: translateX(-3px) skewX(-6deg); text-shadow: 3px 0 rgba(120, 200, 230, 0.7); }
+      95% { transform: translateX(2px); text-shadow: -3px 0 rgba(224, 53, 43, 0.9); }
+      97% { transform: translateX(-1px) skewX(4deg); text-shadow: 2px 0 rgba(120, 200, 230, 0.6); }
     }
 
     .kaizan-decree {
       grid-column: 1 / -1;
       margin-top: 8px;
       padding-top: 24px;
-      border-top: 1px dashed rgba(196, 56, 43, 0.4);
+      border-top: 1px dashed rgba(224, 53, 43, 0.5);
       font-size: 14px;
-      color: var(--muted);
+      color: #b9b0a8;
     }
     .kaizan-decree q {
       display: block;
@@ -593,10 +592,10 @@
       font-family: var(--mincho);
       font-weight: 800;
       font-size: clamp(22px, 3.6vw, 30px);
-      color: var(--text);
+      color: #f4efe6;
       quotes: "「" "」";
     }
-    .kaizan-decree q s { text-decoration-color: var(--shu); text-decoration-thickness: 2px; }
+    .kaizan-decree q s { text-decoration-color: #e0352b; text-decoration-thickness: 3px; }
 
     @media (max-width: 720px) {
       .rank { grid-template-columns: 72px 1fr; gap: 6px 18px; padding: 22px 0; }
@@ -612,24 +611,25 @@
       margin-top: 64px;
       display: grid;
       grid-template-columns: 1fr 1.4fr;
-      gap: 16px;
+      gap: 24px;
     }
     .champion {
       padding: 36px 30px;
-      background: var(--paper);
-      color: var(--paper-ink);
+      background: var(--ink);
+      color: #f4efe6;
       display: flex;
       flex-direction: column;
       min-height: 280px;
+      box-shadow: var(--paper-shadow);
     }
-    .champion-label { font-size: 11px; letter-spacing: 0.3em; color: #7a6650; }
+    .champion-label { font-size: 11px; font-weight: 600; letter-spacing: 0.3em; color: #9a9396; }
     .champion-title {
       margin-top: 18px;
       font-family: var(--mincho);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 14px;
       letter-spacing: 0.14em;
-      color: var(--shu);
+      color: #e0352b;
     }
     .champion-name {
       margin-top: 4px;
@@ -649,12 +649,11 @@
       font-variant-numeric: tabular-nums;
     }
     .champion-amount small { font-size: 18px; margin-left: 4px; }
-    .champion.empty .champion-name { font-size: 22px; color: #7a6650; }
+    .champion.empty .champion-name { font-size: 22px; color: #9a9396; }
 
     .board {
       list-style: none;
       border-top: 1px solid var(--line);
-      counter-reset: pos 1;
     }
     .board li {
       display: grid;
@@ -665,10 +664,10 @@
       border-bottom: 1px solid var(--line);
       font-variant-numeric: tabular-nums;
     }
-    .board .pos { font-family: var(--mincho); font-weight: 700; color: var(--faint); }
+    .board .pos { font-family: var(--mincho); font-weight: 800; color: var(--faint); }
     .board .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .board .amt { font-family: var(--mincho); font-weight: 700; }
-    .board .amt.kz { color: var(--shu); }
+    .board .amt { font-family: var(--mincho); font-weight: 800; }
+    .board .amt.kz { color: var(--red); }
     .board li.board-empty { display: block; padding: 28px 4px; color: var(--muted); font-size: 14px; }
     .board-updated { margin-top: 16px; font-size: 12px; color: var(--faint); letter-spacing: 0.08em; }
 
@@ -694,7 +693,7 @@
       padding: 16px 0;
       border-bottom: 1px solid var(--line);
     }
-    .info-dl dt { font-size: 12px; letter-spacing: 0.2em; color: var(--gold); padding-top: 3px; }
+    .info-dl dt { font-size: 12px; font-weight: 600; letter-spacing: 0.2em; color: var(--red); padding-top: 3px; }
     .info-dl dd { font-size: 15px; }
 
     .rules { list-style: none; counter-reset: rule; }
@@ -711,13 +710,13 @@
       left: 0;
       top: 0;
       font-family: var(--mincho);
-      font-weight: 700;
-      color: var(--gold);
+      font-weight: 800;
+      color: var(--red);
     }
-    .rules strong { color: var(--text); font-weight: 600; }
+    .rules strong { color: var(--text); font-weight: 700; }
     .rules-title {
       font-family: var(--mincho);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 20px;
       letter-spacing: 0.1em;
       margin-bottom: 20px;
@@ -731,11 +730,12 @@
        RESULT CTA / FOOTER
     ============================================================ */
     #result-cta {
-      padding: 120px 0;
+      padding: 100px 0 120px;
       text-align: center;
       border-top: 1px solid var(--line);
-      background: radial-gradient(ellipse at 50% 100%, #24170c 0%, var(--bg) 70%);
+      background: var(--bg2);
     }
+    .cta-mark { width: 160px; height: 160px; margin: 0 auto 8px; display: block; }
     #result-cta .h2 { font-size: clamp(26px, 4.4vw, 40px); }
     #result-cta p { margin-top: 18px; color: var(--muted); font-size: 14px; }
 
@@ -745,22 +745,23 @@
       gap: 10px;
       margin-top: 36px;
       padding: 16px 36px;
-      border: 1px solid var(--gold);
-      color: var(--gold);
+      background: var(--red);
+      color: var(--bg);
       font-family: var(--mincho);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 16px;
       letter-spacing: 0.2em;
       text-decoration: none;
-      transition: background 0.3s, color 0.3s;
+      box-shadow: var(--paper-shadow);
+      transition: background 0.3s, transform 0.3s var(--ease);
     }
-    .btn:hover { background: var(--gold); color: var(--bg); }
+    .btn:hover { background: var(--ink); transform: translateY(-2px); }
 
     footer {
       padding: 36px 0 44px;
-      border-top: 1px solid var(--line);
+      background: var(--ink);
       font-size: 12px;
-      color: var(--faint);
+      color: #9a9396;
       letter-spacing: 0.08em;
     }
     footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; }
@@ -783,7 +784,7 @@
      NAV
 ============================================================ -->
 <nav id="nav">
-  <a href="#hero" class="nav-logo" data-site="name">縁ノ神託所</a>
+  <a href="#hero" class="nav-logo"><img src="assets/favicon.png" alt=""><span data-site="name">縁ノ神託所</span></a>
   <ul class="nav-links">
     <li><a href="#flow">遊び方</a></li>
     <li><a href="#games">縁を稼ぐ</a></li>
@@ -797,12 +798,11 @@
      HERO
 ============================================================ -->
 <section id="hero">
-  <div class="hero-glow"></div>
   <div class="hero-inner">
-    <h1 class="hero-title">縁<span class="no">ノ</span>神託所</h1>
+    <img class="hero-logo" src="assets/logo.webp" width="1000" height="1000" alt="運命、賄賂で買いませんか？">
     <div class="hero-side">
       <div class="hero-side-text">
-        <p class="hero-tagline" data-site="tagline">神託は、心付け次第。</p>
+        <h1 class="hero-title">縁<span class="no">ノ</span>神託所</h1>
         <p class="hero-meta"><span data-site="event">収穫祭 2026</span>　<span data-site="className">2年C組</span></p>
       </div>
       <div class="hero-seal" aria-hidden="true">二年<br>C組</div>
@@ -844,7 +844,7 @@
 <!-- ============================================================
      FLOW
 ============================================================ -->
-<section id="flow" class="s">
+<section id="flow" class="s alt">
   <div class="wrap">
     <p class="eyebrow reveal">遊び方</p>
     <h2 class="h2 reveal">稼いで、渡して、<br>告げられる。</h2>
@@ -908,7 +908,7 @@
 <!-- ============================================================
      GAMES
 ============================================================ -->
-<section id="games" class="s">
+<section id="games" class="s alt">
   <div class="wrap">
     <p class="eyebrow reveal">縁を稼ぐ</p>
     <h2 class="h2 reveal">好きなだけ挑める。<br>増えるとは、限らない。</h2>
@@ -939,7 +939,7 @@
 <!-- ============================================================
      BANZUKE
 ============================================================ -->
-<section id="banzuke" class="s">
+<section id="banzuke" class="s alt">
   <div class="wrap">
     <p class="eyebrow reveal">番付</p>
     <h2 class="h2 reveal">稼いだ額ではなく、<br>渡した額で決まる。</h2>
@@ -998,6 +998,7 @@
 ============================================================ -->
 <section id="result-cta">
   <div class="wrap">
+    <img class="cta-mark reveal" src="assets/mark-alpha.webp" width="600" height="600" alt="">
     <h2 class="h2 reveal">結果の紙を、お持ちですか。</h2>
     <p class="reveal">紙のQRを読み込むか、紙に書かれた番号を入力すると、あなたの神託が一枚の画像になります。</p>
     <a href="share.html" class="btn reveal">神託を受け取る</a>
