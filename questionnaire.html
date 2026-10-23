@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>質問票 — 運命、賄賂で買いませんか？</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       受付で配る質問票。A4縦・1枚。印刷して使う。
+       質問文は oracle.js から読むので、文を直すとここも変わる。
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #1c1a1b; --muted: #6b6466; --red: #9f1111; --line: #cfcac6;
+      --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+      --gothic: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif;
+    }
+    @page { size: A4; margin: 12mm 14mm; }
+    body { font-family: var(--gothic); color: var(--ink); background: #e9e7e6; line-height: 1.5; }
+    .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 12mm 14mm; background: #fff; }
+    @media print { body { background: #fff; } .sheet { width: auto; min-height: 0; margin: 0; padding: 0; } .noprint { display: none; } }
+    .noprint { text-align: center; padding: 14px; font-size: 13px; color: var(--muted); }
+    .noprint button { font: inherit; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--ink); background: #fff; cursor: pointer; margin-left: 8px; }
+
+    .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+    .title { font-family: var(--mincho); font-weight: 800; font-size: 20px; }
+    .title small { display: block; font-family: var(--gothic); font-weight: 700; font-size: 10px; letter-spacing: 0.2em; color: var(--red); }
+    .fields { display: flex; gap: 14px; font-size: 11px; }
+    .fields div { display: flex; align-items: flex-end; gap: 6px; }
+    .fields span { display: inline-block; width: 34mm; border-bottom: 1px solid var(--ink); height: 7mm; }
+
+    .intro { margin: 8px 0 4px; font-size: 11px; color: var(--muted); }
+    .intro b { color: var(--ink); }
+
+    .group { margin-top: 8px; }
+    .group h2 { font-family: var(--mincho); font-weight: 800; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+    .group h2 small { font-family: var(--gothic); font-weight: 400; font-size: 10px; color: var(--muted); margin-left: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 5px 4px; border-bottom: 1px solid var(--line); font-size: 12px; vertical-align: middle; }
+    td.n { width: 6mm; color: var(--muted); font-size: 10px; }
+    td.s { width: 58mm; text-align: right; white-space: nowrap; }
+    .c { display: inline-grid; place-items: center; width: 7mm; height: 7mm; margin-left: 2.5mm; border: 1px solid var(--ink); border-radius: 50%; font-family: var(--mincho); font-weight: 700; font-size: 11px; }
+    .cap { display: flex; justify-content: flex-end; gap: 0; font-size: 9px; color: var(--muted); padding: 2px 4px 0; }
+    .cap span { width: 9.5mm; text-align: center; }
+    .cap span.l { margin-right: auto; width: auto; }
+    .foot { margin-top: 10px; font-size: 10px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; display: flex; justify-content: space-between; }
+  </style>
+  <script src="config.js"></script>
+  <script src="oracle.js"></script>
+</head>
+<body>
+<p class="noprint">A4で印刷してください。<button onclick="print()">印刷する</button></p>
+<div class="sheet">
+  <div class="head">
+    <div class="title"><small>質問票</small><span data-site="name">運命、賄賂で買いませんか？</span></div>
+    <div class="fields">
+      <div>番号<span></span></div>
+      <div>ニックネーム<span></span></div>
+    </div>
+  </div>
+  <p class="intro">それぞれの文が自分にどれくらい当てはまるか、<b>1（全く違う）〜 5（その通り）</b>のどれかに○をつけてください。深く考えず、最初に浮かんだ数字で。<b>番付にはニックネームで載ります。本名は書かないでください。</b></p>
+
+  <div class="group">
+    <h2>一<small>あなたの在り方について</small></h2>
+    <table id="t-judge"></table>
+  </div>
+  <div class="group">
+    <h2>二<small>正直に</small></h2>
+    <table id="t-mention"></table>
+  </div>
+
+  <p class="foot"><span>答えは占いのためにだけ使い、終演後に処分します。</span><span><span data-site="event">収穫祭 2026</span>　<span data-site="className">2年C組</span></span></p>
+</div>
+<script>
+(function () {
+  var S = window.SITE, O = window.ORACLE;
+  document.querySelectorAll("[data-site]").forEach(function (n) { var v = S[n.dataset.site]; if (v != null) n.textContent = v; });
+  function fill(id, qs, offset) {
+    var t = document.getElementById(id);
+    qs.forEach(function (q, i) {
+      var tr = document.createElement("tr");
+      var n = document.createElement("td"); n.className = "n"; n.textContent = offset + i + 1;
+      var x = document.createElement("td"); x.textContent = q.text;
+      var s = document.createElement("td"); s.className = "s";
+      for (var v = 1; v <= 5; v++) { var c = document.createElement("span"); c.className = "c"; c.textContent = v; s.appendChild(c); }
+      tr.appendChild(n); tr.appendChild(x); tr.appendChild(s);
+      t.appendChild(tr);
+    });
+  }
+  fill("t-judge", O.JUDGE, 0);
+  fill("t-mention", O.MENTION, O.JUDGE.length);
+})();
+</script>
+</body>
+</html>
