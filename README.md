@@ -1,6 +1,6 @@
 # 縁ノ神託所 — 収穫祭2026 2年C組 公式サイト
 
-ビルド不要の静的サイト。GitHub Pages にそのまま置ける。
+ビルド不要の静的サイト。Cloudflare Pages で公開する。
 
 | ファイル | 中身 |
 | --- | --- |
@@ -12,8 +12,19 @@
 
 ## 公開する
 
-GitHub の Settings → Pages → Branch を `main` / `(root)` にして保存。
-数分後に `https://tskoizumi.github.io/KeioShiki_harvest_2C2026/` で見られる。
+Cloudflare ダッシュボード → Workers & Pages → 作成 → Pages → Git に接続 → このリポジトリを選び、次の設定で保存。
+
+| 項目 | 値 |
+| --- | --- |
+| フレームワークプリセット | なし |
+| ビルドコマンド | （空欄） |
+| ビルド出力ディレクトリ | `/` |
+| 本番ブランチ | `main` |
+
+`https://<プロジェクト名>.pages.dev/` で公開される。以後 `main` に push するたびに自動で再デプロイされる（番付・閾値の更新もこれで反映）。
+`main` 以外のブランチに push するとプレビュー用の別URLが出るので、大きな変更はそちらで確かめてから `main` に入れる。
+
+**QRを刷ったあとは公開先（プロジェクト名）を変えないこと。** 変えると刷ったQRが全部読めなくなる。
 
 ## よく触る設定（`config.js`）
 
@@ -44,7 +55,7 @@ GitHub の Settings → Pages → Branch を `main` / `(root)` にして保存�
 QRの中身は次のURL。`id` が結果の紙の番号。
 
 ```
-https://tskoizumi.github.io/KeioShiki_harvest_2C2026/share.html?id=番号
+https://<プロジェクト名>.pages.dev/share.html?id=番号
 ```
 
 - **番号は連番にしない**。`0001, 0002…` だと他人の結果をURLの書き換えで覗ける。`K7Q2XM` のようなランダムな英数字6桁を事前に作って紙に刷り、その番号とデータを紐づける。
