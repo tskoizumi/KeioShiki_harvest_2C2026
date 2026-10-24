@@ -1,55 +1,43 @@
 # 技術資料
 
-収穫祭2026 2年C組「運命、賄賂で買いませんか？」公式サイトの技術的なことを、ここに全部まとめる。
-一緒に開発する人は、最初にこれを読めば全体がわかるようにしてある。運用の手順（番付の更新や当日の流れ）は [README](../README.md) の方に書いてある。
+収穫祭2026 2年C組「運命、賄賂で買いませんか？」公式サイトの技術的なことをまとめる。
+開発のルールと担当は [README](../README.md) に書いてある。
 
 - リポジトリ: `tskoizumi/KeioShiki_harvest_2C2026`（**公開リポジトリ**、本番ブランチ `main`）
 - 公開先: Cloudflare Pages（`https://<プロジェクト名>.pages.dev/`）。独自ドメインは未購入（候補: `moneytalks-uranai.com`）
-- 公式アカウント: Instagram `@keioshiki2c79`／サイト制作: `@tskoizumi`
+- 公式アカウント: Instagram `@keioshiki2c79`／LP制作: `@tskoizumi`
 
 ---
 
-## 1. 全体像
+## 1. 担当と全体像
 
-```
- 受付                     占いブース                          客のスマホ
-┌──────────────┐        ┌──────────────────────┐          ┌──────────────────────┐
-│ 質問票(紙)    │──答え──▶│ teller.html           │          │ index.html            │
-│ questionnaire │        │  質問の答え・兆・心付け │          │  公式サイト・番付      │
-│ .html で印刷  │        │  → oracle.js が台本   │          └──────────▲───────────┘
-│ 番号入りの紙  │        │  → 「記録する」        │                     │ 番付
-└──────────────┘        └──────────┬───────────┘                     │
-                                   │ 1行 (id,name,sou,kizashi,amount,oracle)
-                                   ▼                                  │
-                        ┌──────────────────────┐          ┌──────────┴───────────┐
-                        │ 結果データ            │◀──id────│ share.html?id=番号    │
-                        │  今: results.json か  │          │  結果の紙のQRから開く │
-                        │  スプレッドシートCSV  │──1件───▶│  → シェア画像を生成   │
-                        │  今後: QRシステム(API) │          └──────────────────────┘
-                        └──────────────────────┘
-```
+| 部分 | 担当 | 状態 |
+| --- | --- | --- |
+| LP（`index.html` `config.js` `assets/`） | `tskoizumi` | できている |
+| QR・番号の発行と印刷 | `soma1218` | これから |
+| 結果ページ（QRの行き先、シェア画像） | `soma1218` | これから |
+| 占い師の画面・質問票・占いの中身 | `soma1218` | これから |
+| 結果と番付のデータの保存 | `soma1218` | これから |
 
-1. 受付で、番号入りの結果の紙と質問票を渡す
-2. ブースで占い師が `teller.html` に答え・兆・心付けを入れると、`oracle.js` が台本を組み立てる
-3. 読み終えたら記録する。その1行が結果データになる
-4. 客は結果の紙のQRで `share.html?id=番号` を開き、ブラウザの中でシェア画像を作って保存・シェアする
-5. 心付けの額の上位が、トップページの番付に出る
+LPとそれ以外は、`config.js` の `resultUrl` と `rankingUrl` の2つでつながる（→ [5. LPとのつなぎ目](#5-lpとのつなぎ目)）。
 
-**今いちばん手作業が残っているのは 3 → 結果データ の部分**（書記がCSVをスプレッドシートに貼っている）。QRシステムとつなぐならここ。→ [8. QRシステムとの接続](#8-qrシステムとの接続提案)
+以前のたたき台（結果ページ・占い師画面・質問票・占いの中身・API案）は [`archive/full-system` ブランチ](https://github.com/tskoizumi/KeioShiki_harvest_2C2026/tree/archive/full-system) に残してある。そのブランチの `docs/TECHNICAL.md` に、当時の仕組みとAPI案が書いてある。
 
 ---
 
-## 2. 技術スタック
+## 2. 技術スタック（LP）
 
 | 項目 | 内容 |
 | --- | --- |
 | 構成 | 静的サイト。HTML / CSS / JavaScript だけ。**ビルドなし・依存パッケージなし** |
-| JavaScript | 素のJS（ES5相当、`var` と `function`）。各HTMLの末尾に直書き。共有部分だけ `config.js` `oracle.js` に分けている |
-| CSS | 各HTMLの `<style>` に直書き。変数（`:root` の `--paper` `--red` など）でロゴの色をそろえている |
+| JavaScript | 素のJS（ES5相当、`var` と `function`）。`index.html` の末尾に直書き。設定だけ `config.js` に分けている |
+| CSS | `index.html` の `<style>` に直書き。色は `:root` の変数でロゴにそろえている |
 | フォント | Google Fonts の Shippori Mincho B1（700・800）。本文はOS標準のゴシック |
-| 使っているブラウザ機能 | Canvas（シェア画像）、Web Share API（シェアボタン）、IntersectionObserver（浮かび上がり）、`backdrop-filter`（すりガラス）、localStorage（占い師の記録）、Clipboard API |
+| ブラウザ機能 | IntersectionObserver（浮かび上がり）、`backdrop-filter`（すりガラス）、CSSアニメーション |
 | ホスティング | Cloudflare Pages（GitHub連携、`main` へのpushで自動デプロイ） |
-| 対応 | スマホ（iPhone Safari・Android Chrome）が主。PCでも崩れない。`prefers-reduced-motion` で動きを止める |
+| 対応 | スマホが主。PCでも崩れない。`prefers-reduced-motion` で動きを止める |
+
+QR・結果まわりの技術は担当が自由に選んでいい。LP側を巻き込む変更（ビルドの追加など）だけ相談する。
 
 ---
 
@@ -57,35 +45,27 @@
 
 ```
 /
-├── index.html           公式サイト（LP）
-├── share.html           結果ページ。QRの行き先。シェア画像を生成
-├── teller.html          占い師用の画面（客には見せない）
-├── questionnaire.html   受付で配る質問票（A4印刷）
-├── config.js            サイト全体の設定。全ページが読む
-├── oracle.js            占いの中身とロジック。teller / questionnaire が読む
-├── data/
-│   ├── ranking.json     番付（スプレッドシートを使わないとき）
-│   └── results.json     結果データ（同上）。DEMO01〜03 は見本
+├── index.html           LP（公式サイト）
+├── config.js            設定。LPが読む。他のページから読んでもいい
 ├── assets/
 │   ├── logo.png         ロゴ原本（印刷用、1254px）
 │   ├── logo.webp/.jpg   ロゴ（1000px）
 │   ├── layer-ball.webp  ロゴを分解したレイヤー：水晶玉と布（1000px・背景透過）
 │   ├── layer-hand.webp  　　〃　：手と硬貨
 │   ├── layer-copy.webp  　　〃　：「運命、賄賂で買いませんか？」の文字
-│   ├── mark-alpha.webp  水晶玉と手だけのマーク（背景透過）。ナビ・シェア画像で使う
+│   ├── mark-alpha.webp  水晶玉と手だけのマーク（背景透過）
 │   ├── ogp.jpg          SNSに貼ったときの画像（1200×630）
-│   ├── favicon.png / apple-touch-icon.png
+│   └── favicon.png / apple-touch-icon.png
 ├── docs/TECHNICAL.md    この文書
-└── README.md            運用手順
+├── README.md            担当・開発のルール・運用
+└── .gitignore           秘密のファイル（.dev.vars など）を除外
 ```
 
-3枚のレイヤーは原本と同じ1000×1000の座標で切り出してあるので、重ねるだけで元のロゴに戻る（`position:absolute; inset:0` で重ねている）。
+`assets/` の画像は、QR・結果側のページやシェア画像でも自由に使っていい。
 
 ---
 
 ## 4. 公開・デプロイ
-
-### Cloudflare Pages の設定
 
 | 項目 | 値 |
 | --- | --- |
@@ -95,217 +75,112 @@
 | 本番ブランチ | `main` |
 
 - `main` にpushすると数十秒〜1分で本番に反映される
-- `main` 以外のブランチにpushすると、ブランチごとにプレビュー用のURL（`https://<ブランチ名>.<プロジェクト名>.pages.dev`）が出る。**大きな変更はブランチで作り、プレビューで確かめてから `main` に入れる**
+- `main` 以外のブランチは、プレビュー用のURL（`https://<ブランチ名>.<プロジェクト名>.pages.dev`）に出る
+- Pages Functions（`functions/` フォルダ）や D1 を足しても、このプロジェクトのまま動く。ビルドが必要な仕組みにするなら、上の設定を変えて README も直す
 
-### URLを変えてはいけない場面
-
-結果の紙のQRには `https://<ドメイン>/share.html?id=<番号>` を焼き込む。**刷ったあとにドメイン・プロジェクト名・`share.html` のファイル名・`id` というパラメータ名を変えると、刷ったQRが全部読めなくなる。** 独自ドメインを買うなら、QRを刷る前に設定まで済ませる。
-
-### 独自ドメイン（予定）
-
-- 候補は `moneytalks-uranai.com`（"money talks" の "s" をつけるかは未決）
-- Cloudflare で買えば、そのまま Pages のカスタムドメインにつなげられる
-- 独自ドメインをつないでも `pages.dev` のURLは生き続ける
-- 決まったら `index.html` の `og:image` を絶対URLにする（相対URLだと一部のSNSで画像が出ない）
+**QRに焼き込むURL（ドメイン・パス・パラメータ名）は、刷ったあとに変えると全部読めなくなる。** 独自ドメインを使うなら、刷る前につなぎ終える。ドメインが決まったら、LPの `og:image` を絶対URLにする（相対URLだと一部のSNSで画像が出ない）。
 
 ---
 
-## 5. 設定（`config.js`）
+## 5. LPとのつなぎ目
 
-`window.SITE` に全部入っている。全ページが `<script src="config.js">` で読む。
+### `resultUrl`
 
-| キー | 型 | 用途 |
-| --- | --- | --- |
-| `name` | 文字列 | 出し物名。ナビ・フッター・シェア画像・質問票に入る（トップの大きなロゴは画像なので別） |
-| `tagline` | 文字列 | 「神託は、心付け次第。」 |
-| `className` `event` | 文字列 | 「2年C組」「収穫祭 2026」 |
-| `date` `place` | 文字列 | ご案内に出る日時・場所 |
-| `instagram` | 文字列 | 公式アカウント（`@`なし）。空にするとリンクが消える |
-| `credit` | 文字列 | 制作者アカウント（`@`なし） |
-| `kaizanThreshold` | 数値 | 改竄の閾値（初期値 2000）。**当日の昼に変える可能性がある** |
-| `startingEn` | 数値 | 受付で配る縁（100） |
-| `games` | 配列 | ミニゲーム4種。`id` `name` `kana` `time` `fee` `payout` `role` `text` `featured` `enabled` |
-| `ranks` | 配列 | 心付けの位4つ。`id`（`mu` `sho` `dai` `kaizan`）`name` `min` `attitude`。改竄の下限は `kaizanThreshold` を使う |
-| `rankingCsvUrl` | 文字列 | 番付をスプレッドシートのCSVから読むときのURL。空なら `data/ranking.json` |
-| `resultsCsvUrl` | 文字列 | 結果をスプレッドシートのCSVから読むときのURL。空なら `data/results.json` |
+「神託を受け取る」ボタンの行き先。LPの2か所（ナビの赤いボタン、ページ下の「結果の紙を、お持ちですか。」セクション）に使う。
 
-あわせて2つの関数を出している。
+- 空文字のあいだは、2か所とも隠れる
+- 入れると表示され、`href` がこの値になる（例: `"share.html"`、`"/result"`、別ドメインのURLでも可）
 
-- `window.rankOf(amount)` … 心付け額から位（`ranks` の要素）を返す。サイト・シェア画像・占い師画面の判定はすべてこれ
-- `window.parseCsv(text)` … 1行目を見出しにしたオブジェクトの配列を返す（ダブルクォート対応）
+### `rankingUrl`
 
----
+番付のデータのURL。LPがページを開くたびに読みに行く（キャッシュしない）。空のあいだは「開場後に更新します」のまま。
 
-## 6. データ形式
+#### 番付のデータ
 
-### 結果（1人分）
-
-結果ページとシェア画像が必要とする項目。
-
-| 項目 | 内容 | 例 |
-| --- | --- | --- |
-| `id` | 結果の紙の番号。英数字。大文字で照合する | `K7Q2XM` |
-| `name` | ニックネーム | `ぽんず` |
-| `sou` | 相の名前 | `深海` |
-| `kizashi` | 兆の名前 | `沈黙` |
-| `amount` | 心付けの額（縁、整数） | `3200` |
-| `oracle` | シェア画像に載せる神託の一行（改竄なら新しい神託） | `沈黙は破られた。あなたは浮上する。` |
-
-位（無・小・大・改竄）は保存しない。表示するときに `amount` と `kaizanThreshold` から毎回計算する。
-
-`data/results.json` では `id` をキーにしたオブジェクト：
-
-```json
-{ "K7Q2XM": { "name": "ぽんず", "sou": "深海", "kizashi": "沈黙", "amount": 3200, "oracle": "沈黙は破られた。あなたは浮上する。" } }
-```
-
-CSV（スプレッドシート）では1行目が `id,name,sou,kizashi,amount,oracle`。
-
-### 番付
+**JSON**（先頭が `{` ならJSONとして読む）：
 
 ```json
 {
   "updatedAt": "2026-11-03T13:00:00+09:00",
   "firstTitle": "神託を買った者",
-  "entries": [ { "name": "ぽんず", "amount": 3200 } ]
+  "entries": [
+    { "name": "ぽんず", "amount": 3200 },
+    { "name": "たかし", "amount": 1800 }
+  ]
 }
 ```
 
-順不同でいい（表示側で額の降順に並べ、上位10件を出す）。CSVなら見出しは `name,amount`、任意で `title,updatedAt`（最初に値が入っている行を使う）。
-
-### 占い師の記録（`teller.html` の localStorage）
-
-キー `teller-records` に配列で保存。結果の項目に `rank`（位の名前）が足されている。
-
-```json
-[{ "id": "K7Q2XM", "name": "ぽんず", "sou": "深海", "kizashi": "沈黙", "amount": 3200, "rank": "改竄", "oracle": "…" }]
-```
-
-端末の中にしか残らない。書記が「記録」画面からCSV（`id,name,sou,kizashi,amount,oracle`、BOM付きUTF-8）を持ち出す。
-
-### 番号（id）のルール
-
-- **連番にしない。** `0001` `0002` だと他人の結果をURLの書き換えで覗ける。ランダムな英数字6桁程度
-- 紛らわしい文字（`0/O` `1/I/L`）は避けると、手入力のときに楽
-- 紙にQRと一緒に文字でも印刷する（`share.html` で手入力できる）
-
----
-
-## 7. 各ページの仕組み
-
-### `index.html`（公式サイト）
-
-上から：ヒーロー → 「神託は、心付け次第。」 → 遊び方 → ミニゲーム → 心付けの位（黒地） → 番付 → ご案内 → 結果を受け取る → フッター。
-
-- **ヒーロー**: ロゴを3枚のレイヤー（玉・手・文字）に分けて重ね、読み込み直後にCSSアニメーションで時間差で組み上げる（玉 0s → 手 0.55s → 光 1.25s → 文字 1.55s）。スクロールすると、JSで層ごとに違う速さで動かす（パララックス）。画面を固定するスクロール（sticky）は使っていない
-- **背景色の移り変わり**: `data-bg="#rrggbb"` を持つセクションの位置を `measure()` で測り、画面中央の位置から `bgAt()` で色を補間して、固定の `#bg` に塗る。境目の前後 40vh だけで色が移る。背景が暗くなるとナビも黒くなる（`.on-dark`）
-- **色のにじみ**: `#bg` の中のぼかした円4つ（`.blob`）をスクロール量に応じて漂わせる。暗い場面では赤だけ灯る
-- **ミニゲーム・心付けの位**: `config.js` の `games` `ranks` からJSで描画する。アイコンはSVGで、`#felt` フィルタ（feTurbulence＋feDisplacementMap）でフェルトの質感を出している
-- **番付**: `loadRanking()` が `rankingCsvUrl` か `data/ranking.json` を読み、`renderRanking()` で描く
-- **浮かび上がり**: `.reveal` を IntersectionObserver で監視して `.in` をつける
-- スクロール処理は `requestAnimationFrame` で間引いている。`transform` と `opacity` しか動かさない
-
-### `share.html`（結果ページ）
-
-1. `?id=` があれば `lookup(id)` で結果を探す。なければ番号入力のフォームを出す
-2. 見つかったら `render()` がフォントとマーク画像の読み込みを待ち、隠し `<canvas>`（1080×1920）に描く
-   - 無・小・大 → `drawNormal()`：白い紙。位ごとに上下の色帯と印の色が変わる
-   - 改竄 → `drawKaizan()`：黒地に赤。兆に取り消し線、「この兆は、誤りでした。」、新しい神託、大きな朱印
-3. canvas を PNG にして `<img>` に出す（長押し保存できるように）。「保存する」はダウンロード、「シェアする」は Web Share API（ファイル共有に対応していなければダウンロード）
-4. 見つからなければ「書記の入力を少し待って」と表示
-
-### `teller.html`（占い師用）
-
-黒地（暗いブース用）。4段階＋記録。
-
-1. **入力**: 番号・ニックネーム・判定用9問・言及用10問（1〜5を押す）。相は9問から自動判定、ボタンで直接指定もできる
-2. **兆**: 10枚から押す
-3. **心付け**: 額を入れると位がその場で出る
-4. **台本**: `ORACLE.compose()` の結果を表示。演じ方の指示 → 第一部〜第三部 → （改竄なら）改竄パート。最後に「シェア画像に載る一行」
-5. **記録**: 「記録する」で localStorage に保存し、1行をクリップボードにコピー。「記録」画面からCSVのコピー・ダウンロード・全消去
-
-### `questionnaire.html`（質問票）
-
-`ORACLE.JUDGE`（9問）と `ORACLE.MENTION`（10問）から表を作るだけ。A4縦1枚。質問文を `oracle.js` で直せば質問票も変わる。
-
-### `oracle.js`（占いのロジック）
-
-`window.ORACLE` に入っている。
-
-| 名前 | 中身 |
+| 項目 | 内容 |
 | --- | --- |
-| `SOU` | 相8つ。`id` `name`、3つの軸 `hot` `move` `out`（真偽）、`describe`（相の描写）、`kaizan`（改竄の新しい神託） |
-| `KIZASHI` | 兆10枚。`id` `name` `omen`（`good` `bad` `mixed`）、`base`（基本の読み）、`ending.{mu,sho,dai}`（結論）、`by.{相のid}`（相ごとの一文。8×10＝80通り） |
-| `JUDGE` | 判定用9問。`axis`（`hot` `move` `out`）と `text` |
-| `MENTION` | 言及用10問。`text`、`high`（4〜5の人へ）、`low`（1〜2の人へ） |
-| `DIRECTION` | 位ごとの演じ方。`mentions`（言及の数）と `note`（指示） |
-| `judge(answers)` | 9問の答え（1〜5）から相を返す。軸ごとに3問の合計が10以上ならその軸は真。全部3なら「種」 |
-| `pickMentions(answers, n)` | 10問の答えから、3から遠いものを n 個選び `{quote, line}` を返す |
-| `compose(sou, kizashi, rankId, mentions)` | 台本を組み立てる。返り値は `{ parts: [{title, lines:[{t, kind}]}], oracle, direction }`。`kind` は `say`（読む）`quote`（言及）`cue`（演出の指示） |
+| `updatedAt` | 更新時刻（ISO 8601）。「11月3日 13:00 更新」と日本時間で出る。なくてもいい |
+| `firstTitle` | 1位の人につける称号。なくてもいい |
+| `entries` | `name`（ニックネーム）と `amount`（心付けの額、整数）。順不同でいい。LPが額の降順に並べて上位10件を出す |
 
-位による違い：無は言及1つ・相ごとの一文なし・「以上。次の方。」。小は言及2つ。大は言及3つ・言及のたびに持ち上げ・悪い兆は「あなたの責任ではない」。改竄は小と同じに読み切ってから、改竄パートで相の `kaizan` を読み、それが `oracle`（シェア画像の一行）になる。
+**CSV**（それ以外はCSVとして読む。Googleスプレッドシートの「ウェブに公開 → CSV」のURLをそのまま入れられる）：
+
+```
+name,amount,title,updatedAt
+ぽんず,3200,神託を買った者,2026-11-03T13:00:00+09:00
+たかし,1800,,
+```
+
+`title` と `updatedAt` は、最初に値が入っている行のものを使う。`amount` の「,」などの記号は無視して数字だけ読む。
+
+- 額が `kaizanThreshold` 以上の行は赤く出る
+- 番付を「1人1回の最高額」にするか「同じニックネームの合計」にするかは、データを作る側で決める
+- 別ドメインから返す場合は、CORS（`Access-Control-Allow-Origin`）を許可しておく
+
+### `config.js` の他の値
+
+QR・結果側のページも `<script src="config.js">` で `window.SITE` を読めば、出し物名・クラス名・改竄の閾値・位の名前などをLPとそろえられる。
+
+| キー | 内容 |
+| --- | --- |
+| `name` `tagline` `className` `event` `date` `place` | 出し物の基本情報 |
+| `instagram` `credit` | アカウント（`@`なし） |
+| `kaizanThreshold` | 改竄の閾値（2000）。当日の昼に変える可能性がある |
+| `startingEn` | 受付で配る縁（100） |
+| `games` | ミニゲーム4種 |
+| `ranks` | 心付けの位4つ（`mu` `sho` `dai` `kaizan`）。`name` `min` `attitude`。改竄の下限は `kaizanThreshold` |
+| `resultUrl` `rankingUrl` | つなぎ目 |
+
+`window.parseCsv(text)` も入っている（1行目を見出しにしたオブジェクトの配列を返す）。
 
 ---
 
-## 8. QRシステムとの接続（提案）
+## 6. LPの仕組み（`index.html`）
 
-> この章はまだ実装していない。QRシステム側と相談して決めるための叩き台。
+上から：ヒーロー → 「神託は、心付け次第。」 → 遊び方 → ミニゲーム → 心付けの位（黒地） → 番付 → ご案内 → 結果を受け取る（`resultUrl` があるときだけ） → フッター。
 
-### 今どうなっているか
-
-| 場所 | 今のやり方 | 困っていること |
-| --- | --- | --- |
-| 番号の発行 | 決まっていない（ランダムな番号を事前に紙に刷る想定） | 刷る仕組みがない |
-| 結果の保存 | `teller.html` の端末内 → 書記がCSVをスプレッドシートに貼る | 手作業。貼るまでQRが開けない |
-| 結果の読み出し | `share.html` が `results.json` かスプレッドシートのCSVを丸ごと読んで探す | 全員分の結果が誰でも読める |
-| 番付 | `ranking.json` を手で書き換えてpush | 手作業 |
-
-### つなぎ方の案
-
-Cloudflare の同じ Pages プロジェクトに **Pages Functions**（このリポジトリの `functions/` フォルダ）と **D1**（データベース）を足す。サイトと同じドメインで動くので、ドメイン設定もCORSも要らない。
-
-```
-functions/
-  api/
-    results/[id].js   GET  1人分を返す
-    results.js        POST 1人分を保存する（占い師のみ）
-    ranking.js        GET  番付を返す
-```
-
-| API | 用途 | 中身 |
-| --- | --- | --- |
-| `GET /api/results/:id` | `share.html` が呼ぶ | 200: `{id,name,sou,kizashi,amount,oracle}`／404: なし |
-| `POST /api/results` | `teller.html` の「記録する」が呼ぶ | 本文は上と同じ形。ヘッダ `X-Teller-Key` に合言葉。合わなければ 401 |
-| `GET /api/ranking` | `index.html` が呼ぶ | `ranking.json` と同じ形 `{updatedAt, firstTitle, entries:[{name,amount}]}` |
-| （必要なら）`POST /api/ids` | 番号をまとめて発行してQRを刷る | QRシステム側で決める |
-
-D1のテーブル案：
-
-```sql
-CREATE TABLE results (
-  id         TEXT PRIMARY KEY,         -- 結果の紙の番号
-  name       TEXT NOT NULL,            -- ニックネーム
-  sou        TEXT NOT NULL,
-  kizashi    TEXT NOT NULL,
-  amount     INTEGER NOT NULL,
-  oracle     TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now'))
-);
-```
-
-- 合言葉は Pages の環境変数（Secret）に入れ、コードやリポジトリには書かない
-- サイト側の変更は小さい：`share.html` の `lookup()`、`teller.html` の「記録する」、`index.html` の `loadRanking()` の3か所だけ。`config.js` に `apiBase` を足し、空なら今のJSON/CSVに戻るようにすれば、APIが落ちても当日は回せる
-- 番付を「1人1回の最高額」にするか「同じニックネームの合計」にするかは未決（下の未決事項）
-
-### Cloudflare のアカウント
-
-本番は1つのアカウントにまとめる。別のアカウントのWorkerを呼ぶ形にすると、独自ドメインを片方にしかつなげない。QRシステムを作っている人は、サイトのアカウントにメンバーとして招待する（Manage Account → Members）。
+- **ヒーロー**: ロゴを3枚のレイヤー（玉・手・文字）に分けて重ね、読み込み直後にCSSアニメーションで時間差で組み上げる（玉 0s → 手 0.55s → 光 1.25s → 文字 1.55s）。スクロールすると層ごとに違う速さで動かす（パララックス）。画面を固定するスクロールは使っていない
+- **背景色の移り変わり**: `data-bg="#rrggbb"` を持つ表示中のセクションの位置を `measure()` で測り、画面中央の位置から `bgAt()` で色を補間して、固定の `#bg` に塗る。背景が暗くなるとナビも黒くなる
+- **色のにじみ**: `#bg` の中のぼかした円4つをスクロール量に応じて漂わせる。暗い場面では赤だけ灯る
+- **ミニゲーム・心付けの位**: `config.js` の `games` `ranks` から描画する。アイコンはSVGに `#felt` フィルタでフェルトの質感をつけている
+- **番付**: `loadRanking()` が `rankingUrl` を読み、`renderRanking()` で描く
+- スクロール処理は `requestAnimationFrame` で間引き、`transform` と `opacity` しか動かさない
 
 ---
 
-## 9. 一緒に開発するとき
+## 7. デザインのそろえ方
 
-### 手元で動かす
+QR・結果側のページをLPと同じ見た目にしたいときの目安。
+
+| 項目 | 値 |
+| --- | --- |
+| 紙（背景） | `#fefefc` |
+| 墨（文字） | `#1c1a1b` |
+| 賄賂の赤（強調・ボタン） | `#9f1111`（暗い背景では `#e0352b`） |
+| 布の紫 | `#663661` |
+| 薄紫・水色（にじみ） | `#d9b8dc`・`#bcdce8` |
+| 見出しの書体 | Shippori Mincho B1 の 800 |
+| 角丸 | カード 28px、ボタンは丸（999px） |
+| すりガラス | `background: rgba(255,255,255,0.55); backdrop-filter: blur(28px) saturate(170%); border: 1px solid rgba(255,255,255,0.8);` |
+
+改竄だけは黒地に赤（`#0d0b0c` と `#e0352b`）に反転させると、LPの演出と合う。
+
+---
+
+## 8. 手元で動かす
 
 ```sh
 git clone https://github.com/tskoizumi/KeioShiki_harvest_2C2026.git
@@ -313,39 +188,22 @@ cd KeioShiki_harvest_2C2026
 python3 -m http.server 8765      # → http://localhost:8765/
 ```
 
-`file://` で直接開くと `fetch`（番付・結果の読み込み）が動かないので、必ず何かのサーバーで開く。Pages Functions を足したあとは `npx wrangler pages dev .` で関数ごと動かせる。
-
-### ルール
-
-[README の「開発のルール」](../README.md#開発のルール) にまとめてある（ブランチとプルリクエスト、秘密の扱い、触る場所、変えてはいけないもの、AIを使うときの注意）。
-
-### 確認のしかた
-
-- スマホ幅（390px）とPC幅（1280px）の両方で見る
-- 端末の「視差効果を減らす」をオンにしても読めるか
-- `share.html?id=DEMO01`（小）／`DEMO02`（大）／`DEMO03`（改竄）でシェア画像の3パターンが出るか
-- `teller.html` で位を変えて台本が4パターン出るか
+`file://` で直接開くと `fetch`（番付の読み込み）が動かないので、必ず何かのサーバーで開く。Pages Functions を足したら `npx wrangler pages dev .` で関数ごと動かせる。
 
 ---
 
-## 10. 注意点
+## 9. 注意点
 
-- **このリポジトリは公開されている。** 合言葉・Cloudflareのトークン・APIキーは絶対にコミットしない。Cloudflareの環境変数（Secret）か、手元なら `.dev.vars`（`.gitignore` 済み）に入れる。一度pushすると、消しても履歴とフォークに残る
-- **コミットにメールアドレスを載せない。** GitHub の Settings → Emails で「Keep my email addresses private」をオンにし、`git config user.email` を GitHub の noreply アドレスにする
-- **データは実質公開。** `results.json` も、公開したスプレッドシートのCSVも、URLを知れば全部読める。ニックネーム以外を入れない（APIにすれば1件ずつしか返さなくなる）
-- **占い師画面と質問票は、リンクしていないだけで誰でも開ける。** URLを外に出さない
-- **縁は会場内だけの通貨**（現金・景品と交換しない）とサイトに明記している。チンチロが止められたら `config.js` の `enabled: false` で消せる
-- SNSのリンクプレビューのため、ドメインは激安TLDを避ける（`.xyz` などは弾かれることがある）
+- **このリポジトリは公開されている。** 合言葉・Cloudflareのトークン・APIキーは絶対にコミットしない。Cloudflareの環境変数（Secret）か、手元なら `.dev.vars`（`.gitignore` 済み）に入れる
+- **コミットにメールアドレスを載せない。** GitHub の Settings → Emails で「Keep my email addresses private」をオンにする
+- **縁は会場内だけの通貨**（現金・景品と交換しない）とLPに明記している。チンチロが止められたら `config.js` の `enabled: false` で消せる
+- 番付は公開される。ニックネーム以外を載せない
 
 ---
 
-## 11. 未決・TODO
+## 10. 未決・TODO
 
 - [ ] 独自ドメインを買う（`moneytalk-uranai.com` か `moneytalks-uranai.com` か）→ Pagesにつなぐ → `og:image` を絶対URLに
-- [ ] 番号の発行とQRの印刷方法（QRシステム側）
-- [ ] 結果の保存・読み出しをAPIにするか、スプレッドシート運用で行くか
-- [ ] 番付の集計方法（1人1回の最高額 or ニックネームごとの合計）
-- [ ] 本番前に `data/results.json` の `DEMO01`〜`03` を消す
+- [ ] QR・結果まわりのシステム（`soma1218`）→ できたら `resultUrl` `rankingUrl` を入れる
 - [ ] 日時を `config.js` の `date` に入れる
-- [ ] 占い師が台本をどの端末で見るか（面の下のスマホ／隣の書記）
 - [ ] 改竄の閾値（2000）を当日の縁の増え方を見て調整

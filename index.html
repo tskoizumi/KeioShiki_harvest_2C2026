@@ -64,6 +64,7 @@
       -webkit-tap-highlight-color: transparent;
     }
     a { color: inherit; }
+    [hidden] { display: none !important; }
     img { display: block; max-width: 100%; }
     ::selection { background: var(--red); color: var(--paper); }
 
@@ -632,7 +633,7 @@
       <li><a href="#info">ご案内</a></li>
     </ul>
     <a class="nav-ig" data-ig="instagram" href="#" target="_blank" rel="noopener" aria-label="Instagram"><svg><use href="#ig"/></svg></a>
-    <a href="share.html" class="pill">神託を受け取る</a>
+    <a href="#" class="pill" data-result hidden>神託を受け取る</a>
   </div>
 </nav>
 
@@ -784,12 +785,12 @@
 <!-- ============================================================
      CTA
 ============================================================ -->
-<section id="result-cta" data-bg="#eaf3f7">
+<section id="result-cta" data-bg="#eaf3f7" hidden>
   <div class="wrap">
     <img class="cta-mark reveal" src="assets/mark-alpha.webp" width="600" height="600" alt="">
     <h2 class="h2 reveal">結果の紙を、<br>お持ちですか。</h2>
     <p class="lead reveal">QRを読むと、あなたの神託が一枚の画像になります。</p>
-    <a href="share.html" class="btn reveal">神託を受け取る</a>
+    <a href="#" class="btn reveal" data-result>神託を受け取る</a>
   </div>
 </section>
 
@@ -836,6 +837,10 @@
     var handle = S[a.dataset.ig];
     if (handle) a.href = "https://www.instagram.com/" + handle + "/"; else a.remove();
   });
+  if (S.resultUrl) {
+    document.querySelectorAll("[data-result]").forEach(function (a) { a.href = S.resultUrl; a.hidden = false; });
+    document.getElementById("result-cta").hidden = false;
+  }
   document.querySelectorAll("[data-at]").forEach(function (n) {
     var handle = S[n.dataset.at];
     if (handle) n.textContent = "@" + handle;
@@ -921,23 +926,23 @@
   /* ============================================================
      番付
   ============================================================ */
+  // 番付のデータは別担当のシステムが用意する。JSON か CSV のどちらでも読む
   function loadRanking() {
-    if (S.rankingCsvUrl) {
-      return fetch(S.rankingCsvUrl, { cache: "no-store" })
-        .then(function (r) { return r.text(); })
-        .then(function (t) {
-          var rows = window.parseCsv(t), updated = "", title = "";
-          rows.forEach(function (r) {
-            if (!updated && r.updatedAt) updated = r.updatedAt;
-            if (!title && r.title) title = r.title;
-          });
-          return {
-            updatedAt: updated, firstTitle: title,
-            entries: rows.map(function (r) { return { name: r.name, amount: Number(String(r.amount).replace(/[^\d]/g, "")) || 0 }; }),
-          };
+    if (!S.rankingUrl) return Promise.resolve({ entries: [] });
+    return fetch(S.rankingUrl, { cache: "no-store" })
+      .then(function (r) { return r.text(); })
+      .then(function (t) {
+        if (/^\s*[{\[]/.test(t)) return JSON.parse(t);
+        var rows = window.parseCsv(t), updated = "", title = "";
+        rows.forEach(function (r) {
+          if (!updated && r.updatedAt) updated = r.updatedAt;
+          if (!title && r.title) title = r.title;
         });
-    }
-    return fetch("data/ranking.json", { cache: "no-store" }).then(function (r) { return r.json(); });
+        return {
+          updatedAt: updated, firstTitle: title,
+          entries: rows.map(function (r) { return { name: r.name, amount: Number(String(r.amount).replace(/[^\d]/g, "")) || 0 }; }),
+        };
+      });
   }
 
   function renderRanking(data) {
@@ -992,7 +997,8 @@
 
   function measure() {
     vh = window.innerHeight;
-    stops = Array.prototype.map.call(document.querySelectorAll("[data-bg]"), function (s) {
+    var secs = Array.prototype.filter.call(document.querySelectorAll("[data-bg]"), function (s) { return s.offsetHeight > 0; });
+    stops = secs.map(function (s) {
       var r = s.getBoundingClientRect();
       return { top: r.top + window.scrollY, bottom: r.bottom + window.scrollY, rgb: hex(s.dataset.bg) };
     });

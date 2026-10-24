@@ -1,7 +1,7 @@
 /* ============================================================
    サイト設定
    当日に変えたくなる値はすべてここに集めてある。
-   index.html / share.html の両方がこのファイルを読む。
+   index.html が読む。
 ============================================================ */
 window.SITE = {
 
@@ -83,25 +83,17 @@ window.SITE = {
     { id: "kaizan", name: "改竄", min: null, attitude: "神託そのものを、書き換える。" },
   ],
 
-  /* ---------- データの置き場所 ----------
-     空文字なら data/*.json を読む。
-     Googleスプレッドシートを「ウェブに公開 → CSV」にしたURLを入れると、
-     書記がシートに入力した内容がそのまま反映される（詳細は README）。 */
-  rankingCsvUrl: "",
-  resultsCsvUrl: "",
+  /* ---------- 結果・番付のシステムとの接続 ----------
+     結果ページ・番付のデータは、別担当のシステムが用意する。
+     resultUrl  : 「神託を受け取る」ボタンの行き先（例: "share.html"）。
+                  空のあいだは、ナビのボタンと下の案内セクションを隠す。
+     rankingUrl : 番付のデータのURL。JSON か CSV（形は docs/TECHNICAL.md）。
+                  空のあいだは「開場後に更新します」のまま。 */
+  resultUrl:  "",
+  rankingUrl: "",
 };
 
-/* 心付け額から位を返す（index / share 共通） */
-window.rankOf = function (amount) {
-  var s = window.SITE;
-  if (amount >= s.kaizanThreshold) return s.ranks[3];
-  for (var i = 2; i >= 0; i--) {
-    if (amount >= s.ranks[i].min) return s.ranks[i];
-  }
-  return s.ranks[0];
-};
-
-/* 最小限のCSVパーサ（ダブルクォート対応） */
+/* 最小限のCSVパーサ（ダブルクォート対応）。番付をCSVで受け取るときに使う */
 window.parseCsv = function (text) {
   var rows = [], row = [], cell = "", q = false;
   for (var i = 0; i < text.length; i++) {
