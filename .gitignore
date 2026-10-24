@@ -1,0 +1,14 @@
+# 公開リポジトリなので、秘密の情報はコミットしない
+# Cloudflare（wrangler）の手元用の秘密・作業フォルダ
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+.wrangler/
+
+# 依存パッケージ
+node_modules/
+
+# OSが勝手に作るもの
+.DS_Store
+Thumbs.db

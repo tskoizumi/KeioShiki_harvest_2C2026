@@ -3,7 +3,7 @@
 収穫祭2026 2年C組「運命、賄賂で買いませんか？」公式サイトの技術的なことを、ここに全部まとめる。
 一緒に開発する人は、最初にこれを読めば全体がわかるようにしてある。運用の手順（番付の更新や当日の流れ）は [README](../README.md) の方に書いてある。
 
-- リポジトリ: `tskoizumi/KeioShiki_harvest_2C2026`（本番ブランチ `main`）
+- リポジトリ: `tskoizumi/KeioShiki_harvest_2C2026`（**公開リポジトリ**、本番ブランチ `main`）
 - 公開先: Cloudflare Pages（`https://<プロジェクト名>.pages.dev/`）。独自ドメインは未購入（候補: `moneytalks-uranai.com`）
 - 公式アカウント: Instagram `@keioshiki2c79`／サイト制作: `@tskoizumi`
 
@@ -334,6 +334,8 @@ python3 -m http.server 8765      # → http://localhost:8765/
 
 ## 10. 注意点
 
+- **このリポジトリは公開されている。** 合言葉・Cloudflareのトークン・APIキーは絶対にコミットしない。Cloudflareの環境変数（Secret）か、手元なら `.dev.vars`（`.gitignore` 済み）に入れる。一度pushすると、消しても履歴とフォークに残る
+- **コミットにメールアドレスを載せない。** GitHub の Settings → Emails で「Keep my email addresses private」をオンにし、`git config user.email` を GitHub の noreply アドレスにする
 - **データは実質公開。** `results.json` も、公開したスプレッドシートのCSVも、URLを知れば全部読める。ニックネーム以外を入れない（APIにすれば1件ずつしか返さなくなる）
 - **占い師画面と質問票は、リンクしていないだけで誰でも開ける。** URLを外に出さない
 - **縁は会場内だけの通貨**（現金・景品と交換しない）とサイトに明記している。チンチロが止められたら `config.js` の `enabled: false` で消せる
