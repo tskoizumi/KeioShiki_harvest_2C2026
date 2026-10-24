@@ -1,0 +1,15 @@
+# 担当の範囲。プルリクエストがここに触れると、GitHubが自動でその人にレビューを頼む。
+# 下の行ほど優先される。
+
+# LP以外（QR・結果ページ・占い師画面・データなど）は soma1218
+*                    @soma1218
+
+# LP は tskoizumi
+/index.html          @tskoizumi
+/config.js           @tskoizumi
+/assets/             @tskoizumi
+
+# ルールと資料は二人で見る
+/README.md           @tskoizumi @soma1218
+/docs/               @tskoizumi @soma1218
+/.github/            @tskoizumi @soma1218

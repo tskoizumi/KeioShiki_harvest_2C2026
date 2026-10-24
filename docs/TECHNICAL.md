@@ -1,7 +1,7 @@
 # 技術資料
 
 収穫祭2026 2年C組「運命、賄賂で買いませんか？」公式サイトの技術的なことをまとめる。
-開発のルールと担当は [README](../README.md) に書いてある。
+担当・連絡のルール・開発のルールは [README](../README.md) に書いてある。
 
 - リポジトリ: `tskoizumi/KeioShiki_harvest_2C2026`（**公開リポジトリ**、本番ブランチ `main`）
 - 公開先: Cloudflare Pages（`https://<プロジェクト名>.pages.dev/`）。独自ドメインは未購入（候補: `moneytalks-uranai.com`）
