@@ -7,7 +7,7 @@ window.SITE = {
 
   /* ---------- 出し物の基本情報 ---------- */
   name:     "運命、賄賂で買いませんか？",   // 出し物名
-  tagline:  "神託は、心付け次第。",
+  tagline:  "占いの結果は、心付け次第。",
   className: "2年C組",
   event:    "収穫祭 2026",
   date:     "日時は決まり次第掲載します",   // 例: "11月2日(土)・3日(日) 10:00〜16:00"
@@ -33,8 +33,8 @@ window.SITE = {
       time: "30秒",
       fee: "10縁",
       payout: "20〜50縁",
-      role: "保険",
-      text: "投げれば、まず増える。手持ちが心細くなったらここへ。",
+      role: "手堅い",
+      text: "投げればだいたい増える。手持ちが少なくなったらここ。",
       enabled: true,
     },
     {
@@ -44,8 +44,8 @@ window.SITE = {
       time: "2〜3分",
       fee: "50縁",
       payout: "0〜200縁",
-      role: "技術",
-      text: "覚えた者だけが稼ぐ。運より記憶。もっとも堅実な道。",
+      role: "記憶力",
+      text: "運ではなく記憶力。コツコツ稼ぐならこれ。",
       enabled: true,
     },
     {
@@ -55,8 +55,8 @@ window.SITE = {
       time: "3〜5分",
       fee: "100縁",
       payout: "積んだ段数 × 50縁",
-      role: "団体",
-      text: "仲間と囲んで、崩れるまで積む。一段ごとに縁が増え、観客が息を呑む。",
+      role: "みんなで",
+      text: "友達と囲んで、崩れるまで積む。1段積むごとに縁が増える。",
       featured: true,
       enabled: true,
     },
@@ -65,10 +65,10 @@ window.SITE = {
       name: "チンチロ",
       kana: "ちんちろ",
       time: "20秒",
-      fee: "張る縁は自由",
+      fee: "賭け金は自由",
       payout: "0〜5倍",
-      role: "一攫千金",
-      text: "賽を三つ、椀に落とす。番付の上位は、だいたいここから生まれる。",
+      role: "一発逆転",
+      text: "サイコロ3つで一発勝負。番付の上位は、だいたいここから生まれる。",
       featured: true,
       enabled: true,
     },
@@ -77,10 +77,10 @@ window.SITE = {
   /* ---------- 心付けの位 ----------
      min は下限。改竄の下限は kaizanThreshold を使う。 */
   ranks: [
-    { id: "mu",     name: "無",   min: 0,    attitude: "事実だけを告げて、終わる。" },
-    { id: "sho",    name: "小",   min: 100,  attitude: "誠実に占い、助言まで丁寧に。" },
-    { id: "dai",    name: "大",   min: 500,  attitude: "占い師が媚びる。悪い兆は、すべて他人のせい。" },
-    { id: "kaizan", name: "改竄", min: null, attitude: "神託そのものを、書き換える。" },
+    { id: "mu",     name: "無",   min: 0,    attitude: "事実だけ言って、終わり。" },
+    { id: "sho",    name: "小",   min: 100,  attitude: "ふつうに占う。アドバイスもくれる。" },
+    { id: "dai",    name: "大",   min: 500,  attitude: "とにかく褒める。悪い結果は全部、他人のせい。" },
+    { id: "kaizan", name: "改竄", min: null, attitude: "占いの結果そのものを、書き換える。" },
   ],
 
   /* ---------- 結果・番付のシステムとの接続 ----------

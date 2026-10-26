@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="収穫祭2026 2年C組「運命、賄賂で買いませんか？」— 占い師は本に書かれた神託を読む。ただし、心付けの額で読み方が変わる。">
+  <meta name="description" content="収穫祭2026 2年C組「運命、賄賂で買いませんか？」— 占い師は本に書かれた運命を読み上げる。でも、渡したお金の額で読み方が変わる。">
   <meta name="theme-color" content="#fefefc">
   <!-- OGP -->
   <meta property="og:type"        content="website">
   <meta property="og:title"       content="運命、賄賂で買いませんか？ — 収穫祭2026 2年C組">
-  <meta property="og:description" content="神託は、心付け次第。ミニゲームで縁を稼ぎ、占い師に心付けを渡せ。">
+  <meta property="og:description" content="占いの結果は、お金次第。ミニゲームで稼いで、占い師に渡せ。">
   <meta property="og:image"       content="assets/ogp.jpg">
   <meta name="twitter:card"       content="summary_large_image">
   <link rel="icon" href="assets/favicon.png" type="image/png">
@@ -125,6 +125,9 @@
     .js .reveal.d2 { transition-delay: 0.16s; }
     .js .reveal.d3 { transition-delay: 0.24s; }
 
+    ruby { ruby-position: over; }
+    rt { font-size: 0.4em; font-weight: 600; letter-spacing: 0.1em; color: var(--muted); font-family: var(--gothic); }
+    .dark rt { color: rgba(244, 239, 230, 0.6); }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
     /* ============================================================
@@ -661,8 +664,8 @@
 ============================================================ -->
 <section id="statement" data-bg="#fefefc">
   <div class="wrap">
-    <p class="statement reveal">神託は、<em>心付け</em>次第。</p>
-    <p class="statement-sub reveal d1">占い師は、本に書かれた神託を読む。<br>盆に置いた額で、読み方が変わる。</p>
+    <p class="statement reveal">占いの結果は、<em><ruby>心付け<rt>こころづけ</rt></ruby></em>次第。</p>
+    <p class="statement-sub reveal d1">占い師は、本に書かれたあなたの運命を読み上げる。<br>でも、渡したお金の額で、読み方が変わる。</p>
   </div>
 </section>
 
@@ -673,23 +676,23 @@
   <div class="wrap">
     <div class="head">
       <p class="eyebrow reveal">遊び方</p>
-      <h2 class="h2 reveal">稼いで、渡して、<br>告げられる。</h2>
+      <h2 class="h2 reveal">稼いで、渡して、<br>占ってもらう。</h2>
     </div>
     <ol class="steps">
       <li class="step glass reveal">
         <p class="step-n">一</p>
         <h3 class="step-title">稼ぐ</h3>
-        <p class="step-text">受付で<span data-site="startingEn">100</span>縁。ミニゲームで増やす。</p>
+        <p class="step-text">受付で<span data-site="startingEn">100</span><ruby>縁<rt>えん</rt></ruby>をもらう。縁は、この出し物の中だけで使えるお金。ミニゲームで増やせる。</p>
       </li>
       <li class="step glass reveal d1">
         <p class="step-n">二</p>
         <h3 class="step-title">渡す</h3>
-        <p class="step-text">兆を1枚引き、心付けを盆に置く。</p>
+        <p class="step-text">占いの部屋で、10枚のカードから1枚引く（これが<ruby>兆<rt>きざし</rt></ruby>）。そして、占い師に渡すお金＝心付けを、好きな額だけ置く。</p>
       </li>
       <li class="step glass reveal d2">
         <p class="step-n">三</p>
-        <h3 class="step-title">告げられる</h3>
-        <p class="step-text">占い師が本を開く。結果の紙を持ち帰る。</p>
+        <h3 class="step-title">聞く</h3>
+        <p class="step-text">占い師が本を開き、あなたの運命を読み上げる。結果の紙をもらって帰る。</p>
       </li>
     </ol>
   </div>
@@ -702,10 +705,10 @@
   <div class="wrap">
     <div class="head">
       <p class="eyebrow reveal">縁を稼ぐ</p>
-      <h2 class="h2 reveal">好きなだけ挑める。<br>増えるとは、限らない。</h2>
+      <h2 class="h2 reveal">何回やってもいい。<br>増えるとは限らない。</h2>
     </div>
     <div class="games" id="games-list"></div>
-    <p class="games-note reveal">縁が尽きたら、受付へ。</p>
+    <p class="games-note reveal">どのゲームも参加費がかかる。縁がなくなったら、受付へ。</p>
   </div>
 </section>
 
@@ -715,13 +718,13 @@
 <section id="ranks" class="s dark" data-bg="#120f11">
   <div class="wrap">
     <div class="head">
-      <p class="eyebrow reveal">心付けの位</p>
-      <h2 class="h2 reveal">盆に置いた額が、<br>態度を決める。</h2>
+      <p class="eyebrow reveal">心付けのランク</p>
+      <h2 class="h2 reveal">渡した額で、<br>占い師の態度が変わる。</h2>
     </div>
     <ol class="ranks" id="ranks-list"></ol>
     <div class="decree glass reveal">
       <q><s>この兆は</s>、誤りでした。</q>
-      <p>鈴が鳴り、神託が書き換わる。一日に、数えるほど。</p>
+      <p>一番上の<ruby>改竄<rt>かいざん</rt></ruby>だけは特別。鈴が鳴り、占い師が立ち上がって、結果そのものを書き換える。1日に数回しか起きない。</p>
     </div>
   </div>
 </section>
@@ -732,9 +735,9 @@
 <section id="banzuke" class="s" data-bg="#fbf6ee">
   <div class="wrap">
     <div class="head">
-      <p class="eyebrow reveal">番付</p>
-      <h2 class="h2 reveal">渡した額で、決まる。</h2>
-      <p class="lead reveal">貯め込んでも、何も起きない。1時間ごとに更新。</p>
+      <p class="eyebrow reveal">番付（ばんづけ）＝ランキング</p>
+      <h2 class="h2 reveal">稼いだ額ではなく、<br>渡した額で決まる。</h2>
+      <p class="lead reveal">占い師に渡した心付けの合計で競う。ためこんでも意味はない。1時間ごとに更新。</p>
     </div>
     <div class="banzuke reveal">
       <div class="champion empty" id="champion">
@@ -767,15 +770,15 @@
           <div><dt>日時</dt><dd data-site="date">日時は決まり次第掲載します</dd></div>
           <div><dt>場所</dt><dd data-site="place">2年C組 教室</dd></div>
           <div><dt>参加費</dt><dd>無料。縁は受付で配ります。</dd></div>
-          <div><dt>所要</dt><dd>占いは1組5〜6分。</dd></div>
+          <div><dt>時間</dt><dd>占いは1組5〜6分。ミニゲームは好きなだけ。</dd></div>
         </dl>
       </div>
       <div class="info-card glass reveal d1">
         <h3>心得</h3>
         <ol class="rules">
-          <li><strong>縁は会場の中だけの通貨。</strong>現金や景品とは交換できません。</li>
-          <li>番付は<strong>ニックネーム</strong>で。本名は書かないでください。</li>
-          <li>占いはすべて演出です。真に受けすぎないように。</li>
+          <li><strong>縁は、この出し物の中だけで使えるお金です。</strong>現金や景品とは交換できません。</li>
+          <li>番付には<strong>ニックネーム</strong>で載ります。本名は書かないでください。</li>
+          <li>占いはぜんぶ演出です。本気にしすぎないでください。</li>
         </ol>
       </div>
     </div>
@@ -788,8 +791,8 @@
 <section id="result-cta" data-bg="#eaf3f7" hidden>
   <div class="wrap">
     <img class="cta-mark reveal" src="assets/mark-alpha.webp" width="600" height="600" alt="">
-    <h2 class="h2 reveal">結果の紙を、<br>お持ちですか。</h2>
-    <p class="lead reveal">QRを読むと、あなたの神託が一枚の画像になります。</p>
+    <h2 class="h2 reveal">結果の紙を、<br>持っていますか？</h2>
+    <p class="lead reveal">紙のQRを読むと、あなたの占い結果が1枚の画像になります。保存もシェアもできます。</p>
     <a href="#" class="btn reveal" data-result>神託を受け取る</a>
   </div>
 </section>
