@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>受付 - あなたのページ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="/vendor/qrcode.js"></script>
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .hero { background: var(--bg); border-radius: 16px; padding: 18px 16px; text-align: center; margin-bottom: 14px; }
+  .cbig { width: 150px; height: 150px; border-radius: 50%; margin: 0 auto; border: 4px solid #fff;
+          display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center;
+          background-color: #FFE58A; }
+  .cbig b { font-size: 40px; }
+  .pts { font-size: 36px; font-weight: 700; margin-top: 10px; }
+  .qrbox { text-align: center; }
+  .qrbox .qr { width: 180px; margin: 8px auto; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .swatches button { display: flex; align-items: center; gap: 8px; text-align: left; }
+  .swatches button.on { outline: 2px solid var(--ink); outline-offset: 1px; font-weight: 700; }
+  .swatches .chip { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #ccc; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="head"><b>受付システム</b><span id="nick" style="font-size:13px"></span></div>
+
+  <div class="hero" id="hero">
+    <div class="cbig" id="cimg"><b id="cno"></b></div>
+    <div class="sub" id="cname" style="margin-top:6px"></div>
+    <div class="pts"><span id="pt">-</span> <span class="sub">pt / 3,000</span></div>
+    <div class="gauge"><i id="gf" style="width:0%"></i></div>
+    <div class="sub" id="next"></div>
+  </div>
+
+  <div class="card">
+    <button id="refresh" class="pri" style="width:100%">ポイントを確認する</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card" id="theme-card" hidden>
+    <h2>カラーテーマ</h2>
+    <p class="sub" id="theme-note"></p>
+    <div class="swatches" id="swatches" style="margin-top:10px"></div>
+    <div class="msg" id="tmsg"></div>
+  </div>
+
+  <div class="card qrbox">
+    <h2>あなたの個人QR</h2>
+    <p class="sub">スタッフがこのQRを読み取ると、受付での確認に使われます。</p>
+    <div id="qr"></div>
+  </div>
+
+  <div class="card" id="staff-card" hidden>
+    <h2>スタッフ・管理者の操作</h2>
+    <div class="row" id="staff-links"></div>
+  </div>
+
+  <div class="card">
+    <h2>最近のポイント</h2>
+    <table><tbody id="hist"></tbody></table>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const THEMES = {
+  fiat:   { hd: '#FFCD00', hdt: '#111111', acc: '#FFCD00', btnt: '#111111', bg: '#FFF5C7' },
+  black:  { hd: '#161616', hdt: '#ffffff', acc: '#161616', btnt: '#ffffff', bg: '#F2F2F2' },
+  white:  { hd: '#ffffff', hdt: '#111111', acc: '#F06292', btnt: '#111111', bg: '#FFF0F6' },
+  red:    { hd: '#D32F2F', hdt: '#ffffff', acc: '#D32F2F', btnt: '#ffffff', bg: '#FFEBEE' },
+  purple: { hd: '#7B1FA2', hdt: '#ffffff', acc: '#7B1FA2', btnt: '#ffffff', bg: '#F3E5F5' },
+  blue:   { hd: '#1976D2', hdt: '#ffffff', acc: '#1976D2', btnt: '#ffffff', bg: '#E3F2FD' },
+  green:  { hd: '#388E3C', hdt: '#ffffff', acc: '#388E3C', btnt: '#ffffff', bg: '#E8F5E9' },
+};
+const token = decodeURIComponent(location.pathname.split('/').pop());
+const SRC = { game: '景品・ゲーム', admin: '管理者', bonus: 'ボーナス', fortune: '占い' };
+
+function applyTheme(key) {
+  const t = THEMES[key] || THEMES.fiat;
+  const r = document.documentElement.style;
+  r.setProperty('--hd', t.hd); r.setProperty('--hdt', t.hdt); r.setProperty('--acc', t.acc);
+  r.setProperty('--btnt', t.btnt); r.setProperty('--bg', t.bg);
+}
+
+async function load() {
+  $('msg').textContent = '';
+  const res = await fetch('/api/me/' + encodeURIComponent(token));
+  if (!res.ok) {
+    $('app').innerHTML = '<div class="card"><h2>ページが見つかりません</h2><p class="sub">URLをご確認ください。スタッフにお声がけください。</p></div>';
+    return;
+  }
+  const d = await res.json();
+  applyTheme(d.theme);
+  renderThemes(d);
+  $('nick').textContent = d.nickname + ' さん';
+  $('pt').textContent = d.points.toLocaleString();
+  $('gf').style.width = Math.round(d.points / 30) + '%';
+  if (d.character) {
+    $('cno').textContent = 'No.' + d.character.no;
+    $('cname').textContent = d.character.name;
+    $('cimg').style.backgroundImage = d.character.image ? 'url(' + d.character.image + ')' : '';
+    if (d.character.image) $('cno').textContent = '';
+  }
+  $('next').textContent = d.nextThreshold !== null
+    ? '次のキャラクターまであと ' + (d.nextThreshold - d.points) + ' pt'
+    : '最上位のキャラクターです';
+  $('refresh').disabled = d.locked;
+  $('refresh').textContent = d.locked ? '占い済み（ポイントは更新できません）' : 'ポイントを確認する';
+  $('hist').innerHTML = d.history.map((h) =>
+    `<tr><td>${(h.created_at || '').slice(5, 16)}</td><td>${SRC[h.source_type] || h.source_type}${h.outcome ? '（' + h.outcome + '）' : ''}</td><td style="text-align:right">${h.applied_delta > 0 ? '+' : ''}${h.applied_delta}</td></tr>`
+  ).join('') || '<tr><td class="sub">履歴はまだありません</td></tr>';
+  $('msg').className = 'msg ok';
+  $('msg').textContent = '最終確認 ' + new Date().toTimeString().slice(0, 5);
+}
+
+// 配色の選択（管理者が許可したときだけ表示。占い済みは選択不可）
+const THEME_LABEL = { fiat: 'イエロー', black: 'ブラック', white: 'ホワイト（ピンク）', red: 'レッド', purple: 'パープル', blue: 'ブルー', green: 'グリーン' };
+function renderThemes(d) {
+  $('theme-card').hidden = !d.themeChoice;
+  if (!d.themeChoice) return;
+  $('theme-note').textContent = d.themeLocked
+    ? '占い済みのため、テーマは変更できません。'
+    : 'お好きな配色を選んでください。';
+  $('swatches').innerHTML = Object.keys(THEME_LABEL).map((k) =>
+    `<button class="${k === d.theme ? 'on' : ''}" ${d.themeLocked ? 'disabled' : ''} onclick="chooseTheme('${k}')"><span class="chip" style="background:${THEMES[k].acc}"></span>${THEME_LABEL[k]}</button>`
+  ).join('');
+}
+async function chooseTheme(key) {
+  $('tmsg').textContent = '';
+  const res = await fetch('/api/me/' + encodeURIComponent(token) + '/theme', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ theme: key }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    $('tmsg').className = 'msg bad';
+    $('tmsg').textContent = data.message || 'エラーが発生しました';
+    return;
+  }
+  applyTheme(key);
+  load();
+}
+
+// 個人QR（読取先は個人ページ）
+const q = qrcode(0, 'M');
+q.addData(location.origin + '/u/' + token);
+q.make();
+$('qr').innerHTML = '<div class="qr">' + q.createSvgTag(3, 2) + '</div>';
+
+// スタッフ・管理者としてログインしている場合だけ、管理用のリンクを出す（未ログインは失敗して非表示）
+(async () => {
+  try {
+    const r = await fetch('/api/staff/me');
+    if (!r.ok) return;
+    const s = await r.json();
+    const me = await (await fetch('/api/me/' + encodeURIComponent(token))).json();
+    const links = [];
+    if (s.role === 'admin') links.push(`<a class="badge" href="/admin?user=${me.id}">管理画面でこの利用者を開く</a>`);
+    if (s.role === 'game' || s.role === 'bonus') links.push(`<a class="badge" href="/terminal?user=${me.id}">付与端末でこの利用者を開く</a>`);
+    if (links.length) {
+      $('staff-links').innerHTML = links.join(' ');
+      $('staff-card').hidden = false;
+    }
+  } catch (e) {
+    // 利用者本人の端末では何もしない
+  }
+})();
+
+$('refresh').onclick = load;
+load();
+</script>
+</body>
+</html>

@@ -2,6 +2,8 @@
 # Cloudflare（wrangler）の手元用の秘密・作業フォルダ
 .dev.vars
 .dev.vars.*
+# 見本（秘密は入っていない）はコミットする
+!.dev.vars.example
 .env
 .env.*
 .wrangler/

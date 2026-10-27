@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>受付 - 付与端末</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared.css">
+</head>
+<body>
+<div class="wrap wide">
+  <div class="head"><b>付与端末（スタッフ）</b><span id="who" style="font-size:13px"></span></div>
+
+  <div class="card">
+    <h2>利用者を探す</h2>
+    <div class="row">
+      <input id="q" placeholder="ニックネーム・No.・QRの内容" style="flex:1">
+      <button id="search">検索</button>
+    </div>
+    <table><tbody id="results"></tbody></table>
+  </div>
+
+  <div class="card" id="panel" hidden>
+    <div class="row" style="justify-content:space-between">
+      <div><b id="uname" style="font-size:17px"></b> <span class="sub" id="uinfo"></span></div>
+      <span class="badge" id="ulock" hidden>占い済み（更新不可）</span>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:10px 0">
+
+    <div id="games"></div>
+
+    <div class="row" id="fortune-row" hidden>
+      <span class="k">占い</span>
+      <button class="pri" id="fortune">占い完了（ポイント更新を停止）</button>
+    </div>
+
+    <div id="bonus-area" hidden>
+      <div class="row"><span class="k">ボーナス</span><span id="bonuses"></span></div>
+      <div class="row"><span class="k">理由</span><input id="reason" placeholder="目検の確認内容（必須）" style="flex:1"></div>
+    </div>
+
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => (n > 0 ? '+' : '') + n;
+// 利用者が入力したニックネームは、HTMLとして解釈されないようにして表示する
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ERR = {
+  FORBIDDEN: '権限がありません',
+  LOCKED: '占い済みのためポイントは更新できません',
+  POINT_MAX: '上限3000に達しているため付与されません',
+  POINT_MIN: '0ptのため減点されません',
+  BONUS_ALREADY: '取得済みです（1回限り）',
+  REASON_REQUIRED: '理由（目検の確認内容）を入力してください',
+  CONFLICT: '混雑しています。もう一度お試しください',
+};
+
+let me = null, games = [], bonuses = [], target = null;
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random());
+const say = (t, ok) => { $('msg').className = 'msg ' + (ok ? 'ok' : 'bad'); $('msg').textContent = t; };
+const canGame = (id) => me.role === 'admin' || (me.role === 'game' && me.games.includes(id));
+const canFortune = () => me.role === 'admin' || (me.role === 'game' && me.fortunePerm);
+const canBonus = () => me.role === 'admin' || me.role === 'bonus';
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, data };
+}
+
+async function init() {
+  const r = await api('/api/staff/me');
+  if (!r.ok) { document.body.innerHTML = '<div class="wrap"><div class="card">権限がありません</div></div>'; return; }
+  me = r.data;
+  $('who').textContent = me.name + '（' + (me.role === 'admin' ? '管理者' : me.role === 'game' ? 'ゲーム担当' : 'ボーナス担当') + '）';
+  games = (await api('/api/staff/games')).data.results || [];
+  bonuses = (await api('/api/staff/bonuses')).data.results || [];
+  const pre = new URLSearchParams(location.search).get('user');
+  if (pre) { $('q').value = pre; await search(); pick(Number(pre)); }
+}
+
+async function search() {
+  const q = $('q').value.trim();
+  const r = await api('/api/staff/lookup?q=' + encodeURIComponent(q));
+  $('results').innerHTML = (r.data.results || []).map((u) =>
+    `<tr class="click" onclick="pick(${u.id})"><td>No.${u.id}</td><td>${esc(u.nickname)}</td><td>${u.points}pt</td><td>${u.fortune_done ? '<span class="badge">占い済み</span>' : ''}</td></tr>`
+  ).join('') || '<tr><td class="sub">該当する利用者がいません</td></tr>';
+}
+
+// keepMsg: 付与直後の読み直しでは「付与しました」を消さない
+async function pick(id, keepMsg) {
+  const r = await api('/api/staff/lookup?q=' + id);
+  const u = (r.data.results || []).find((x) => x.id === id);
+  if (!u) return;
+  target = u;
+  $('panel').hidden = false;
+  $('uname').textContent = u.nickname;
+  $('uinfo').textContent = 'No.' + u.id + ' ・ ' + u.points + 'pt';
+  $('ulock').hidden = !u.fortune_done;
+  render();
+  if (!keepMsg) $('msg').textContent = '';
+}
+
+function render() {
+  const locked = !!target.fortune_done;
+  $('games').innerHTML = games.filter((g) => g.enabled && canGame(g.id)).map((g) =>
+    `<div class="row"><span class="k">${g.name}</span>${g.outcomes.map((o, i) =>
+      `<button ${locked ? 'disabled' : ''} onclick="giveGame(${g.id}, ${i})">${o.name} ${fmt(o.delta)}</button>`).join('')}</div>`
+  ).join('');
+  $('fortune-row').hidden = !(canFortune() && !locked);
+  $('bonus-area').hidden = !canBonus();
+  $('bonuses').innerHTML = bonuses.filter((b) => b.enabled).map((b) =>
+    `<button ${locked ? 'disabled' : ''} onclick="giveBonus(${b.id})">${b.name}（+${b.points}）</button>`).join(' ');
+}
+
+async function giveGame(gameId, outcome) {
+  const r = await api('/api/points/game', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ userId: target.id, gameId, outcome, requestId: newId() }),
+  });
+  if (r.ok) { say('付与しました（反映 ' + fmt(r.data.applied) + 'pt）', true); await refresh(); }
+  else say(ERR[r.data.error] || r.data.message, false);
+}
+
+async function giveBonus(bonusId) {
+  const reason = $('reason').value.trim();
+  if (!reason) return say(ERR.REASON_REQUIRED, false);
+  const r = await api('/api/points/bonus', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ userId: target.id, bonusId, reason, requestId: newId() }),
+  });
+  if (r.ok) { say('付与しました', true); $('reason').value = ''; await refresh(); }
+  else say(ERR[r.data.error] || r.data.message, false);
+}
+
+$('fortune').onclick = async () => {
+  if (!confirm('占い完了にします。この利用者はポイントを更新できなくなります。よろしいですか？')) return;
+  const r = await api('/api/points/fortune', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ userId: target.id }),
+  });
+  if (r.ok) { say('占い済みにしました', true); await refresh(); }
+  else say(ERR[r.data.error] || r.data.message, false);
+};
+
+async function refresh() {
+  const r = await api('/api/staff/lookup?q=' + target.id);
+  const u = (r.data.results || []).find((x) => x.id === target.id);
+  if (u) pick(u.id, true);
+}
+
+$('search').onclick = search;
+$('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+init();
+</script>
+</body>
+</html>

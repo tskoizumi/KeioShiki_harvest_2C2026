@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>受付システム 管理画面</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="/vendor/qrcode.js"></script>
+<style>
+:root{--fiat:#FFCD00;--fiat-soft:#FFF5C7;--ink:#161616;--sub:#6b6b6b;--line:#e4e4e4;--ok:#2e7d32;--warn:#b26a00;--bad:#c62828}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff;color:var(--ink);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.6}
+.app{display:grid;grid-template-columns:210px 1fr;min-height:100vh}
+aside{border-right:1px solid var(--line);padding:16px 0;position:sticky;top:0;align-self:start;height:100vh;overflow:auto}
+aside .brand{padding:0 16px 14px;font-weight:700;font-size:15px;border-bottom:3px solid var(--fiat);margin-bottom:10px}
+aside .brand small{display:block;font-weight:400;color:var(--sub);font-size:11px}
+nav a{cursor:pointer;display:flex;gap:8px;padding:9px 16px;color:var(--ink);text-decoration:none;border-left:4px solid transparent;font-size:13px}
+nav a:hover{background:#fffbea}
+nav a.on{background:var(--fiat-soft);border-left-color:var(--fiat);font-weight:700}
+nav a .id{color:var(--sub);font-size:11px;width:30px;flex-shrink:0;padding-top:2px}
+main{padding:20px 24px;min-width:0}
+header.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px}
+h1{font-size:18px;margin:0;font-weight:700}
+.sub{color:var(--sub);font-size:12px}
+.tag{background:var(--fiat);font-weight:700;font-size:11px;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;background:#fff;min-width:0}
+.card h2{font-size:14px;margin:0 0 10px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi .v{font-size:22px;font-weight:700}
+.kpi .l{font-size:11px;color:var(--sub)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:middle}
+th{color:var(--sub);font-weight:500;font-size:11.5px}
+tr.click{cursor:pointer}
+tr.click:hover td{background:#fffbea}
+tr.sel td{background:var(--fiat-soft)}
+input,select,textarea{font:inherit;font-size:16px;padding:6px 8px;border:1px solid #ccc;border-radius:6px;background:#fff;color:var(--ink);max-width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--fiat);border-color:var(--fiat)}
+input[type=number]{width:110px}
+button{font:inherit;font-size:13px;padding:6px 12px;border:1px solid #ccc;border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button:hover{background:#fafafa}
+button.pri{background:var(--fiat);border-color:var(--fiat);font-weight:700}
+button.pri:hover{background:#f2c200}
+button.danger{color:var(--bad);border-color:#e6b0b0}
+button:disabled{opacity:.45;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.row label.k{width:92px;color:var(--sub);font-size:12px;flex-shrink:0}
+.badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid #e0c96b;background:var(--fiat-soft)}
+.badge.off{border-color:#ddd;background:#f3f3f3;color:var(--sub)}
+.bar{height:6px;background:#eee;border-radius:3px;overflow:hidden;width:120px;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--fiat)}
+.chars{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.ch{aspect-ratio:1;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--sub);cursor:pointer;background-size:cover;background-position:center}
+.ch.sel{border:2px solid var(--ink);color:var(--ink);font-weight:700}
+.toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px}
+.toggle input{width:16px;height:16px;accent-color:#FFCD00}
+.sw{display:inline-block;width:26px;height:18px;border-radius:4px;border:1px solid var(--line);vertical-align:middle}
+.toast{position:fixed;right:20px;bottom:20px;background:var(--ink);color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:360px;z-index:9}
+.toast.show{opacity:1}
+.phone{width:300px;max-width:100%;border:1px solid var(--line);border-radius:24px;overflow:hidden;background:#fff;margin:0 auto}
+.phone .top{background:var(--hd,#FFCD00);color:var(--hdt,#111);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.phone .top b{font-size:14px}
+.hero{background:var(--bg,#FFF5C7);margin:12px;border-radius:16px;padding:16px;text-align:center}
+.cbig{width:130px;height:130px;border-radius:50%;margin:0 auto;border:4px solid #fff;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center}
+.cbig b{font-size:34px;line-height:1}
+.gauge{height:8px;background:#fff;border-radius:4px;overflow:hidden;margin:8px 0 4px}
+.gauge i{display:block;height:100%;background:var(--acc,#FFCD00)}
+.upd{width:calc(100% - 24px);margin:4px 12px 14px;padding:10px;border-radius:999px;background:var(--acc,#FFCD00);color:var(--btnt,#111);border:0;font-weight:700}
+.qr svg{width:100%;height:auto;display:block}
+hr{border:0;border-top:1px solid var(--line);margin:10px 0}
+@media(max-width:820px){
+ .app{grid-template-columns:1fr}
+ aside{position:static;height:auto;border-right:0}
+ .grid2,.grid3{grid-template-columns:1fr}
+ .chars{grid-template-columns:repeat(6,1fr)}
+ main{padding:16px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+ <div class="brand">受付システム<small>管理画面</small></div>
+ <nav id="nav"></nav>
+</aside>
+<main>
+ <header class="top"><div><h1 id="ptitle"></h1><div class="sub" id="psub"></div></div><span><span class="tag">ADMIN</span> <button onclick="logout()">ログアウト</button></span></header>
+ <div id="page"><p class="sub">読み込み中…</p></div>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => (n > 0 ? '+' : '') + n;
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random());
+
+const THEMES = {
+ fiat:{name:'イエロー',hd:'#FFCD00',hdt:'#111111',acc:'#FFCD00',btnt:'#111111',bg:'#FFF5C7'},
+ black:{name:'ブラック',hd:'#161616',hdt:'#ffffff',acc:'#161616',btnt:'#ffffff',bg:'#F2F2F2'},
+ white:{name:'ホワイト（ピンク）',hd:'#ffffff',hdt:'#111111',acc:'#F06292',btnt:'#111111',bg:'#FFF0F6'},
+ red:{name:'レッド',hd:'#D32F2F',hdt:'#ffffff',acc:'#D32F2F',btnt:'#ffffff',bg:'#FFEBEE'},
+ purple:{name:'パープル',hd:'#7B1FA2',hdt:'#ffffff',acc:'#7B1FA2',btnt:'#ffffff',bg:'#F3E5F5'},
+ blue:{name:'ブルー',hd:'#1976D2',hdt:'#ffffff',acc:'#1976D2',btnt:'#ffffff',bg:'#E3F2FD'},
+ green:{name:'グリーン',hd:'#388E3C',hdt:'#ffffff',acc:'#388E3C',btnt:'#ffffff',bg:'#E8F5E9'}
+};
+const tvars = (k) => { const t = THEMES[k] || THEMES.fiat; return `--hd:${t.hd};--hdt:${t.hdt};--acc:${t.acc};--btnt:${t.btnt};--bg:${t.bg}`; };
+
+const PAGES = [
+ {id:'A-1', key:'dash',     name:'ダッシュボード',     sub:'登録数・ポイント・最近の操作'},
+ {id:'A-2', key:'users',    name:'ユーザー一覧・詳細', sub:'ポイント付与・占い・個人QR・URL管理'},
+ {id:'A-3', key:'games',    name:'ゲーム設定',         sub:'結果ごとのポイント増減（保存で反映）'},
+ {id:'A-4', key:'bonus',    name:'ボーナス設定',       sub:'2箇所のボーナス条件'},
+ {id:'A-5', key:'chars',    name:'キャラクター設定',   sub:'60体の名称・閾値・画像'},
+ {id:'A-6', key:'vis',      name:'ビジュアル設定',     sub:'全体テーマ・利用者による配色変更'},
+ {id:'A-7', key:'settings', name:'管理設定',           sub:'登録上限・受付・スタッフ権限'},
+ {id:'A-8', key:'logs',     name:'ログ・出力',         sub:'操作ログ（直近200件）・CSV出力'}
+];
+
+const S = {
+ page: 'dash', cfg: null, all: [], staff: [], logs: [], q: '',
+ selId: Number(new URLSearchParams(location.search).get('user')) || null,
+ charNo: 1
+};
+const R = {};
+
+function toast(t, ok = true) {
+ const e = $('toast');
+ e.textContent = t;
+ e.style.background = ok ? '#161616' : '#c62828';
+ e.classList.add('show');
+ clearTimeout(e._t);
+ e._t = setTimeout(() => e.classList.remove('show'), 2400);
+}
+
+async function api(path, method = 'GET', body) {
+ const opts = { method, headers: {} };
+ if (body !== undefined) { opts.headers['content-type'] = 'application/json'; opts.body = JSON.stringify(body); }
+ const res = await fetch(path, opts);
+ const data = await res.json().catch(() => ({}));
+ return { ok: res.ok, data };
+}
+
+// 操作の結果を表示し、成功したら最新の状態を読み直す
+async function done(r, okMsg) {
+ toast(r.ok ? okMsg : (r.data.message || 'エラーが発生しました'), r.ok);
+ if (r.ok) await loadAll();
+}
+
+async function loadAll() {
+ let cfg, users, logs, staff;
+ try {
+  [cfg, users, logs, staff] = await Promise.all([
+   api('/api/admin/config'),
+   api('/api/admin/users'),
+   api('/api/admin/logs'),
+   api('/api/admin/staff'),
+  ]);
+ } catch (e) {
+  $('page').innerHTML = '<div class="card"><h2>サーバーに接続できません</h2><p class="sub">この画面は受付サーバー経由で開いてください（直接ファイルを開くと動きません）。</p></div>';
+  return;
+ }
+ if (!cfg.ok) {
+  $('page').innerHTML = '<div class="card"><h2>管理者としてログインしてください</h2><p class="sub">' + esc(cfg.data.message || '権限がありません') + '</p></div>';
+  return;
+ }
+ S.cfg = cfg.data;
+ S.all = users.data.results || [];
+ S.logs = logs.data.results || [];
+ S.staff = staff.data.results || [];
+ draw();
+}
+
+function draw() {
+ const cur = PAGES.find((p) => p.key === S.page) || PAGES[0];
+ $('nav').innerHTML = PAGES.map((p) =>
+  `<a class="${p.key === cur.key ? 'on' : ''}" onclick="go('${p.key}')"><span class="id">${p.id}</span>${p.name}</a>`).join('');
+ $('ptitle').textContent = cur.name;
+ $('psub').textContent = cur.sub;
+ if (!S.cfg) return;
+ $('page').innerHTML = R[cur.key]();
+}
+window.go = (k) => { S.page = k; draw(); window.scrollTo(0, 0); };
+
+function urlOf(u) { return location.origin + '/u/' + u.token; }
+function qrSvg(text) {
+ const q = qrcode(0, 'M');
+ q.addData(text);
+ q.make();
+ return '<div class="qr">' + q.createSvgTag(3, 2) + '</div>';
+}
+
+/* A-1 ダッシュボード */
+R.dash = () => {
+ const s = S.cfg.settings;
+ const n = S.all.length;
+ const done_ = S.all.filter((u) => u.fortune_done).length;
+ const off = S.all.filter((u) => u.status !== 'active').length;
+ const tot = S.all.reduce((a, u) => a + u.points, 0);
+ const rec = S.logs.slice(0, 8).map((l) =>
+  `<tr><td>${esc((l.created_at || '').slice(5, 16))}</td><td>${esc(l.actor || '')}</td><td>${esc(l.action)}</td><td>${esc(l.detail || '')}</td></tr>`).join('')
+  || '<tr><td colspan="4" class="sub">操作はまだありません</td></tr>';
+ return `<div class="grid3" style="margin-bottom:14px">
+  <div class="kpi"><div class="v">${n} / ${s.max_users}</div><div class="l">登録数</div></div>
+  <div class="kpi"><div class="v">${tot.toLocaleString()} pt</div><div class="l">総ポイント</div></div>
+  <div class="kpi"><div class="v">${s.registration_open === '1' ? '受付中' : '停止中'}</div><div class="l">受付状態（占い済み ${done_} 人・無効 ${off} 人）</div></div>
+ </div>
+ <div class="card"><h2>最近の操作</h2><div style="overflow-x:auto"><table><thead><tr><th>時刻</th><th>操作者</th><th>操作</th><th>内容</th></tr></thead><tbody>${rec}</tbody></table></div></div>`;
+};
+
+/* A-2 ユーザー一覧・詳細 */
+R.users = () => {
+ const q = S.q.trim();
+ const list = S.all.filter((u) => !q || u.nickname.includes(q) || String(u.id) === q);
+ const u = S.all.find((x) => x.id === S.selId) || list[0] || null;
+ const rows = list.map((x) =>
+  `<tr class="click ${u && x.id === u.id ? 'sel' : ''}" onclick="pick(${x.id})">
+   <td>No.${x.id}</td><td>${esc(x.nickname)}</td>
+   <td>${x.points}pt<div class="bar"><i style="width:${Math.round(x.points / 30)}%"></i></div></td>
+   <td>${x.fortune_done ? '<span class="badge">占い済み</span>' : ''}${x.status !== 'active' ? '<span class="badge off">無効</span>' : ''}</td></tr>`).join('');
+ return `<div class="row">
+   <input id="q" placeholder="ニックネーム・No." value="${esc(q)}" style="width:260px" onkeydown="if(event.key==='Enter'){S.q=this.value;draw()}">
+   <button onclick="S.q=$('q').value;draw()">検索</button><span class="sub">${list.length} 件</span></div>
+ <div class="grid2" style="align-items:start">
+  <div class="card"><h2>ユーザー一覧</h2><div style="overflow-x:auto"><table><thead><tr><th>No.</th><th>ニックネーム</th><th>ポイント</th><th>状態</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="card">${u ? userDetail(u) : '<p class="sub">利用者を選んでください</p>'}</div>
+ </div>`;
+};
+window.pick = (id) => { S.selId = id; draw(); };
+
+function userDetail(u) {
+ const lock = !!u.fortune_done;
+ const dis = lock ? 'disabled' : '';
+ const games = S.cfg.games.filter((g) => g.enabled).map((g) =>
+  `<div class="row"><label class="k">${esc(g.name)}</label>${g.outcomes.map((o, i) =>
+   `<button ${dis} onclick="giveGame(${g.id},${i},${u.id})">${esc(o.name)} ${fmt(o.delta)}</button>`).join('')}</div>`).join('');
+ const bonus = S.cfg.bonuses.filter((b) => b.enabled).map((b) =>
+  `<button ${dis} onclick="giveBonus(${b.id},${u.id})">${esc(b.name)}（+${b.points}）</button>`).join(' ');
+ return `<h2>No.${u.id} ${esc(u.nickname)} <span class="sub">${u.points}pt</span></h2>
+ ${lock ? '<div class="row"><span class="badge">占い済み（ポイント更新不可）</span></div>' : ''}
+ ${games}
+ <div class="row"><label class="k">ボーナス</label>${bonus || '<span class="sub">有効なボーナスはありません</span>'}</div>
+ <hr>
+ <div class="row"><label class="k">手動調整</label><input type="number" id="adjN" value="0" step="10" ${dis}><button ${dis} onclick="adjust(${u.id})">調整する</button></div>
+ <div class="row"><label class="k">理由</label><input id="reason" placeholder="ボーナス・手動調整で必須（目検の確認内容）" style="flex:1;min-width:200px"></div>
+ <hr>
+ <div class="row"><label class="k">個人QR</label><div style="width:130px">${qrSvg(urlOf(u))}</div></div>
+ <div class="sub" style="margin:-4px 0 8px 100px">スキャン先：管理者はこの画面、スタッフは付与端末</div>
+ <div class="row"><label class="k">個人URL</label><code style="font-size:12px;word-break:break-all">/u/${esc(u.token)}</code></div>
+ <div class="row"><label class="k">占い</label>${lock
+   ? `<button onclick="unlockFort(${u.id})">占い済みを解除</button>`
+   : `<button onclick="fortune(${u.id})">占い完了にする</button>`}</div>
+ <div class="row"><label class="k">URL・状態</label><button onclick="reissue(${u.id})">URLを再発行</button><button class="danger" onclick="toggleStatus(${u.id},'${u.status}')">${u.status === 'active' ? '無効化' : '有効化'}</button></div>
+ <div class="sub" style="margin-left:100px">URLを再発行すると旧QRは使えなくなります。QRを印刷し直してください。</div>`;
+}
+
+window.giveGame = async (gid, oi, uid) => {
+ const r = await api('/api/points/game', 'POST', { userId: uid, gameId: gid, outcome: oi, requestId: newId() });
+ done(r, r.ok ? '付与しました（反映 ' + fmt(r.data.applied) + 'pt）' : '');
+};
+window.giveBonus = async (bid, uid) => {
+ const reason = $('reason').value.trim();
+ if (!reason) return toast('理由を入力してください', false);
+ const r = await api('/api/points/bonus', 'POST', { userId: uid, bonusId: bid, reason, requestId: newId() });
+ done(r, 'ボーナスを付与しました');
+};
+window.adjust = async (uid) => {
+ const d = parseInt($('adjN').value, 10) || 0;
+ const reason = $('reason').value.trim();
+ if (!d) return toast('増減値を入力してください', false);
+ if (!reason) return toast('理由を入力してください', false);
+ const r = await api('/api/admin/adjust', 'POST', { userId: uid, delta: d, reason, requestId: newId() });
+ done(r, r.ok ? '調整しました（反映 ' + fmt(r.data.applied) + 'pt）' : '');
+};
+window.fortune = async (uid) => {
+ if (!confirm('占い完了にします。この利用者はポイントを更新できなくなります。よろしいですか？')) return;
+ const r = await api('/api/points/fortune', 'POST', { userId: uid });
+ done(r, '占い済みにしました');
+};
+window.unlockFort = async (uid) => {
+ const r = await api('/api/admin/unlock', 'POST', { userId: uid });
+ done(r, '占い済みを解除しました');
+};
+window.reissue = async (uid) => {
+ if (!confirm('個人URLを再発行します。旧QRは使えなくなります。よろしいですか？')) return;
+ const r = await api('/api/admin/reissue', 'POST', { userId: uid });
+ done(r, 'URLを再発行しました（QRの印刷し直しが必要）');
+};
+window.toggleStatus = async (uid, st) => {
+ const r = await api('/api/admin/status', 'POST', { userId: uid, status: st === 'active' ? 'disabled' : 'active' });
+ done(r, '状態を変更しました');
+};
+
+/* A-3 ゲーム設定 */
+R.games = () => `<div class="grid2" style="align-items:start">${S.cfg.games.map((g) => `
+ <div class="card"><h2>${esc(g.name)} <label class="toggle"><input type="checkbox" id="ge${g.id}" ${g.enabled ? 'checked' : ''}> 有効</label></h2>
+  <div class="row"><label class="k">ゲーム名</label><input id="gn${g.id}" value="${esc(g.name)}" style="flex:1"></div>
+  ${g.outcomes.map((o, i) => `<div class="row"><label class="k">結果${i + 1}</label><input id="go${g.id}_${i}" value="${esc(o.name)}" style="width:140px"><input type="number" id="gd${g.id}_${i}" value="${o.delta}" step="5"><span class="sub">pt</span></div>`).join('')}
+  <div class="row"><label class="k"></label><button class="pri" onclick="saveGame(${g.id},${g.outcomes.length})">保存</button></div>
+ </div>`).join('')}</div>`;
+window.saveGame = async (id, n) => {
+ const outcomes = [];
+ for (let i = 0; i < n; i++) outcomes.push({ name: $('go' + id + '_' + i).value, delta: Number($('gd' + id + '_' + i).value) });
+ const r = await api('/api/admin/games/' + id, 'PUT', { name: $('gn' + id).value, enabled: $('ge' + id).checked, outcomes });
+ done(r, 'ゲーム設定を保存しました');
+};
+
+/* A-4 ボーナス設定 */
+R.bonus = () => `<div class="grid2" style="align-items:start">${S.cfg.bonuses.map((b, k) => `
+ <div class="card"><h2>${k + 1}箇所目 <span class="badge ${b.enabled ? '' : 'off'}">${b.enabled ? '有効' : '無効'}</span></h2>
+  <div class="row"><label class="k">名称</label><input id="bn${b.id}" value="${esc(b.name)}" style="flex:1"></div>
+  <div class="row"><label class="k">付与pt</label><input type="number" id="bp${b.id}" value="${b.points}"></div>
+  <div class="row"><label class="k">回数</label><label class="toggle"><input type="checkbox" id="br${b.id}" ${b.repeatable ? 'checked' : ''}> 何回でも付与（オフは1人1回）</label></div>
+  <div class="row"><label class="k">状態</label><label class="toggle"><input type="checkbox" id="be${b.id}" ${b.enabled ? 'checked' : ''}> 有効</label></div>
+  <div class="row"><label class="k"></label><button class="pri" onclick="saveBonus(${b.id})">保存</button></div>
+ </div>`).join('')}</div>`;
+window.saveBonus = async (id) => {
+ const r = await api('/api/admin/bonuses/' + id, 'PUT', {
+  name: $('bn' + id).value, points: Number($('bp' + id).value), repeatable: $('br' + id).checked, enabled: $('be' + id).checked,
+ });
+ done(r, 'ボーナス設定を保存しました');
+};
+
+/* A-5 キャラクター設定 */
+R.chars = () => {
+ const cs = S.cfg.characters;
+ const c = cs.find((x) => x.no === S.charNo) || cs[0];
+ const cells = cs.map((x) =>
+  `<div class="ch ${x.no === c.no ? 'sel' : ''}" style="${x.image ? `background-image:url('${x.image}')` : ''}" onclick="pickChar(${x.no})">${x.image ? '' : x.no}</div>`).join('');
+ return `<div class="grid2" style="align-items:start">
+  <div class="card"><h2>キャラクター（60体）<span class="sub">番号を選ぶと右で編集</span></h2><div class="chars">${cells}</div></div>
+  <div class="card"><h2>No.${c.no} <span class="sub">${c.threshold}pt〜</span></h2>
+   <div class="row"><label class="k">名称</label><input id="cn" value="${esc(c.name)}" style="flex:1"></div>
+   <div class="row"><label class="k">閾値（pt）</label><input type="number" id="ct" value="${c.threshold}" step="50"></div>
+   <div class="row"><label class="k"></label><button class="pri" onclick="saveChar(${c.no})">保存</button></div>
+   <hr>
+   <div class="row"><label class="k">現在の画像</label><div style="width:72px;height:72px;border-radius:50%;border:1px solid var(--line);background:${c.image ? `url('${c.image}') center/cover` : '#FFE58A'}"></div></div>
+   <div class="row"><label class="k">画像を差し替え</label><input type="file" accept="image/png,image/webp" onchange="uploadImg(${c.no},this)"></div>
+   <div class="sub">PNG / WebP・2MB以下。閾値は前後のキャラクターより大きく・小さくなるように設定してください。</div>
+  </div></div>`;
+};
+window.pickChar = (no) => { S.charNo = no; draw(); };
+window.saveChar = async (no) => {
+ const r = await api('/api/admin/characters/' + no, 'PUT', { name: $('cn').value, threshold: Number($('ct').value) });
+ done(r, 'キャラクターを保存しました');
+};
+window.uploadImg = async (no, el) => {
+ const f = el.files[0];
+ if (!f) return;
+ const res = await fetch('/api/admin/characters/' + no + '/image', { method: 'PUT', headers: { 'content-type': f.type }, body: f });
+ const data = await res.json().catch(() => ({}));
+ done({ ok: res.ok, data }, '画像を登録しました');
+};
+
+/* A-6 ビジュアル設定（全体テーマ・利用者の変更可否） */
+R.vis = () => {
+ const s = S.cfg.settings;
+ const cur = THEMES[s.theme] ? s.theme : 'fiat';
+ const allow = s.allow_user_theme === '1';
+ const sw = Object.keys(THEMES).map((k) =>
+  `<button onclick="setTheme('${k}')" style="display:flex;align-items:center;gap:8px;text-align:left;${k === cur ? 'font-weight:700;outline:2px solid var(--ink);outline-offset:1px' : ''}"><span class="sw" style="background:${THEMES[k].acc}"></span>${THEMES[k].name}</button>`).join('');
+ return `<div class="grid2" style="align-items:start">
+  <div class="card"><h2>全体テーマ <span class="sub">選ぶと即時に保存されます</span></h2>
+   <div class="grid2" style="gap:8px">${sw}</div>
+   <hr>
+   <div class="row"><label class="toggle"><input type="checkbox" id="allowT" ${allow ? 'checked' : ''} onchange="setAllow(this.checked)"> 利用者が個人ページで配色を選べる</label></div>
+   <div class="sub">オンのとき、利用者は7種類から選べます（占い済みの人は変更不可）。オフのときは全体テーマが全員に適用されます。</div>
+  </div>
+  <div class="card"><h2>ユーザー画面（見本）<span class="sub">${THEMES[cur].name}</span></h2>
+   <div class="phone" style="${tvars(cur)}">
+    <div class="top"><b>受付システム</b><span class="sub" style="color:var(--hdt)">サンプル太郎 さん</span></div>
+    <div class="hero">
+     <div class="cbig" style="background:#FFE58A"><b>No.1</b></div>
+     <div class="sub" style="margin-top:6px">キャラクター1</div>
+     <div style="font-size:26px;font-weight:700;margin-top:6px">120 <span class="sub">pt / 3,000</span></div>
+     <div class="gauge"><i style="width:4%"></i></div>
+    </div>
+    <button class="upd" disabled>ポイントを確認する</button>
+   </div>
+  </div></div>`;
+};
+window.setTheme = async (k) => {
+ const r = await api('/api/admin/settings', 'PUT', { theme: k });
+ done(r, '全体テーマを「' + THEMES[k].name + '」に変更しました');
+};
+window.setAllow = async (v) => {
+ const r = await api('/api/admin/settings', 'PUT', { allow_user_theme: v ? '1' : '0' });
+ done(r, v ? '利用者の配色変更をオンにしました' : '利用者の配色変更をオフにしました');
+};
+
+/* A-7 管理設定（受付・スタッフ） */
+R.settings = () => {
+ const s = S.cfg.settings;
+ const gcount = S.staff.filter((x) => x.role === 'game').length;
+ const gname = { 1: '射的', 2: '輪投げ', 3: 'ボール投げ', 4: 'クイズ' };
+ const rows = S.staff.map((x) => `<tr>
+  <td>${esc(x.display_name)}</td><td class="sub">${esc(x.access_identity)}</td>
+  <td>${x.role === 'admin' ? '管理者' : x.role === 'game' ? 'ゲーム担当' : 'ボーナス担当'}</td>
+  <td>${x.role === 'game' ? [1, 2, 3, 4].map((id) => `<label class="toggle" style="margin-right:8px"><input type="checkbox" ${x.games.includes(id) ? 'checked' : ''} onchange="setGames(${x.id},${id},this.checked)">${gname[id]}</label>`).join('') : ''}</td>
+  <td>${x.role === 'game' ? `<label class="toggle"><input type="checkbox" ${x.fortune_perm ? 'checked' : ''} onchange="setFort(${x.id},this.checked)"> 占い完了</label>` : ''}</td>
+  <td>${x.role === 'admin' ? '' : `<button onclick="resetPass(${x.id})">パスワード再設定</button> <button class="danger" onclick="setActive(${x.id},${!x.active})">${x.active ? '無効化' : '有効化'}</button>`}</td>
+ </tr>`).join('');
+ return `<div class="grid2" style="align-items:start">
+  <div class="card"><h2>受付</h2>
+   <div class="row"><label class="k">登録上限</label><input type="number" id="maxU" value="${s.max_users}"><span class="sub">人</span></div>
+   <div class="row"><label class="k">受付</label><label class="toggle"><input type="checkbox" id="regO" ${s.registration_open === '1' ? 'checked' : ''}> 受付中（オフで満員画面）</label></div>
+   <div class="row"><label class="k"></label><button class="pri" onclick="saveSettings()">保存</button></div>
+  </div>
+  <div class="card"><h2>スタッフを追加 <span class="sub">ゲーム担当 ${gcount} / 5 枠</span></h2>
+   <div class="row"><label class="k">Access ID</label><input id="nAcc" placeholder="メールアドレス" style="flex:1"></div>
+   <div class="row"><label class="k">表示名</label><input id="nName" style="flex:1"></div>
+   <div class="row"><label class="k">パスワード</label><input type="password" id="nPass" placeholder="8文字以上（ログインに必要）" style="flex:1"></div>
+   <div class="row"><label class="k">種別</label><select id="nRole">
+     <option value="game" ${gcount >= 5 ? 'disabled' : ''}>ゲーム担当</option>
+     <option value="bonus">ボーナス担当</option>
+     <option value="admin">管理者</option></select>
+    <button onclick="addStaff()">追加</button></div>
+  </div></div>
+ <div class="card"><h2>スタッフ権限</h2>
+  <div style="overflow-x:auto"><table><thead><tr><th>表示名</th><th>Access ID</th><th>種別</th><th>担当ゲーム</th><th>占い</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="sub" style="margin-top:8px">ゲーム担当は最大5枠。占い完了の権限を付けた担当が占い担当になります。</div>
+ </div>`;
+};
+window.saveSettings = async () => {
+ const r = await api('/api/admin/settings', 'PUT', {
+  max_users: $('maxU').value, registration_open: $('regO').checked ? '1' : '0',
+ });
+ done(r, '保存しました');
+};
+window.setGames = async (sid, gid, on) => {
+ const s = S.staff.find((x) => x.id === sid);
+ const cur = s.games.slice();
+ const next = on ? [...new Set([...cur, gid])] : cur.filter((g) => g !== gid);
+ const r = await api('/api/admin/staff/' + sid, 'PATCH', { games: next });
+ done(r, '担当ゲームを更新しました');
+};
+window.setFort = async (sid, v) => {
+ const r = await api('/api/admin/staff/' + sid, 'PATCH', { fortunePerm: v });
+ done(r, '占い完了権限を更新しました');
+};
+window.setActive = async (sid, v) => {
+ const r = await api('/api/admin/staff/' + sid, 'PATCH', { active: v });
+ done(r, '状態を変更しました');
+};
+window.resetPass = async (sid) => {
+ const p = prompt('新しいパスワード（8文字以上）を入力してください');
+ if (p === null) return;
+ const r = await api('/api/admin/staff/' + sid, 'PATCH', { password: p });
+ done(r, 'パスワードを再設定しました');
+};
+window.logout = async () => {
+ await api('/api/logout', 'POST', {});
+ location.href = '/login';
+};
+window.addStaff = async () => {
+ const r = await api('/api/admin/staff', 'POST', {
+  accessIdentity: $('nAcc').value.trim(), displayName: $('nName').value.trim(), role: $('nRole').value,
+  password: $('nPass').value,
+ });
+ done(r, 'スタッフを追加しました');
+};
+
+/* A-8 ログ・出力 */
+R.logs = () => `<div class="card"><h2>操作ログ（直近200件）<button onclick="exportCsv()">CSV出力</button></h2>
+ <div style="overflow-x:auto"><table><thead><tr><th>時刻</th><th>操作者</th><th>操作</th><th>対象</th><th>内容</th></tr></thead><tbody>
+ ${S.logs.map((l) => `<tr><td>${esc((l.created_at || '').slice(0, 16))}</td><td>${esc(l.actor || '')}</td><td>${esc(l.action)}</td><td>${esc(l.target || '')}</td><td>${esc(l.detail || '')}</td></tr>`).join('')
+   || '<tr><td colspan="5" class="sub">ログはありません</td></tr>'}
+ </tbody></table></div></div>`;
+window.exportCsv = () => {
+ const head = ['時刻', '操作者', '操作', '対象', '内容'];
+ const lines = [head, ...S.logs.map((l) => [l.created_at, l.actor, l.action, l.target, l.detail])]
+  .map((r) => r.map((v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(','));
+ const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+ const a = document.createElement('a');
+ a.href = URL.createObjectURL(blob);
+ a.download = 'logs.csv';
+ a.click();
+ URL.revokeObjectURL(a.href);
+};
+
+loadAll();
+</script>
+</body>
+</html>

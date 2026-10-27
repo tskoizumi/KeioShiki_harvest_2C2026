@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>受付 - 登録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="/vendor/qrcode.js"></script>
+<link rel="stylesheet" href="/shared.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><b>受付システム</b><span class="sub" style="color:var(--hdt)">登録</span></div>
+
+  <div class="card" id="form-card">
+    <h2>ニックネームを入力してください</h2>
+    <p class="sub">登録後に、あなた専用のページとQRコードが表示されます。ニックネームは1〜12文字です。</p>
+    <div class="row" style="margin-top:12px">
+      <input id="nick" maxlength="12" placeholder="例：たろう" style="flex:1;font-size:16px" autocomplete="off">
+    </div>
+    <div class="row" style="justify-content:center;margin:16px 0 4px">
+      <button class="pri" id="go" style="padding:10px 32px;font-size:15px;min-width:140px">登録する</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card" id="done-card" hidden>
+    <h2>登録が完了しました</h2>
+    <p class="sub">このページを保存（ブックマーク）するか、QRコードを画像として保存してください。紛失した場合はスタッフにお声がけください。</p>
+    <div id="qr" style="width:200px;margin:12px auto"></div>
+    <div class="row" style="justify-content:center"><a id="open" href="#">あなたのページを開く</a></div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const MSG = {
+  NICK_INVALID: 'ニックネームは1〜12文字で入力してください',
+  REG_FULL: '受付を終了しました（満員または受付停止中）',
+};
+$('go').onclick = async () => {
+  $('msg').className = 'msg';
+  $('msg').textContent = '';
+  const nickname = $('nick').value;
+  $('go').disabled = true;
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ nickname }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      $('msg').className = 'msg bad';
+      $('msg').textContent = MSG[data.error] || data.message || 'エラーが発生しました';
+      return;
+    }
+    const url = location.origin + data.url;
+    const q = qrcode(0, 'M');
+    q.addData(url);
+    q.make();
+    $('qr').innerHTML = '<div class="qr">' + q.createSvgTag(4, 2) + '</div>';
+    $('open').href = data.url;
+    $('form-card').hidden = true;
+    $('done-card').hidden = false;
+  } catch (e) {
+    console.error(e);
+    $('msg').className = 'msg bad';
+    $('msg').textContent = '通信に失敗しました。ページを開き直すか、もう一度お試しください';
+  } finally {
+    $('go').disabled = false;
+  }
+};
+</script>
+</body>
+</html>

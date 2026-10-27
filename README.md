@@ -102,6 +102,7 @@ LPとそれ以外のつなぎ目は2つだけ（`config.js` の `resultUrl` と 
 | `config.js` | 出し物名・日時・改竄の閾値・ミニゲームの内容・つなぎ目のURLなど、変えたくなる値の置き場 |
 | `assets/` | ロゴ（`logo.png` が原本）、ロゴを分解したレイヤー（`layer-ball` `layer-hand` `layer-copy`）、水晶玉のマーク（`mark-alpha.webp` 背景透過）、OGP画像、ファビコン |
 | `docs/TECHNICAL.md` | 技術資料 |
+| `reception/` | 受付・ポイントシステム（`soma1218` 担当。Cloudflare Workers ＋ D1 ＋ R2）。動かし方は `reception/README.md` |
 | `.github/` | 担当の自動レビュー依頼（`CODEOWNERS`）、プルリクエストとissueのテンプレート |
 
 ## 公開する

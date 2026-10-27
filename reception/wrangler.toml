@@ -1,0 +1,23 @@
+name = "reception-system"
+main = "src/worker.js"
+compatibility_date = "2026-01-01"
+
+# 静的ファイル（public/）。run_worker_first で、先に Worker の経路判定を通します。
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# 本番DB（D1）。database_id は `wrangler d1 create reception-db` の出力値に置き換えてください。
+[[d1_databases]]
+binding = "DB"
+database_name = "reception-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# キャラクター画像（R2）。事前に `wrangler r2 bucket create reception-images` を実行してください。
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "reception-images"
+
+# 検証環境（staging）を作る場合は、別のD1・R2を指定した [env.staging] を追加してください。
