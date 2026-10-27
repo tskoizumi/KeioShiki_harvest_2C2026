@@ -69,6 +69,20 @@ npx wrangler r2 bucket create reception-images
 npm run db:migrate:remote
 ```
 
+### Claude（AI）にデプロイを頼むとき
+
+ログインが要るので、次のどちらかで動いている Claude に頼む。
+
+- **自分のPCの Claude**（Claude Desktop、またはリポジトリのフォルダで `claude remote-control`）。PCで `npx wrangler login` 済みならそのまま使える
+- **クラウドの Claude Code**：環境の設定（セッション上部の環境メニュー → Edit）に、環境変数 `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を入れてから新しいセッションを始める。トークンはチャットに貼らない。権限は最小限に：
+  - アカウント：Workers Scripts 編集、D1 編集、Workers R2 Storage 編集、Account Settings 読み取り
+  - 独自ドメインを使うなら、そのゾーンの Workers Routes 編集・DNS 編集
+  - 文化祭が終わったらトークンを削除する
+
+頼む内容：「`reception/README.md` の 1〜2 を実行して `npm run deploy` までやって。最初の管理者のメールは〇〇」。Access（3）は Cloudflare のダッシュボードで設定する。
+
+> **R2 の注意**：R2 を初めて使うときは、Cloudflare のダッシュボードで R2 を有効にする（無料枠でも支払い方法の登録を求められる）。できない場合は、キャラクター画像の機能を外す必要がある。
+
 ## 2. 最初の管理者を登録
 
 `staff` テーブルは手で投入します。`access_identity` は Cloudflare Access がログイン時に渡すメールアドレス（小文字）です。
@@ -93,12 +107,16 @@ Access のアプリケーションを次のパスに設定し、スタッフの�
 
 - `/`、`/u/*`、`/api/register`、`/api/me/*`、`/img/*`、`/shared.css`、`/vendor/*`（QRを作るライブラリ。外部CDNに頼らないよう同梱）
 
-> **注意（本番前に必ず対応）**
-> 現在の `auth.js` は Access が付与するヘッダ `Cf-Access-Authenticated-User-Email` を信頼しています。
-> この Worker に Access を経由せず直接届く経路があると、ヘッダを偽装されて管理者になれます。
-> 本番前に次の2点を行ってください。
-> 1. `wrangler.toml` に `workers_dev = false` を追加し、カスタムドメインのみで公開する（`*.workers.dev` を閉じる）。
-> 2. `Cf-Access-Jwt-Assertion` を JWKS で検証し、`aud` と `email` を確認する（`auth.js` に実装する）。
+作ったら、Access の設定画面にある次の2つを `wrangler.toml` の `[vars]` に入れてデプロイし直します（どちらも秘密ではありません）。
+
+| 変数 | 入れるもの |
+|---|---|
+| `ACCESS_TEAM_DOMAIN` | Zero Trust のチームのドメイン（例：`keioshiki2c.cloudflareaccess.com`） |
+| `ACCESS_AUD` | Access アプリケーションの「Application Audience (AUD) Tag」 |
+
+`auth.js` は、Access が付ける署名付きのJWT（`Cf-Access-Jwt-Assertion`）を公開鍵で検証し、宛先（aud）・発行元・期限を確かめてからメールアドレスを使います。偽装できる `Cf-Access-Authenticated-User-Email` ヘッダーは信用しません。2つの変数が空のあいだは、本番では誰もスタッフになれません（安全側に倒している）。
+
+> **独自ドメインが必要。** Access をパスごと（`/admin*` だけ等）に掛けるには、Cloudflare に登録した独自ドメインでこの Worker を公開する必要があります。`*.workers.dev` のままだと、Access は「サイト全体」にしか掛けられず、お客さんが登録できなくなります。
 
 ## 4. 登録の保護（レート制限）
 
@@ -123,7 +141,7 @@ npx wrangler dev        # ローカル確認（ローカルDBは db:migrate:loca
 
 ## 7. 既知の未対応・注意点
 
-- Access の JWT 検証は未実装（上記3の注意参照）。本番前に必須。
+- Access の JWT 検証は実装済み（上記3）。`[vars]` の2つを入れるまで、本番ではスタッフ画面が使えない。
 - ボーナス付与は「取得記録」と「ポイント反映」の2段階で、途中失敗時は取得記録を戻す補償処理です（D1 のバッチ化を検討の余地あり）。
 - 占いは `games` テーブルの行ではなく、`fortune_perm` を持つゲーム担当が完了させる操作です。
 - 占い担当はゲーム担当の5枠の中に含めてください（枠数は `role = 'game'` の人数で数えます）。

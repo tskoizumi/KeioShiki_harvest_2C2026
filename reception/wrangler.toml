@@ -21,3 +21,11 @@ binding = "R2"
 bucket_name = "reception-images"
 
 # 検証環境（staging）を作る場合は、別のD1・R2を指定した [env.staging] を追加してください。
+
+# Cloudflare Access（スタッフのログイン）の設定。秘密ではないので、ここに書いてよい。
+# ACCESS_TEAM_DOMAIN : Zero Trust のチーム名のドメイン（例: "keioshiki2c.cloudflareaccess.com"）
+# ACCESS_AUD         : Access アプリケーションの「Application Audience (AUD) Tag」
+# 空のあいだは、本番では誰もスタッフになれない（管理画面・付与端末は 403）。手元の localhost は .dev.vars で動く。
+[vars]
+ACCESS_TEAM_DOMAIN = ""
+ACCESS_AUD = ""
