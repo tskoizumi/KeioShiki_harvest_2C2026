@@ -90,7 +90,7 @@ window.SITE = {
                   空のあいだは、ナビのボタンと下の案内セクションを隠す。
      rankingUrl : 番付のデータのURL。app/ なら "https://app.moneytalks-uranai.com/api/ranking"。
                   空のあいだは「開場後に更新します」のまま。 */
-  resultUrl:  "",
+  resultUrl:  "https://app.moneytalks-uranai.com/",
   rankingUrl: "https://app.moneytalks-uranai.com/api/ranking",
 };
 
