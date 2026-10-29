@@ -343,14 +343,33 @@ export const ORACLE = (function () {
   }
 
   /* ----------------------------------------------------------
-     言及を選ぶ — 3から遠い答えを優先。同点なら質問順
+     言及を選ぶ — 3から遠い答え（1 や 5）を優先。
+     同じ強さどうしは、占いごとに変わる順番で選ぶ（質問の並び順で選ぶと、
+     いつも1問目のラーメンばかりになるため）。
      answers: 言及用10問の答え（1〜5の配列）。n: 何個拾うか
+     seed: 占いの番号など。同じ占いなら、何度組み直しても同じ結果になる
   ---------------------------------------------------------- */
-  function pickMentions(answers, n) {
+  function shuffleOrder(len, seed) {
+    var x = (Number(seed) || Math.floor(Math.random() * 1e9)) >>> 0;
+    var rnd = function () {
+      x = (x + 0x6D2B79F5) >>> 0;
+      var t = Math.imul(x ^ (x >>> 15), 1 | x);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    var order = [];
+    for (var i = 0; i < len; i++) order.push(i);
+    for (var j = len - 1; j > 0; j--) { var k = Math.floor(rnd() * (j + 1)); var tmp = order[j]; order[j] = order[k]; order[k] = tmp; }
+    var rank = [];
+    order.forEach(function (v, pos) { rank[v] = pos; });
+    return rank;
+  }
+  function pickMentions(answers, n, seed) {
+    var tie = shuffleOrder(MENTION.length, seed);
     var list = MENTION.map(function (q, i) {
       var a = Number(answers[i]) || 3;
       return { q: q, a: a, strength: Math.abs(a - 3), i: i };
-    }).sort(function (x, y) { return y.strength - x.strength || x.i - y.i; }).slice(0, n);
+    }).sort(function (x, y) { return y.strength - x.strength || tie[x.i] - tie[y.i]; }).slice(0, n);
     return list.map(function (m) {
       var line = m.strength === 0 ? MENTION_MID : (m.a >= 4 ? m.q.high : m.q.low);
       return { quote: "あなたは『" + m.q.text.replace(/。$/, "") + "』に " + m.a + " と答えましたね。", line: line };

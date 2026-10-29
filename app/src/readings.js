@@ -82,7 +82,7 @@ export async function updateReading(db, id, { judge, mention, kizashiId, souId }
 
   let script = null, oracle = null;
   if (kz) {
-    const mentions = ORACLE.pickMentions(m, ORACLE.DIRECTION[rank].mentions);
+    const mentions = ORACLE.pickMentions(m, ORACLE.DIRECTION[rank].mentions, id);
     const out = ORACLE.compose(sou, kz, rank, mentions);
     script = { parts: out.parts, direction: out.direction };
     oracle = out.oracle;

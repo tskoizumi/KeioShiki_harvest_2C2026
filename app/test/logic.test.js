@@ -18,6 +18,24 @@ test('占い：8相 × 10兆 × 4位 の全部で台本が組める', () => {
   assert.equal(n, 320);
 });
 
+test('占い：答えが同じ強さなら、いつも1問目（ラーメン）にはならない', () => {
+  const first = ORACLE.MENTION[0].text.replace(/。$/, '');
+  const pick = (answers, seed) => ORACLE.pickMentions(answers, 1, seed)[0].quote;
+  // 何も答えていない（全部3）とき、100回の占いでラーメンが選ばれるのは一部だけ
+  let ramen = 0;
+  const seen = new Set();
+  for (let id = 1; id <= 100; id++) { const q = pick([], id); seen.add(q); if (q.includes(first)) ramen++; }
+  assert.ok(ramen < 30, `ラーメンが ${ramen}/100 回`);
+  assert.ok(seen.size >= 8, `選ばれた質問は ${seen.size} 種類`);
+  // 1 や 5 と答えた質問は、3 の質問より必ず先に選ばれる
+  for (let id = 1; id <= 50; id++) assert.ok(pick([3, 3, 3, 3, 3, 3, 3, 5, 3, 3], id).includes(ORACLE.MENTION[7].text.replace(/。$/, '')));
+  // 同じ占い（同じ番号）なら、組み直しても同じ
+  assert.equal(pick([5, 5, 5, 1, 1, 3, 3, 3, 3, 3], 42), pick([5, 5, 5, 1, 1, 3, 3, 3, 3, 3], 42));
+  // 5 が何個もあるときも、占いごとに選ばれる質問が変わる
+  const many = new Set(); for (let id = 1; id <= 40; id++) many.add(pick([5, 5, 5, 5, 5, 3, 3, 3, 3, 3], id));
+  assert.ok(many.size >= 4);
+});
+
 test('占い：全部3なら「種」、全部5なら「焚き火」', () => {
   assert.equal(ORACLE.judge([3, 3, 3, 3, 3, 3, 3, 3, 3]).name, '種');
   assert.equal(ORACLE.judge([5, 5, 5, 5, 5, 5, 5, 5, 5]).name, '焚き火');
