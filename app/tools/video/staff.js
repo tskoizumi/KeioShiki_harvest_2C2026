@@ -42,12 +42,12 @@ const { open, state, reset, sleep, encode, addAudio } = require('./lib');
   await s.cap('1　ログイン', '名前とパスワードで<br>ログイン', 'スタッフの登録は、管理する人が作る<br><b>招待のQR</b>を読むだけ。<br><br>権限は4つ：<br>スタッフ ＜ 占い師 ＜ 責任者 ＜ 管理者');
   s.say('スタッフは、名前とパスワードでログインします。スタッフの登録は、管理する人が作る、招待のQRを読むだけです。権限は四つあって、上の人は、下の人のできることを、全部できます。');
   await sleep(2500);
-  await s.type(T, '#l-name', '見本管理者');
-  await s.type(T, '#l-code', 'kenshu-admin');
+  await s.type(T, '#l-name', '見本占い師');
+  await s.type(T, '#l-code', 'kenshu-teller');
   await s.tap(T, '#l-go', { after: 500 });
   await s.wait(T, '#tabbar:not([hidden])');
   await s.waitSay(200);
-  await s.cap('1　ログイン', '下のタブが<br>仕事のぜんぶ', '<b>お客さん</b>　探す・ゲームを始める<br><b>ゲーム中</b>　結果を待っている人<br><b>占い</b>　占い師の画面<br><b>受付</b>　登録・QRカード<br><b>管理</b>　設定・スタッフ<br><br>困ったら右上の <b>?</b> で使い方が出ます。');
+  await s.cap('1　ログイン', '下のタブが<br>仕事のぜんぶ', '<b>お客さん</b>　探す・ゲームを始める<br><b>ゲーム中</b>　結果を待っている人<br><b>占い</b>　占い師の画面<br><b>受付</b>　登録・QRカード<br><br>困ったら右上の <b>?</b> で使い方が出ます。');
   s.say('下のタブが、仕事のぜんぶです。困ったら、右上のはてなを押すと、その画面の使い方が出ます。');
   await sleep(2600);
   await s.tap(T, '#help', { after: 2600 });
@@ -174,36 +174,9 @@ const { open, state, reset, sleep, encode, addAudio } = require('./lib');
   await s.tap(T, '#card-form button[type="submit"]', { after: 1200 });
   await s.waitSay(400);
 
-  /* ---------- 8. 責任者 ---------- */
-  await s.cap('8　責任者', '残高の修正は<br>奥のメニュー', '理由を書いて、<b>2回押して確定</b>。<br>記録に残ります。<br>ゲームの景品は、必ずゲームの結果で。');
-  s.say('残高の修正は、責任者メニューの奥にあります。理由を書いて、二回押して、確定します。');
-  await s.tap(T, '[data-view="cust"]', { after: 500 });
-  await search('じろう');
-  await s.tap(T, 'details.mgr summary', { after: 600 });
-  await s.type(T, '#adj-amt', '50');
-  await s.type(T, '#adj-note', '受付で配り忘れ');
-  await s.tap(T, '[data-act="adjust"]', { after: 700 });
-  await s.tap(T, '[data-act="adjust"]', { after: 1000 });
-  await s.waitSay(400);
-
-  /* ---------- 9. 管理 ---------- */
-  await s.cap('9　管理', '設定とゲーム', 'ランクの境目、受付の開け閉め、<br>参加費や払い戻し、<b>ルールの文章</b>を<br>ここで変えられます。');
-  s.say('管理のタブでは、ランクの境目や、受付の開け閉め、ゲームの参加費やルールを、変えられます。');
-  await s.tap(T, '[data-view="admin"]', { after: 1000 });
-  await s.tap(T, '[data-sub="settings"]', { after: 1400 });
-  await s.tap(T, '[data-sub="games"]', { after: 1400 });
-  await s.scroll(T, 500, 1200);
-  await s.waitSay(300);
-  await s.cap('9　管理', 'スタッフの招待', '権限を選んで<b>招待のQR</b>を作り、<br>クラスの人に読んでもらう。<br>名前とパスワードを決めれば登録完了。');
-  s.say('スタッフのタブで、招待のQRを作ります。クラスの人が読むと、自分で名前とパスワードを決めて、登録できます。');
-  await s.tap(T, '[data-sub="staff"]', { after: 900 });
-  await s.tap(T, '#inv-make', { after: 2600 });
-  await s.tap(T, '#sheet-close', { after: 500 });
-  await s.waitSay(400);
-
   /* ---------- おわり ---------- */
   await s.title(true, '困ったら、<br>責任者を呼ぶ', '取り消しはいつでもできる。縁の増減は必ず画面を通す。', '練習は 研修モード（training.moneytalks-uranai.com）', 'スタッフ研修');
-  s.say('困ったら、画面を閉じずに、責任者を呼んでください。練習は、研修モードで、いつでもできます。');
+  s.say('困ったら、画面を閉じずに、責任者を呼んでください。練習は、研修モードで、いつでもできます。', 's21');
   await s.waitSay(1800);
 
   const dir = await s.close();

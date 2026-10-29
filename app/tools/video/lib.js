@@ -90,9 +90,10 @@ async function open(mode) {
       await sleep(ms);
     },
     // ナレーション。読み終わるまで待たずに次の操作に進める（waitSay で待つ）
-    say: (text) => {
+    // id を渡すと、その番号の録音を使う（途中の行を抜いたときなど）。渡さなければ台本の順番
+    say: (text, id) => {
       sayN++;
-      const dur = narration(text, (mode === 'phone' ? 'c' : 's') + String(sayN).padStart(2, '0'));
+      const dur = narration(text, id || (mode === 'phone' ? 'c' : 's') + String(sayN).padStart(2, '0'));
       events.push({ type: 'say', t: now() + 0.15, file: dur.file, text });
       sayEnd = Date.now() + 150 + dur.sec * 1000;
       return dur.sec;
