@@ -229,6 +229,8 @@ python3 -m http.server 8765      # → http://localhost:8765/
 - [ ] Pages（LP）の Custom domains に `moneytalks-uranai.com` をつなぐ
 - [ ] `app/` を本番にデプロイする（GitHub の Secrets を4つ入れると `main` への push で自動。→ app/README.md）
 - [ ] デプロイ後、`/staff` で最初の管理者を作り、スタッフを追加する
+- [ ] デプロイ後、`https://training.moneytalks-uranai.com/training` が開くことを確かめ、スタッフに共有する（研修モード。本番とは別のデータ）
+- [ ] 動画（`docs/video/`）に BGM を重ねる。お客さん向けは Instagram に
 - [ ] LP の `config.js` の `resultUrl` に `https://app.moneytalks-uranai.com/` を入れる（`rankingUrl` は入れてある）
 - [ ] 印刷用の札（`/staff/cards`）を刷る
 - [ ] 改竄の閾値を、LP の `config.js` と `app/` の管理画面の両方で合わせる

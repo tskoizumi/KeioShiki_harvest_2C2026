@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --paper: #fefefc; --ink: #1c1a1b; --muted: #6b6466; --red: #9f1111; --hot: #e0352b; --plum: #663661; --lilac: #d9b8dc; --sky: #bcdce8;
+    --mincho: "Shippori Mincho B1", serif; --gothic: "Noto Sans JP", sans-serif;
+  }
+  html { zoom: 2; } html, body { width: 100%; height: 100%; overflow: hidden; background: var(--paper); color: var(--ink); font-family: var(--gothic); }
+  #bg { position: fixed; inset: 0; overflow: hidden; background: var(--paper); }
+  .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55; transition: transform 2s ease; }
+  .b1 { width: 70vmin; height: 70vmin; left: -20vmin; top: -20vmin; background: var(--sky); }
+  .b2 { width: 60vmin; height: 60vmin; right: -22vmin; top: 30vh; background: var(--lilac); }
+  .b3 { width: 50vmin; height: 50vmin; left: 10vw; bottom: -25vmin; background: #a7709f; opacity: 0.25; }
+  body.dark { background: #0d0b0c; color: #f4efe6; }
+  body.dark #bg { background: #0d0b0c; }
+  body.dark .blob { opacity: 0.22; }
+
+  .frame { position: absolute; border-radius: 34px; background: #121011; padding: 10px; box-shadow: 0 30px 60px -20px rgba(40, 20, 35, 0.55), 0 0 0 1px rgba(0,0,0,0.3); transition: opacity 0.6s, transform 0.6s; }
+  .frame::before { content: ""; position: absolute; left: 50%; top: 10px; transform: translateX(-50%); width: 90px; height: 7px; border-radius: 999px; background: #000; z-index: 2; }
+  .frame iframe { border: 0; display: block; background: #fefefc; border-radius: 24px; width: 100%; height: 100%; }
+  .frame.hide { opacity: 0; transform: translateY(20px); pointer-events: none; }
+  .frame .label { position: absolute; left: 50%; bottom: -30px; transform: translateX(-50%); font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: var(--muted); white-space: nowrap; }
+  body.dark .frame .label { color: #9a9195; }
+
+  .text { position: absolute; transition: opacity 0.4s; }
+  .text .chapter { font-size: 13px; font-weight: 700; letter-spacing: 0.3em; color: var(--red); min-height: 18px; }
+  .text .cap { font-family: var(--mincho); font-weight: 800; line-height: 1.3; margin-top: 6px; text-wrap: balance; }
+  .text .sub { margin-top: 10px; line-height: 1.7; color: var(--muted); font-weight: 500; }
+  body.dark .text .sub { color: #c9c0c3; }
+  .text.swap { opacity: 0; }
+  .brandline { position: absolute; display: flex; align-items: center; gap: 10px; font-family: var(--mincho); font-weight: 800; font-size: 14px; }
+  .brandline img { width: 34px; height: 34px; }
+
+  /* 縦（客） */
+  body.phone .brandline { left: 28px; top: 24px; }
+  body.phone .text { left: 28px; right: 28px; top: 70px; height: 184px; }
+  body.phone .text .cap { font-size: 30px; }
+  body.phone .text .sub { font-size: 15px; margin-top: 8px; }
+  body.phone #f-phone { left: 90px; top: 266px; width: 360px; height: 654px; }
+  body.phone #f-staff { display: none; }
+
+  /* 横（スタッフ） */
+  body.staff .brandline { left: 36px; top: 20px; }
+  body.staff .text { left: 470px; top: 90px; width: 450px; }
+  body.staff .text .cap { font-size: 36px; }
+  body.staff .text .sub { font-size: 17px; }
+  body.staff #f-staff { left: 36px; top: 58px; width: 400px; height: 470px; }
+  body.staff #f-phone { left: 620px; top: 58px; width: 316px; height: 470px; }
+  body.staff.duo .text { left: 470px; width: 130px; top: 70px; }
+  body.staff.duo .text .cap { font-size: 24px; }
+  body.staff.duo .text .sub { font-size: 13px; }
+  body.staff:not(.duo) #f-phone { opacity: 0; pointer-events: none; }
+
+  /* タイトルカード */
+  #title { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; transition: opacity 0.8s; background: var(--paper); z-index: 5; }
+  #title.hide { opacity: 0; pointer-events: none; }
+  #title img { width: 170px; height: 170px; }
+  #title .k { font-size: 13px; font-weight: 700; letter-spacing: 0.35em; color: var(--red); }
+  #title h1 { font-family: var(--mincho); font-weight: 800; font-size: 40px; line-height: 1.25; }
+  #title p { color: var(--muted); font-size: 16px; }
+  body.staff #title h1 { font-size: 44px; }
+  #title .big { font-family: var(--mincho); font-weight: 800; font-size: 26px; margin-top: 8px; }
+
+  /* タップの波紋 */
+  .tap { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(224, 53, 43, 0.5); border: 2px solid #e0352b; z-index: 9; pointer-events: none; animation: tap 0.55s ease-out forwards; }
+  @keyframes tap { from { transform: scale(0.4); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+
+  /* 位の表 */
+  .ranks { display: flex; gap: 6px; margin-top: 8px; }
+  .ranks div { flex: 1; padding: 5px 4px; border-radius: 12px; background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.9); text-align: center; line-height: 1.2; }
+  .ranks b { display: block; font-family: var(--mincho); font-size: 18px; color: var(--ink); }
+  .ranks small { font-size: 10px; color: var(--muted); }
+  .ranks .kz { background: var(--ink); }
+  .ranks .kz b { color: #f4efe6; } .ranks .kz small { color: var(--lilac); }
+</style>
+</head>
+<body>
+<div id="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div class="brandline"><img src="../../public/assets/mark-alpha.webp" alt=""><span id="brand">運命、賄賂で買いませんか？</span></div>
+<div class="text"><p class="chapter" id="chapter"></p><p class="cap" id="cap"></p><div class="sub" id="sub"></div></div>
+<div class="frame" id="f-phone"><iframe id="phone" src="about:blank"></iframe><span class="label" id="l-phone">お客さんのスマホ</span></div>
+<div class="frame" id="f-staff"><iframe id="staff" src="about:blank"></iframe><span class="label">スタッフの端末</span></div>
+<div id="title"><img src="../../public/assets/mark-alpha.webp" alt=""><p class="k" id="t-k">収穫祭 2026　2年C組</p><h1 id="t-h">運命、賄賂で<br>買いませんか？</h1><p id="t-p"></p><p class="big" id="t-big"></p></div>
+<script>
+  var mode = new URLSearchParams(location.search).get('mode') || 'phone';
+  document.body.className = mode;
+  window.studio = {
+    cap: function (chapter, cap, subHtml) {
+      var t = document.querySelector('.text');
+      t.classList.add('swap');
+      return new Promise(function (res) { setTimeout(function () {
+        document.getElementById('chapter').textContent = chapter || '';
+        document.getElementById('cap').innerHTML = cap || '';
+        document.getElementById('sub').innerHTML = subHtml || '';
+        t.classList.remove('swap'); res();
+      }, 380); });
+    },
+    title: function (show, h, p, big, k) {
+      var t = document.getElementById('title');
+      if (h != null) document.getElementById('t-h').innerHTML = h;
+      if (p != null) document.getElementById('t-p').innerHTML = p;
+      if (big != null) document.getElementById('t-big').innerHTML = big;
+      if (k != null) document.getElementById('t-k').textContent = k;
+      t.classList.toggle('hide', !show);
+    },
+    duo: function (on) { document.body.classList.toggle('duo', !!on); },
+    dark: function (on) { document.body.classList.toggle('dark', !!on); },
+    tap: function (x, y) { var d = document.createElement('div'); d.className = 'tap'; d.style.left = x + 'px'; d.style.top = y + 'px'; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 700); },
+    load: function (which, url) { return new Promise(function (res) { var f = document.getElementById(which); f.onload = function () { res(); }; f.src = url; }); },
+  };
+</script>
+</body>
+</html>
