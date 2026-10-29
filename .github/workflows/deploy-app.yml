@@ -76,3 +76,10 @@ jobs:
         run: |
           printf '%s' "${{ secrets.APP_SESSION_SECRET }}" | npx wrangler secret put SESSION_SECRET
           printf '%s' "${{ secrets.APP_SETUP_CODE }}" | npx wrangler secret put SETUP_CODE
+
+      - name: URLs
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          echo "### デプロイ完了" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 本番: https://app.moneytalks-uranai.com/ （最初は /staff で管理者を作る）" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 研修: https://training.moneytalks-uranai.com/training" >> "$GITHUB_STEP_SUMMARY"
