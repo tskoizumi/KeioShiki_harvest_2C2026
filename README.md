@@ -9,6 +9,8 @@
 | `tskoizumi`（＋任された Claude） | **LP**（`index.html`・`config.js`・`assets/`）と、**受付・縁・占いのシステム `app/`**（マイページ・ミニゲーム・占い・番付・スタッフ画面） |
 | `soma1218` | `app/` の改良・運用の手伝い。`reception/`（[`qr/reception-system` ブランチ](https://github.com/tskoizumi/KeioShiki_harvest_2C2026/tree/qr/reception-system)）は最初に作ってくれた試作で、台帳の作りは `app/` に引き継いだ |
 
+**研修**：https://training.moneytalks-uranai.com/training に、本番と切り離した練習用の環境（見本の客・スタッフ入り、何をしても本番に影響しない）と、役割ごとの手引きがある。動画は [`docs/video/`](docs/video/)。
+
 LPと `app/` のつなぎ目は `config.js` の `resultUrl` と `rankingUrl`。→ [LPとのつなぎ目](#lpとのつなぎ目)。`app/` の中身と動かし方は [app/README.md](app/README.md)。
 
 一緒に開発する人は、下の「連絡のルール」「開発のルール」と [docs/TECHNICAL.md](docs/TECHNICAL.md)（技術資料）を先に読んでください。
@@ -103,6 +105,8 @@ LPと `app/` のつなぎ目は `config.js` の `resultUrl` と `rankingUrl`。�
 | `assets/` | ロゴ（`logo.png` が原本）、ロゴを分解したレイヤー（`layer-ball` `layer-hand` `layer-copy`）、水晶玉のマーク（`mark-alpha.webp` 背景透過）、OGP画像、ファビコン |
 | `docs/TECHNICAL.md` | 技術資料 |
 | `app/` | 受付・縁・占いのシステム（Cloudflare Workers ＋ D1）。客のマイページ、ミニゲーム、占い師の台本、番付、スタッフ画面。→ [app/README.md](app/README.md) |
+| `app/tools/video/` | 説明動画を作り直す道具（研修モードの画面を Playwright で操作しながら録る） |
+| `docs/video/` | お客さん向けのあそびかた動画（縦・1分）と、スタッフ研修の動画（横・3分） |
 | `.github/workflows/deploy-app.yml` | `app/` を Cloudflare に自動デプロイする |
 | `.github/` | 担当の自動レビュー依頼（`CODEOWNERS`）、プルリクエストとissueのテンプレート |
 

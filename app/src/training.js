@@ -73,8 +73,8 @@ export async function trainingFetch(request, env, ctx, handle) {
     .transform(res);
 }
 
-const BANNER = `<a id="mt-training" href="/training" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 12px;background:#f2a900;color:#1c1a1b;font:700 12px/1.4 -apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;letter-spacing:0.06em;text-decoration:none;position:relative;z-index:60">
-<span style="display:inline-block;padding:1px 8px;border-radius:999px;background:#1c1a1b;color:#f2a900;font-size:11px">研修モード</span><span>練習用です。本番には影響しません</span><span style="opacity:.7">手引きへ ›</span></a>
+const BANNER = `<a id="mt-training" href="/training" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:5px 10px;background:#f2a900;color:#1c1a1b;font:700 11px/1.4 -apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;letter-spacing:0.04em;text-decoration:none;position:relative;z-index:60;white-space:nowrap;overflow:hidden">
+<span style="flex-shrink:0;padding:1px 8px;border-radius:999px;background:#1c1a1b;color:#f2a900">研修モード</span><span style="overflow:hidden;text-overflow:ellipsis">練習用。本番には影響しません</span><span style="flex-shrink:0;opacity:.7">手引き ›</span></a>
 <style>@media print{#mt-training{display:none!important}}</style>`;
 
 /* ============================================================

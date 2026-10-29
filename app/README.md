@@ -14,6 +14,7 @@ Cloudflare Workers ＋ D1 で動く。ビルドなし（wrangler がそのまま
 | `/u/<token>` | 客 | マイページ。残高・QR・履歴・占いの結果とシェア用カード・番付。初めて開く端末では名前を入れて本人確認 |
 | `/staff` | スタッフ | ログイン → 客を探す（カメラでQR読取）・ゲームの開始と結果・占い・受付・管理 |
 | `/staff/cards` | 責任者以上 | スマホを持っていない客に渡す札（QR＋番号）を発行して印刷 |
+| `/training`（研修ホストだけ） | スタッフ | 研修の手引き。見本のスタッフ・客で全画面を試す。「最初に戻す」で見本データに戻る |
 
 ## 客の流れ
 
@@ -45,7 +46,30 @@ npm run dev                            # http://127.0.0.1:8788
 
 初回は `/staff` を開くと「最初の管理者を作る」画面になる。`.dev.vars` の `SETUP_CODE`（既定 `setup-1234`）と、自分の名前・合言葉を入れる。
 
-`npm test` で占いの組み立て・払い戻し・位の計算のテストが走る。
+`npm test` で占いの組み立て・払い戻し・位の計算・スキーマの分割のテストが走る。
+
+研修モードを手元で見るときは、別の端末で `npm run dev:training`（http://127.0.0.1:8789）。こちらは研修用のデータベースで動くので、8788 の本番相当とは混ざらない。
+
+## 研修モード（training.moneytalks-uranai.com）
+
+本番とまったく同じ画面・同じ処理を、**別のデータベース**（Durable Object の SQLite）に向けて動かすホスト。何をしても本番には影響しない。
+
+- **https://training.moneytalks-uranai.com/training** が手引き。全部の画面へのリンク、見本のスタッフ（4つの権限、合言葉つき）、いろいろな状態の見本の客（プレイ中・占いの最中・無効・印刷した札…）、役割ごとのチェックリスト
+- 最初に開いたとき、見本データが入った状態で始まる。「最初に戻す」（`POST /api/training/reset`）でいつでも戻る
+- すべての画面の上に黄色い「研修モード」の帯が出る。本番には出ない
+- 本番ホストで `/training` を開いても 404
+- 仕組み：`src/training.js`（ホスト名の判定・見本データ・帯の差し込み）、`src/training-do.js`（D1 と同じ使い方ができる薄い皮）。`wrangler.toml` の `TRAINING_HOSTS` でホスト名を決める。デプロイは本番と同じ `wrangler deploy` で一緒に出る（独自ドメインの DNS も自動で作られる）
+
+### 動画
+
+| 動画 | 中身 | 向き |
+| --- | --- | --- |
+| [`docs/video/customer-howto.mp4`](../docs/video/customer-howto.mp4) | お客さん向けのあそびかた（1分）。受付の QR・マイページ・ゲーム・心付け・結果カード・番付 | 縦 1080×1920（SNS 用） |
+| [`docs/video/staff-training.mp4`](../docs/video/staff-training.mp4) | スタッフ研修（3分）。ログイン・客を探す・ゲーム・卓・取消・占い4段階・改竄・受付・責任者・管理 | 横 1920×1080 |
+
+どちらも音はない（BGM を後から重ねる前提）。字幕は画面に焼き込んである。
+
+画面を変えたら作り直せる：`tools/video/` の `customer.js` / `staff.js` が、研修モードのサーバー（`npm run dev:training`）を Playwright で実際に操作しながら録る。`node tools/video/customer.js`（`ffmpeg` が PATH にあること。別の場所なら `FFMPEG=/path/to/ffmpeg`）。
 
 ## 本番に出す（GitHub Actions）
 
