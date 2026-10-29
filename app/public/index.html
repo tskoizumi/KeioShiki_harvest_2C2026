@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#fefefc">
+  <meta name="robots" content="noindex">
+  <title>登録 — 運命、賄賂で買いませんか？</title>
+  <link rel="icon" href="/assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app.css">
+  <style>
+    .hero { text-align: center; padding: 28px 0 8px; }
+    .hero img { width: 150px; height: 150px; margin: 0 auto 10px; }
+    .hero .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.3em; color: var(--red); }
+    .hero .h1 { margin-top: 6px; }
+    .hero p { margin-top: 10px; color: var(--muted); font-size: 14px; }
+    form { margin-top: 18px; display: grid; gap: 10px; }
+    .steps { list-style: none; display: grid; gap: 10px; margin-top: 6px; counter-reset: s; }
+    .steps li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; font-size: 14px; color: var(--muted); counter-increment: s; }
+    .steps li::before { content: counter(s); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--paper); font-family: var(--mincho); font-weight: 800; font-size: 13px; }
+    .steps b { color: var(--ink); }
+  </style>
+</head>
+<body>
+<div id="bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<main class="page">
+  <div class="hero rise">
+    <img src="/assets/mark-alpha.webp" alt="" width="600" height="600">
+    <p class="kicker">収穫祭 2026　2年C組</p>
+    <h1 class="h1">運命、賄賂で<br>買いませんか？</h1>
+    <p>ニックネームを決めて、<b>100縁</b>を受け取ろう。</p>
+  </div>
+
+  <section class="card glass rise" id="form-card">
+    <form id="form">
+      <input class="input" id="nick" maxlength="12" autocomplete="off" placeholder="ニックネーム（1〜12文字）" aria-label="ニックネーム">
+      <button class="btn solid block" id="go" type="submit">登録して、始める</button>
+    </form>
+    <p class="msg" id="msg">番付にはこの名前で載ります。本名は書かないでください。</p>
+  </section>
+
+  <section class="card glass rise" id="closed-card" hidden>
+    <h2>受付は終了しました</h2>
+    <p class="sub" style="margin-top:8px">受付に声をかけてください。</p>
+  </section>
+
+  <section class="card glass rise">
+    <p class="eyebrow">遊び方</p>
+    <ol class="steps" style="margin-top:10px">
+      <li><span><b>マイページのQR</b>をスタッフに見せて、ミニゲームで縁を増やす。</span></li>
+      <li><span>占いの部屋でQRを見せ、<b>好きな額の心付け</b>を渡す。額で占い師の態度が変わる。</span></li>
+      <li><span>占いが終わると、マイページに<b>結果のカード</b>が届く。保存してシェア。</span></li>
+    </ol>
+    <p class="sub" style="margin-top:12px">印刷された札を持っている人は、札のQRを読み込んでください。</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  // すでに登録した端末なら、そのままマイページへ
+  try {
+    var last = localStorage.getItem('mt:last');
+    if (last && location.search.indexOf('new') < 0) {
+      var k = localStorage.getItem('mt:key:' + last);
+      if (k) location.replace('/u/' + last);
+    }
+  } catch (e) {}
+
+  fetch('/api/config').then(function (r) { return r.json(); }).then(function (c) {
+    if (!c.registrationOpen) { $('form-card').hidden = true; $('closed-card').hidden = false; }
+    if (c.startingEn != null) document.querySelector('.hero p b').textContent = c.startingEn + '縁';
+  }).catch(function () {});
+
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nick = $('nick').value;
+    var msg = $('msg');
+    msg.className = 'msg'; msg.textContent = '登録しています…';
+    $('go').disabled = true;
+    fetch('/api/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nickname: nick }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        if (!x.ok) { msg.className = 'msg err'; msg.textContent = x.d.message || 'うまくいきませんでした'; $('go').disabled = false; return; }
+        try { localStorage.setItem('mt:key:' + x.d.token, x.d.key); localStorage.setItem('mt:last', x.d.token); } catch (e) {}
+        location.href = x.d.url;
+      })
+      .catch(function () { msg.className = 'msg err'; msg.textContent = '通信できませんでした。もう一度押してください'; $('go').disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "moneytalks-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8788 --ip 127.0.0.1",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply moneytalks-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply moneytalks-db --remote",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

@@ -11,17 +11,39 @@
 
 ## 1. 担当と全体像
 
-| 部分 | 担当 | 状態 |
+| 部分 | 場所 | 状態 |
 | --- | --- | --- |
-| LP（`index.html` `config.js` `assets/`） | `tskoizumi` | できている |
-| QR・番号の発行と印刷 | `soma1218` | これから |
-| 結果ページ（QRの行き先、シェア画像） | `soma1218` | これから |
-| 占い師の画面・質問票・占いの中身 | `soma1218` | これから |
-| 結果と番付のデータの保存 | `soma1218` | これから |
+| LP（`index.html` `config.js` `assets/`） | リポジトリのルート → Cloudflare Pages（`moneytalks-uranai.com`） | できている |
+| 客のマイページ（残高・QR・履歴・占い結果のカード・番付） | `app/public/u.html` | できている（手元で検証済み、本番は未デプロイ） |
+| 登録（スマホ）と印刷用の札 | `app/public/index.html`・`cards.html` | 同上 |
+| スタッフ画面（QR読取・ゲーム・占い師・受付・管理） | `app/public/staff.html` | 同上 |
+| サーバー（台帳・ゲーム・占い・番付・認証） | `app/src/` → Cloudflare Workers ＋ D1（`app.moneytalks-uranai.com`） | 同上 |
 
-LPとそれ以外は、`config.js` の `resultUrl` と `rankingUrl` の2つでつながる（→ [5. LPとのつなぎ目](#5-lpとのつなぎ目)）。
+```
+ 客のスマホ                      スタッフの端末（/staff）
+┌───────────────┐             ┌──────────────────────────┐
+│ /   登録        │             │ 客（QR読取→開始・結果）   │
+│ /u/<token>      │◀──残高・結果──│ 卓（進行中のゲーム）       │
+│  マイページ     │             │ 占（心付け→質問→兆→台本） │
+│  残高・QR・履歴 │             │ 受（登録・札の紐づけ）     │
+│  占いカード・番付│             │ 管（設定・ゲーム・スタッフ）│
+└───────┬───────┘             └────────────┬─────────────┘
+        │  /api/u/*  /api/rankings          │  /api/staff/*（クッキー）
+        ▼                                   ▼
+┌──────────────────────────────────────────────────────┐
+│ app/src/index.js（Worker）                            │
+│  ledger.js 台帳 ／ plays.js ゲーム ／ readings.js 占い │
+│  rankings.js 番付 ／ auth.js 認証 ／ oracle.js 台本    │
+└───────────────────────────┬──────────────────────────┘
+                            ▼  D1（SQLite）
+    users / ledger / games / plays / readings / staff / settings / audit_log
 
-以前のたたき台（結果ページ・占い師画面・質問票・占いの中身・API案）は [`archive/full-system` ブランチ](https://github.com/tskoizumi/KeioShiki_harvest_2C2026/tree/archive/full-system) に残してある。そのブランチの `docs/TECHNICAL.md` に、当時の仕組みとAPI案が書いてある。
+ LP（moneytalks-uranai.com）──rankingUrl──▶ /api/ranking   resultUrl ──▶ /
+```
+
+LPと `app/` は、`config.js` の `resultUrl` と `rankingUrl` の2つでつながる（→ [5. LPとのつなぎ目](#5-lpとのつなぎ目)）。`app/` の中身・API・運用は [app/README.md](../app/README.md)。
+
+以前のたたき台は [`archive/full-system` ブランチ](https://github.com/tskoizumi/KeioShiki_harvest_2C2026/tree/archive/full-system)（結果ページ・占い師画面・質問票）と [`qr/reception-system` ブランチ](https://github.com/tskoizumi/KeioShiki_harvest_2C2026/tree/qr/reception-system)（`soma1218` の受付システム）に残してある。占いの中身（`oracle.js`）と台帳の作り（冪等・楽観ロック）は `app/` に引き継いだ。
 
 ---
 
@@ -93,7 +115,7 @@ QR・結果まわりの技術は担当が自由に選んでいい。LP側を巻�
 
 ### `rankingUrl`
 
-番付のデータのURL。LPがページを開くたびに読みに行く（キャッシュしない）。空のあいだは「開場後に更新します」のまま。
+番付のデータのURL。LPがページを開くたびに読みに行く（キャッシュしない）。空のあいだは「開場後に更新します」のまま。`app/` の `GET /api/ranking` がこの形で返す（CORS 許可済み）。
 
 #### 番付のデータ
 
@@ -205,7 +227,10 @@ python3 -m http.server 8765      # → http://localhost:8765/
 
 - [x] 独自ドメインを買う → `moneytalks-uranai.com`。`og:image` / `og:url` を絶対URLに
 - [ ] Pages（LP）の Custom domains に `moneytalks-uranai.com` をつなぐ
-- [ ] 受付システムを `app.moneytalks-uranai.com` で公開し、Access を設定する
-- [ ] QR・結果まわりのシステム（`soma1218`）→ できたら `resultUrl` `rankingUrl` を入れる
+- [ ] `app/` を本番にデプロイする（GitHub の Secrets を4つ入れると `main` への push で自動。→ app/README.md）
+- [ ] デプロイ後、`/staff` で最初の管理者を作り、スタッフを追加する
+- [ ] LP の `config.js` の `resultUrl` に `https://app.moneytalks-uranai.com/` を入れる（`rankingUrl` は入れてある）
+- [ ] 印刷用の札（`/staff/cards`）を刷る
+- [ ] 改竄の閾値を、LP の `config.js` と `app/` の管理画面の両方で合わせる
 - [ ] 日時を `config.js` の `date` に入れる
 - [ ] 改竄の閾値（2000）を当日の縁の増え方を見て調整

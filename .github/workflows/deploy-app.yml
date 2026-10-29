@@ -1,0 +1,60 @@
+# app/ を Cloudflare Workers にデプロイする。
+# main に app/ の変更が push されたとき、または手動（Actions → Run workflow）で動く。
+#
+# 必要な GitHub Secrets（リポジトリの Settings → Secrets and variables → Actions）：
+#   CLOUDFLARE_API_TOKEN   Workers Scripts 編集・D1 編集・Account Settings 読取・Zone の Workers Routes 編集と DNS 編集
+#   CLOUDFLARE_ACCOUNT_ID  ダッシュボードの Workers 画面に出ているアカウントID
+#   APP_SESSION_SECRET     長いランダム文字列（スタッフのログインの署名に使う）
+#   APP_SETUP_CODE         最初の管理者を作るときの合言葉
+name: Deploy app
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/deploy-app.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-app
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+      # D1 がなければ作り、その id を wrangler.toml に入れる
+      - name: Prepare D1
+        run: |
+          set -e
+          ID=$(npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=JSON.parse(s);const d=l.find(x=>x.name==="moneytalks-db");console.log(d?d.uuid:"")})')
+          if [ -z "$ID" ]; then
+            npx wrangler d1 create moneytalks-db >/dev/null
+            ID=$(npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=JSON.parse(s);const d=l.find(x=>x.name==="moneytalks-db");console.log(d?d.uuid:"")})')
+          fi
+          test -n "$ID"
+          sed -i "s/REPLACE_WITH_D1_DATABASE_ID/$ID/" wrangler.toml
+          npx wrangler d1 migrations apply moneytalks-db --remote
+
+      - name: Deploy
+        run: npx wrangler deploy
+
+      # 秘密はここから入れる（リポジトリには書かない）
+      - name: Secrets
+        run: |
+          printf '%s' "${{ secrets.APP_SESSION_SECRET }}" | npx wrangler secret put SESSION_SECRET
+          printf '%s' "${{ secrets.APP_SETUP_CODE }}" | npx wrangler secret put SETUP_CODE

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#fefefc">
+  <meta name="robots" content="noindex">
+  <title>マイページ — 運命、賄賂で買いませんか？</title>
+  <link rel="icon" href="/assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app.css">
+  <style>
+    /* 残高の札 */
+    .bal-label { font-size: 12px; font-weight: 700; letter-spacing: 0.22em; color: #a29b9e; }
+    .bal { margin-top: 6px; font-family: var(--mincho); font-weight: 800; font-size: 56px; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+    .bal small { font-size: 20px; margin-left: 6px; }
+    .bal-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .who { font-family: var(--mincho); font-weight: 800; font-size: 18px; }
+    .who small { display: block; font-family: var(--gothic); font-weight: 600; font-size: 11px; letter-spacing: 0.2em; color: #a29b9e; }
+    .ink .chip { background: rgba(255, 255, 255, 0.12); color: #f4efe6; }
+    .ink .chip.live { background: rgba(224, 53, 43, 0.25); color: #ffd7d2; }
+    .actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
+    .delta { position: absolute; right: 22px; top: 22px; font-family: var(--mincho); font-weight: 800; font-size: 22px; opacity: 0; transform: translateY(6px); transition: opacity 0.4s, transform 0.4s; pointer-events: none; }
+    .delta.show { opacity: 1; transform: none; }
+    .delta.plus { color: #9fe3a8; } .delta.minus { color: #ffb3aa; }
+
+    /* ログイン */
+    .login { text-align: center; padding-top: 36px; }
+    .login img { width: 120px; height: 120px; margin: 0 auto 10px; }
+    .login form { margin-top: 16px; display: grid; gap: 10px; }
+
+    /* 占い結果 */
+    .reading { display: grid; grid-template-columns: auto 1fr; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); align-items: start; }
+    .reading:last-child { border-bottom: none; }
+    .reading .meta { font-size: 12px; color: var(--faint); }
+    .reading .names { font-family: var(--mincho); font-weight: 800; font-size: 17px; }
+    .reading .oracle { margin-top: 4px; font-size: 14px; }
+    .reading .btns { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .kaizan-row { border-radius: 16px; background: var(--ink); color: #f4efe6; padding: 14px; margin: 6px 0; }
+    .kaizan-row .meta { color: #a29b9e; }
+
+    /* 番付 */
+    .board { list-style: none; }
+    .board li { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+    .board li:last-child { border-bottom: none; }
+    .board .pos { font-family: var(--mincho); font-weight: 800; color: var(--faint); }
+    .board li:nth-child(-n+3) .pos { color: var(--red); }
+    .board .who2 { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .board .amt { font-family: var(--mincho); font-weight: 800; }
+    .board .amt.kz { color: var(--red); }
+    .board li.me { background: rgba(159, 17, 17, 0.06); margin: 0 -8px; padding: 10px 8px; border-radius: 10px; }
+    .title-tag { font-size: 12px; font-weight: 700; color: var(--red); letter-spacing: 0.1em; }
+    .mypos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+    /* シェアカード */
+    .cardimg { width: min(72vw, 300px); border-radius: 18px; box-shadow: 0 30px 70px -30px rgba(60, 30, 55, 0.6); }
+    .sheet .btns { display: flex; gap: 8px; margin-top: 16px; width: min(78vw, 320px); }
+    .sheet .btns .btn { flex: 1; }
+    .hint { margin-top: 10px; font-size: 12px; color: var(--faint); text-align: center; }
+  </style>
+</head>
+<body>
+<div id="bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<main class="page" id="app">
+  <!-- ログイン（名前で本人確認） -->
+  <section class="login" id="v-login" hidden>
+    <img src="/assets/mark-alpha.webp" alt="">
+    <h1 class="h1" id="login-title">名前を入れてください</h1>
+    <p class="sub" id="login-sub" style="margin-top:8px">受付で登録したニックネームです。</p>
+    <form id="login-form" class="glass card">
+      <input class="input" id="login-nick" maxlength="12" autocomplete="off" placeholder="ニックネーム" aria-label="ニックネーム">
+      <button class="btn solid block" id="login-go" type="submit">開く</button>
+      <p class="msg" id="login-msg"></p>
+    </form>
+  </section>
+
+  <!-- マイページ -->
+  <section id="v-main" hidden>
+    <div class="top">
+      <a class="brand" href="/"><img src="/assets/mark-alpha.webp" alt=""><span id="site-name">運命、賄賂で買いませんか？</span></a>
+      <button class="btn small ghost" id="refresh" type="button" aria-label="更新">更新</button>
+    </div>
+
+    <div class="ink rise">
+      <p class="bal-label">残高</p>
+      <p class="bal"><span id="bal">—</span><small>縁</small></p>
+      <p class="delta" id="delta"></p>
+      <div class="bal-row">
+        <p class="who"><span id="nick">—</span><small id="code">札番号 —</small></p>
+        <span class="chip" id="status">—</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn solid" id="show-qr" type="button">QRを見せる</button>
+      <button class="btn" id="to-top" type="button">番付</button>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="history">履歴</button>
+      <button role="tab" aria-selected="false" data-tab="readings">占い</button>
+      <button role="tab" aria-selected="false" data-tab="ranking">番付</button>
+    </div>
+
+    <section class="card glass" id="tab-history">
+      <ul class="list" id="history"></ul>
+    </section>
+
+    <section class="card glass" id="tab-readings" hidden>
+      <div id="readings"></div>
+    </section>
+
+    <section id="tab-ranking" hidden>
+      <div class="card glass">
+        <p class="eyebrow">賄賂番付</p>
+        <p class="sub">占い師に渡した心付けの合計。貯めても意味はない。</p>
+        <div class="mypos" id="mypos-bribe"></div>
+        <ol class="board" id="board-bribe" style="margin-top:8px"></ol>
+      </div>
+      <div class="card glass">
+        <p class="eyebrow">所持金番付</p>
+        <p class="sub">今の残高。</p>
+        <div class="mypos" id="mypos-balance"></div>
+        <ol class="board" id="board-balance" style="margin-top:8px"></ol>
+      </div>
+    </section>
+
+    <p class="sub" style="text-align:center;margin-top:18px">困ったら受付へ。<span id="updated"></span></p>
+  </section>
+
+  <section id="v-error" hidden>
+    <div class="card glass"><h2 id="err-title">開けません</h2><p class="sub" id="err-text" style="margin-top:8px"></p></div>
+  </section>
+</main>
+
+<!-- QRのシート -->
+<div class="sheet" id="qr-sheet" hidden>
+  <button class="btn small close" id="qr-close" type="button">閉じる</button>
+  <p class="eyebrow">スタッフに見せる</p>
+  <div class="qrbox" id="qrbox" style="margin-top:12px"></div>
+  <p class="code" id="qr-code" style="margin-top:14px"></p>
+  <p class="sub" id="qr-name"></p>
+</div>
+
+<!-- シェアカードのシート -->
+<div class="sheet" id="card-sheet" hidden>
+  <button class="btn small close" id="card-close" type="button">閉じる</button>
+  <img class="cardimg" id="card-img" alt="占い結果のカード">
+  <div class="btns">
+    <a class="btn" id="card-save" download="shintaku.png">保存</a>
+    <button class="btn solid" id="card-share" type="button">シェア</button>
+  </div>
+  <p class="hint">保存できないときは、画像を長押し。</p>
+</div>
+
+<script src="/vendor/qrcode.js"></script>
+<script src="/js/card.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var token = decodeURIComponent(location.pathname.split('/').pop());
+  var key = null;
+  try { key = localStorage.getItem('mt:key:' + token); } catch (e) {}
+  var me = null, rankings = null, timer = null, lastBalance = null;
+
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function yen(n) { return Number(n).toLocaleString('ja-JP'); }
+  function show(id) { ['v-login', 'v-main', 'v-error'].forEach(function (v) { $(v).hidden = v !== id; }); }
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({}, opts.headers || {}, key ? { 'X-User-Key': key } : {});
+    return fetch(path, opts).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
+  }
+
+  /* ---------- ログイン ---------- */
+  function showLogin(claimed, message) {
+    $('login-title').textContent = claimed ? '名前を入れてください' : 'ニックネームを決めてください';
+    $('login-sub').textContent = claimed ? '受付で登録したニックネームです。' : 'この札はまだ誰のものでもありません。名前を決めると、あなたのものになります。';
+    $('login-go').textContent = claimed ? '開く' : '登録して、始める';
+    $('login-msg').textContent = message || '';
+    show('v-login');
+  }
+  $('login-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = $('login-msg'); msg.className = 'msg'; msg.textContent = '確認しています…';
+    $('login-go').disabled = true;
+    api('/api/u/' + encodeURIComponent(token) + '/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nickname: $('login-nick').value }) })
+      .then(function (x) {
+        $('login-go').disabled = false;
+        if (!x.ok) { msg.className = 'msg err'; msg.textContent = x.d.message || 'うまくいきませんでした'; return; }
+        key = x.d.key;
+        try { localStorage.setItem('mt:key:' + token, key); localStorage.setItem('mt:last', token); } catch (e2) {}
+        load();
+      })
+      .catch(function () { $('login-go').disabled = false; msg.className = 'msg err'; msg.textContent = '通信できませんでした'; });
+  });
+
+  /* ---------- 読み込み ---------- */
+  function load() {
+    return api('/api/u/' + encodeURIComponent(token)).then(function (x) {
+      if (x.status === 401) { showLogin(x.d.claimed, key ? '' : ''); return; }
+      if (!x.ok) { $('err-title').textContent = '開けません'; $('err-text').textContent = x.d.message || ''; show('v-error'); return; }
+      me = x.d;
+      try { localStorage.setItem('mt:last', token); } catch (e) {}
+      render();
+      show('v-main');
+      schedule();
+    }).catch(function () {
+      if (!me) { $('err-title').textContent = '通信できません'; $('err-text').textContent = '電波のいいところで、もう一度開いてください。'; show('v-error'); }
+      schedule();
+    });
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    var busy = me && (me.openPlay || me.openReading);
+    timer = setTimeout(function () { if (!document.hidden) load(); else schedule(); }, busy ? 3000 : 6000);
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+
+  /* ---------- 描画 ---------- */
+  function render() {
+    $('site-name').textContent = me.site.name;
+    $('nick').textContent = me.nickname;
+    $('code').textContent = '札番号 ' + me.shortCode;
+    if (lastBalance != null && lastBalance !== me.balance) flashDelta(me.balance - lastBalance);
+    lastBalance = me.balance;
+    $('bal').textContent = yen(me.balance);
+
+    var st = $('status');
+    st.className = 'chip';
+    if (me.openPlay) { st.classList.add('live'); st.textContent = me.openPlay.gameName + ' プレイ中'; }
+    else if (me.openReading) { st.classList.add('live'); st.textContent = '占い中' + (me.openReading.rankName ? '・' + me.openReading.rankName : ''); }
+    else st.textContent = '待機中';
+
+    // 履歴
+    var h = $('history'); h.textContent = '';
+    if (!me.history.length) h.appendChild(el('li', 'empty', 'まだ履歴はありません'));
+    me.history.forEach(function (r) {
+      var li = el('li');
+      li.appendChild(el('p', 't', labelOf(r)));
+      li.appendChild(el('p', 's', timeOf(r.created_at)));
+      var a = el('p', 'amt ' + (r.type === 'bribe' ? 'bribe' : r.delta > 0 ? 'plus' : 'minus'), (r.delta > 0 ? '+' : '') + yen(r.delta));
+      li.appendChild(a);
+      h.appendChild(li);
+    });
+
+    // 占い
+    var rd = $('readings'); rd.textContent = '';
+    if (!me.readings.length) rd.appendChild(el('p', 'empty', 'まだ占っていません。占いの部屋でQRを見せてください。'));
+    me.readings.forEach(function (r) {
+      var row = el('div', 'reading' + (r.rank === 'kaizan' ? ' kaizan-row' : ''));
+      var seal = el('div', 'seal ' + r.rank, r.rankName);
+      row.appendChild(seal);
+      var body = el('div');
+      body.appendChild(el('p', 'meta', timeOf(r.finishedAt) + '　心付け ' + yen(r.bribe) + ' 縁'));
+      body.appendChild(el('p', 'names', (r.sou || '—') + ' × ' + (r.kizashi || '—')));
+      body.appendChild(el('p', 'oracle', r.oracle || ''));
+      var btns = el('div', 'btns');
+      var b = el('button', 'btn small' + (r.rank === 'kaizan' ? ' solid' : ''), 'カードを作る');
+      b.type = 'button';
+      b.addEventListener('click', function () { makeCard(r); });
+      btns.appendChild(b);
+      body.appendChild(btns);
+      row.appendChild(body);
+      rd.appendChild(row);
+    });
+
+    // 番付（自分の順位）
+    renderMyPos();
+    $('updated').textContent = '　' + new Date().toTimeString().slice(0, 5) + ' 更新';
+  }
+
+  function labelOf(r) {
+    var map = { grant: '受付で配布', fee: (r.game_name || 'ゲーム') + ' 参加', payout: (r.game_name || 'ゲーム') + ' 払い戻し', refund: '返金', bribe: '心付け', adjust: '調整' };
+    var base = map[r.type] || r.type;
+    if (r.type === 'payout' && r.note) return r.note;
+    if (r.type === 'adjust' && r.note) return '調整（' + r.note + '）';
+    if (r.type === 'refund' && r.note) return '返金（' + r.note + '）';
+    return base;
+  }
+  function timeOf(s) {
+    if (!s) return '';
+    var d = new Date(s.replace(' ', 'T') + (s.indexOf('Z') < 0 && s.indexOf('+') < 0 ? 'Z' : ''));
+    if (isNaN(d)) return s;
+    return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', hour: 'numeric', minute: '2-digit' });
+  }
+  function flashDelta(d) {
+    var e = $('delta');
+    e.textContent = (d > 0 ? '+' : '') + yen(d);
+    e.className = 'delta show ' + (d > 0 ? 'plus' : 'minus');
+    setTimeout(function () { e.className = 'delta'; }, 2500);
+  }
+
+  /* ---------- 番付 ---------- */
+  function renderMyPos() {
+    var p = me.position || {};
+    var mb = $('mypos-bribe'); mb.textContent = '';
+    mb.appendChild(el('span', 'chip', p.bribePos ? 'あなたは ' + p.bribePos + ' 位' : 'まだ番付外'));
+    mb.appendChild(el('span', 'chip', '渡した合計 ' + yen(p.bribeTotal || 0) + ' 縁'));
+    var ml = $('mypos-balance'); ml.textContent = '';
+    ml.appendChild(el('span', 'chip', 'あなたは ' + (p.balancePos || '—') + ' 位'));
+  }
+  function loadRankings() {
+    return fetch('/api/rankings').then(function (r) { return r.json(); }).then(function (d) {
+      rankings = d;
+      renderBoard('board-bribe', d.bribe, d.kaizanThreshold);
+      renderBoard('board-balance', d.balance, null);
+    }).catch(function () {});
+  }
+  function renderBoard(id, data, kz) {
+    var ol = $(id); ol.textContent = '';
+    if (!data.entries.length) { ol.appendChild(el('li', 'empty', 'まだ誰もいません')); return; }
+    data.entries.forEach(function (e, i) {
+      var li = el('li' + '', me && e.id === me.id ? 'me' : '');
+      li.appendChild(el('span', 'pos', String(i + 1)));
+      var w = el('span', 'who2', e.name);
+      if (i === 0 && data.title) w.appendChild(el('span', 'title-tag', '　' + data.title));
+      li.appendChild(w);
+      li.appendChild(el('span', 'amt' + (kz && e.amount >= kz ? ' kz' : ''), yen(e.amount) + ' 縁'));
+      ol.appendChild(li);
+    });
+  }
+
+  /* ---------- タブ ---------- */
+  var tabs = document.querySelectorAll('.tabs [role=tab]');
+  function selectTab(name) {
+    tabs.forEach(function (t) { t.setAttribute('aria-selected', String(t.dataset.tab === name)); });
+    ['history', 'readings', 'ranking'].forEach(function (n) { $('tab-' + n).hidden = n !== name; });
+    if (name === 'ranking') loadRankings();
+    try { sessionStorage.setItem('mt:tab', name); } catch (e) {}
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { selectTab(t.dataset.tab); }); });
+  $('to-top').addEventListener('click', function () { selectTab('ranking'); });
+  $('refresh').addEventListener('click', function () { $('refresh').disabled = true; load().then(function () { $('refresh').disabled = false; }); });
+
+  /* ---------- QR ---------- */
+  $('show-qr').addEventListener('click', function () {
+    var q = qrcode(0, 'M');
+    q.addData(location.origin + '/u/' + token);
+    q.make();
+    $('qrbox').innerHTML = q.createSvgTag(4, 0);
+    $('qr-code').textContent = me.shortCode;
+    $('qr-name').textContent = me.nickname;
+    $('qr-sheet').hidden = false;
+  });
+  $('qr-close').addEventListener('click', function () { $('qr-sheet').hidden = true; });
+
+  /* ---------- シェアカード ---------- */
+  var currentBlob = null;
+  function makeCard(r) {
+    $('card-sheet').hidden = false;
+    $('card-img').removeAttribute('src');
+    ShareCard.render({ name: me.nickname, sou: r.sou, kizashi: r.kizashi, amount: r.bribe, oracle: r.oracle, rank: r.rank }, { site: me.site })
+      .then(function (blob) {
+        currentBlob = blob;
+        var url = URL.createObjectURL(blob);
+        $('card-img').src = url;
+        $('card-save').href = url;
+      });
+  }
+  $('card-close').addEventListener('click', function () { $('card-sheet').hidden = true; });
+  $('card-share').addEventListener('click', function () {
+    if (!currentBlob) return;
+    var file = new File([currentBlob], 'shintaku.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: me.site.name, text: me.site.name + ' で神託を買った。' }).catch(function () {});
+    } else {
+      $('card-save').click();
+    }
+  });
+
+  /* ---------- 起動 ---------- */
+  try { var t0 = sessionStorage.getItem('mt:tab'); if (t0) selectTab(t0); } catch (e) {}
+  load();
+})();
+</script>
+</body>
+</html>

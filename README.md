@@ -6,12 +6,10 @@
 
 | 担当 | 範囲 |
 | --- | --- |
-| `tskoizumi` | **LP**（公式サイト `index.html`・設定 `config.js`・画像 `assets/`） |
-| `soma1218` | **それ以外の仕組み全部**：QR・結果ページ・占い師の画面・質問票・占いの中身・番付のデータ。ゼロから自由に作っていい |
+| `tskoizumi`（＋任された Claude） | **LP**（`index.html`・`config.js`・`assets/`）と、**受付・縁・占いのシステム `app/`**（マイページ・ミニゲーム・占い・番付・スタッフ画面） |
+| `soma1218` | `app/` の改良・運用の手伝い。`reception/`（[`qr/reception-system` ブランチ](https://github.com/tskoizumi/KeioShiki_harvest_2C2026/tree/qr/reception-system)）は最初に作ってくれた試作で、台帳の作りは `app/` に引き継いだ |
 
-LPとそれ以外のつなぎ目は2つだけ（`config.js` の `resultUrl` と `rankingUrl`）。→ [LPとのつなぎ目](#lpとのつなぎ目)
-
-**以前のたたき台**（結果ページ・占い師画面・質問票・占いの中身）は [`archive/full-system` ブランチ](https://github.com/tskoizumi/KeioShiki_harvest_2C2026/tree/archive/full-system) に残してある。参考にしても、使っても、無視してもいい。
+LPと `app/` のつなぎ目は `config.js` の `resultUrl` と `rankingUrl`。→ [LPとのつなぎ目](#lpとのつなぎ目)。`app/` の中身と動かし方は [app/README.md](app/README.md)。
 
 一緒に開発する人は、下の「連絡のルール」「開発のルール」と [docs/TECHNICAL.md](docs/TECHNICAL.md)（技術資料）を先に読んでください。
 
@@ -76,7 +74,7 @@ LPとそれ以外のつなぎ目は2つだけ（`config.js` の `resultUrl` と 
 ### 4. 相手の担当を触るときは声をかける
 
 - `soma1218` が LP（`index.html` `config.js` `assets/`）を変えたいときは、プルリクエストで `tskoizumi` に見てもらう
-- QR・結果まわりは `soma1218` の判断で作っていい。新しいフォルダ（`functions/` など）を足すのも自由
+- `app/` を変えるときは、`app/README.md` の設計のメモに沿う（残高は必ず台帳を通す、など）。大きな変更は issue で一言
 - 新しいライブラリ・ビルドの仕組み・外部サービスを**LP側に**足したいときは、先にissueで相談する（LPはビルドなし・依存なしで保っている）
 
 ### 5. 勝手に変えないもの
@@ -104,6 +102,8 @@ LPとそれ以外のつなぎ目は2つだけ（`config.js` の `resultUrl` と 
 | `config.js` | 出し物名・日時・改竄の閾値・ミニゲームの内容・つなぎ目のURLなど、変えたくなる値の置き場 |
 | `assets/` | ロゴ（`logo.png` が原本）、ロゴを分解したレイヤー（`layer-ball` `layer-hand` `layer-copy`）、水晶玉のマーク（`mark-alpha.webp` 背景透過）、OGP画像、ファビコン |
 | `docs/TECHNICAL.md` | 技術資料 |
+| `app/` | 受付・縁・占いのシステム（Cloudflare Workers ＋ D1）。客のマイページ、ミニゲーム、占い師の台本、番付、スタッフ画面。→ [app/README.md](app/README.md) |
+| `.github/workflows/deploy-app.yml` | `app/` を Cloudflare に自動デプロイする |
 | `.github/` | 担当の自動レビュー依頼（`CODEOWNERS`）、プルリクエストとissueのテンプレート |
 
 ## 公開する
@@ -128,8 +128,8 @@ QR・結果まわりでビルドや Pages Functions を使う場合は、この�
 
 | 値 | 入れるもの | 空のとき |
 | --- | --- | --- |
-| `resultUrl` | 「神託を受け取る」ボタンの行き先（例: `"share.html"`） | ナビのボタンと、ページ下の「結果の紙を、お持ちですか。」を隠す |
-| `rankingUrl` | 番付のデータのURL（JSON か CSV） | 番付は「開場後に更新します」のまま |
+| `resultUrl` | 「マイページ」「登録して、始める」ボタンの行き先。`app/` なら `"https://app.moneytalks-uranai.com/"` | ナビのボタンと、ページ下の「スマホが、財布になる。」を隠す |
+| `rankingUrl` | 番付のデータのURL。`app/` なら `"https://app.moneytalks-uranai.com/api/ranking"`（JSON か CSV） | 番付は「開場後に更新します」のまま |
 
 番付のデータの形は [docs/TECHNICAL.md の「番付のデータ」](docs/TECHNICAL.md#番付のデータ) を参照。
 

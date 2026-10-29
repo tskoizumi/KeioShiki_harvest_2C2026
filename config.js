@@ -85,12 +85,13 @@ window.SITE = {
 
   /* ---------- 結果・番付のシステムとの接続 ----------
      結果ページ・番付のデータは、別担当のシステムが用意する。
-     resultUrl  : 「神託を受け取る」ボタンの行き先（例: "share.html"）。
+     resultUrl  : 「マイページ」「登録して、始める」ボタンの行き先。
+                  app/ をデプロイしたら "https://app.moneytalks-uranai.com/" を入れる。
                   空のあいだは、ナビのボタンと下の案内セクションを隠す。
-     rankingUrl : 番付のデータのURL。JSON か CSV（形は docs/TECHNICAL.md）。
+     rankingUrl : 番付のデータのURL。app/ なら "https://app.moneytalks-uranai.com/api/ranking"。
                   空のあいだは「開場後に更新します」のまま。 */
   resultUrl:  "",
-  rankingUrl: "",
+  rankingUrl: "https://app.moneytalks-uranai.com/api/ranking",
 };
 
 /* 最小限のCSVパーサ（ダブルクォート対応）。番付をCSVで受け取るときに使う */

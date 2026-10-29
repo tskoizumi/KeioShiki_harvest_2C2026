@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0b0c">
+  <meta name="robots" content="noindex, nofollow">
+  <title>スタッフ — 運命、賄賂で買いませんか？</title>
+  <link rel="icon" href="/assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       スタッフ用。ブースは暗いので黒地。大きなボタンで、片手で操作できるように
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0b0c; --panel: rgba(255, 255, 255, 0.06); --panel2: rgba(255, 255, 255, 0.1); --edge: rgba(255, 255, 255, 0.12);
+      --text: #f4efe6; --muted: #a29b9e; --faint: #6b6466;
+      --red: #e0352b; --plum: #a7709f; --gold: #e8c37a; --ok: #7fd18a; --sky: #8fc7da;
+      --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+      --gothic: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif;
+    }
+    html { background: var(--bg); }
+    body { font-family: var(--gothic); color: var(--text); background: var(--bg); line-height: 1.65; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+    input, select, textarea { font: inherit; color: inherit; }
+    a { color: inherit; }
+    [hidden] { display: none !important; }
+    .wrap { width: 100%; max-width: 760px; margin: 0 auto; padding: 0 14px; }
+
+    /* ヘッダ */
+    header { position: sticky; top: 0; z-index: 10; background: rgba(13, 11, 12, 0.85); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom: 1px solid var(--edge); padding-top: env(safe-area-inset-top); }
+    header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px; height: 54px; }
+    .brand { display: flex; align-items: center; gap: 8px; min-width: 0; font-family: var(--mincho); font-weight: 800; font-size: 13px; }
+    .brand img { width: 26px; height: 26px; flex-shrink: 0; }
+    .brand span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .who { display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-size: 12px; color: var(--muted); }
+    .lv { padding: 2px 9px; border-radius: 999px; background: var(--panel2); font-weight: 700; font-size: 11px; color: var(--gold); }
+
+    /* 下のタブ */
+    nav.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: rgba(13, 11, 12, 0.92); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid var(--edge); padding-bottom: env(safe-area-inset-bottom); }
+    nav.tabbar .wrap { display: flex; padding: 6px 6px; gap: 4px; }
+    nav.tabbar button { flex: 1; padding: 8px 4px; border-radius: 12px; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.04em; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+    nav.tabbar button b { font-family: var(--mincho); font-size: 17px; line-height: 1; }
+    nav.tabbar button.on { background: var(--text); color: var(--bg); }
+    nav.tabbar button .n { position: absolute; top: 2px; right: 10px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--red); color: #fff; font-size: 11px; display: grid; place-items: center; }
+
+    /* 共通部品 */
+    .view { padding-top: 12px; }
+    h2 { font-family: var(--mincho); font-weight: 800; font-size: 20px; margin: 14px 0 6px; }
+    h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: var(--plum); margin: 14px 0 6px; }
+    .hint { font-size: 13px; color: var(--muted); }
+    .card { margin-top: 12px; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid var(--edge); }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .grow { flex: 1; min-width: 0; }
+    .in { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--edge); background: rgba(0, 0, 0, 0.3); outline: none; font-size: 16px; }
+    .in:focus { border-color: var(--gold); }
+    .in.big { font-family: var(--mincho); font-weight: 800; font-size: 22px; letter-spacing: 0.1em; }
+    select.in { appearance: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--edge); background: var(--panel); font-weight: 700; font-size: 15px; letter-spacing: 0.04em; white-space: nowrap; transition: transform 0.15s, opacity 0.2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.35; cursor: default; }
+    .btn.pri { background: var(--red); border-color: var(--red); color: #fff; font-family: var(--mincho); font-weight: 800; letter-spacing: 0.1em; }
+    .btn.gold { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+    .btn.ghost { background: transparent; }
+    .btn.danger { color: var(--red); border-color: rgba(224, 53, 43, 0.5); }
+    .btn.block { width: 100%; }
+    .btn.big { min-height: 60px; font-size: 18px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: var(--panel2); font-size: 12px; font-weight: 700; color: var(--muted); }
+    .chip.live { color: #ffb3aa; background: rgba(224, 53, 43, 0.18); }
+    .chip.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); animation: pulse 1.4s infinite; }
+    .chip.ok { color: var(--ok); }
+    @keyframes pulse { 50% { opacity: 0.3; } }
+    .msg { min-height: 18px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+    .msg.err { color: #ffb3aa; } .msg.ok { color: var(--ok); }
+    .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(16px); padding: 10px 18px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 14px; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; z-index: 30; max-width: calc(100% - 32px); text-align: center; }
+    .toast.on { opacity: 1; transform: translateX(-50%); }
+    .toast.err { background: var(--red); color: #fff; }
+
+    /* 客のパネル */
+    .cust { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
+    .cust .name { font-family: var(--mincho); font-weight: 800; font-size: 24px; line-height: 1.2; }
+    .cust .code { font-size: 12px; color: var(--muted); letter-spacing: 0.14em; }
+    .cust .bal { font-family: var(--mincho); font-weight: 800; font-size: 34px; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; }
+    .cust .bal small { font-size: 14px; margin-left: 3px; }
+    .cust .chips { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* 一覧 */
+    .list { list-style: none; }
+    .list li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 0; border-top: 1px solid var(--edge); align-items: center; font-size: 14px; }
+    .list li:first-child { border-top: none; }
+    .list .s { font-size: 12px; color: var(--faint); grid-column: 1; }
+    .list .amt { font-family: var(--mincho); font-weight: 800; grid-row: span 2; font-variant-numeric: tabular-nums; }
+    .list .amt.plus { color: var(--ok); } .list .amt.minus { color: var(--muted); } .list .amt.bribe { color: #ffb3aa; }
+    .list li.click { cursor: pointer; }
+    .empty { padding: 18px 0; text-align: center; color: var(--muted); font-size: 14px; }
+
+    /* 結果ボタン */
+    .outcomes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
+    .outcomes .btn { min-height: 62px; flex-direction: column; gap: 0; padding: 8px 10px; }
+    .outcomes .btn small { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .outcomes .btn.win { border-color: rgba(127, 209, 138, 0.5); }
+    .outcomes .btn.lose small { color: var(--faint); }
+    .stepper { display: grid; grid-template-columns: 56px 1fr 56px; gap: 8px; align-items: center; margin-top: 10px; }
+    .stepper .num { font-family: var(--mincho); font-weight: 800; font-size: 48px; text-align: center; line-height: 1; }
+    .stepper .num small { display: block; font-family: var(--gothic); font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+    .quick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
+    .quick .btn { min-height: 40px; padding: 6px; font-size: 13px; }
+
+    /* カメラ */
+    .cam { position: relative; border-radius: 18px; overflow: hidden; background: #000; aspect-ratio: 4 / 3; margin-top: 10px; }
+    .cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cam .frame { position: absolute; inset: 14%; border: 2px solid rgba(255, 255, 255, 0.7); border-radius: 14px; pointer-events: none; }
+    .cam .off { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; }
+
+    /* 占い */
+    .steps { display: flex; gap: 4px; margin-top: 10px; }
+    .steps button { flex: 1; padding: 8px 4px; border-radius: 10px; background: var(--panel); border: 1px solid var(--edge); font-size: 11px; font-weight: 700; color: var(--muted); }
+    .steps button b { display: block; font-family: var(--mincho); font-size: 14px; }
+    .steps button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .steps button.done { color: var(--text); }
+    .q { padding: 10px 0; border-top: 1px solid var(--edge); }
+    .q:first-child { border-top: none; }
+    .q p { font-size: 14px; } .q p i { font-style: normal; color: var(--faint); font-size: 12px; margin-right: 6px; }
+    .scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 6px; }
+    .scale button { height: 40px; border-radius: 9px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--edge); font-family: var(--mincho); font-weight: 800; font-size: 16px; color: var(--muted); }
+    .scale button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .cards4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+    .cards4 button { padding: 12px 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--edge); text-align: center; }
+    .cards4 button b { display: block; font-family: var(--mincho); font-weight: 800; font-size: 22px; }
+    .cards4 button small { font-size: 11px; color: var(--faint); }
+    .cards4 button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .cards4 button.on small { color: rgba(13, 11, 12, 0.6); }
+    .cards4 button.auto { outline: 2px dashed var(--gold); outline-offset: -2px; }
+    .rank-big { display: flex; align-items: center; gap: 14px; padding: 12px 14px; margin-top: 10px; border-radius: 14px; border: 1px solid var(--edge); }
+    .rank-big b { font-family: var(--mincho); font-weight: 800; font-size: 40px; line-height: 1; }
+    .rank-big[data-rank="mu"] b { color: var(--faint); } .rank-big[data-rank="dai"] b { color: var(--plum); }
+    .rank-big[data-rank="kaizan"] { border-color: var(--red); background: rgba(224, 53, 43, 0.1); } .rank-big[data-rank="kaizan"] b { color: var(--red); text-shadow: 0 0 22px rgba(224, 53, 43, 0.6); }
+    .direction { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: rgba(232, 195, 122, 0.08); border: 1px solid rgba(232, 195, 122, 0.3); font-size: 14px; }
+    .direction b { color: var(--gold); font-size: 12px; letter-spacing: 0.1em; display: block; }
+    .part { margin-top: 12px; padding: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--edge); }
+    .part h4 { font-size: 11px; letter-spacing: 0.24em; color: var(--plum); margin-bottom: 4px; }
+    .part.kaizan { border-color: var(--red); background: rgba(224, 53, 43, 0.08); } .part.kaizan h4 { color: var(--red); }
+    .line { font-family: var(--mincho); font-weight: 700; font-size: 20px; line-height: 1.7; padding: 4px 0; }
+    .line.quote { color: var(--gold); }
+    .line.cue { font-family: var(--gothic); font-weight: 700; font-size: 13px; color: var(--red); padding: 6px 10px; margin: 6px 0; border-left: 3px solid var(--red); background: rgba(224, 53, 43, 0.08); letter-spacing: 0.1em; }
+    .oracle-box { margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--edge); font-size: 12px; color: var(--muted); }
+    .oracle-box b { display: block; font-family: var(--mincho); font-size: 15px; color: var(--text); }
+
+    /* QRシート */
+    .sheet { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: #fefefc; color: #1c1a1b; }
+    .sheet .qr { width: min(80vw, 340px); background: #fff; padding: 14px; border-radius: 18px; }
+    .sheet .qr svg { width: 100%; height: auto; display: block; }
+    .sheet .big { font-family: var(--mincho); font-weight: 800; font-size: 28px; letter-spacing: 0.2em; margin-top: 12px; }
+    .sheet .btn { color: #1c1a1b; border-color: #ccc; margin-top: 16px; }
+
+    /* 管理 */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--edge); vertical-align: middle; }
+    th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .kpi { padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--edge); }
+    .kpi b { display: block; font-family: var(--mincho); font-weight: 800; font-size: 22px; } .kpi span { font-size: 11px; color: var(--muted); }
+    .field { display: grid; grid-template-columns: 112px 1fr; gap: 8px; align-items: center; margin-top: 8px; font-size: 13px; }
+    .field label { color: var(--muted); }
+    .scroll { overflow-x: auto; }
+    @media (max-width: 480px) { .grid3 { grid-template-columns: 1fr 1fr; } .kpis { grid-template-columns: 1fr 1fr; } .cards4 { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand"><img src="/assets/mark-alpha.webp" alt=""><span id="site-name">スタッフ</span></div>
+    <div class="who" id="who" hidden><span id="who-name"></span><span class="lv" id="who-level"></span><button class="btn" id="logout" style="min-height:34px;padding:4px 12px;font-size:12px">ログアウト</button></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ログイン / 初期設定 -->
+  <section class="view" id="v-login" hidden>
+    <div class="card">
+      <h2 id="login-title">スタッフのログイン</h2>
+      <p class="hint" id="login-hint">名前と合言葉を入れてください。</p>
+      <form id="login-form" style="margin-top:12px;display:grid;gap:8px">
+        <input class="in" id="l-setup" placeholder="初期設定の合言葉（SETUP_CODE）" hidden autocomplete="off">
+        <input class="in" id="l-name" placeholder="名前" autocomplete="username">
+        <input class="in" id="l-code" type="password" placeholder="合言葉" autocomplete="current-password">
+        <button class="btn pri block" id="l-go" type="submit">ログイン</button>
+        <p class="msg" id="l-msg"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- 客 -->
+  <section class="view" id="v-cust" hidden>
+    <div class="card">
+      <div class="row">
+        <input class="in grow" id="q" placeholder="札の番号・名前・QRの中身" autocomplete="off" autocapitalize="characters">
+        <button class="btn" id="q-go" type="button">探す</button>
+        <button class="btn gold" id="scan-toggle" type="button">カメラ</button>
+      </div>
+      <div class="cam" id="cam" hidden><video id="video" playsinline muted></video><div class="frame"></div><div class="off" id="cam-off" hidden></div></div>
+      <ul class="list" id="q-results"></ul>
+    </div>
+    <div id="cust-panel"></div>
+  </section>
+
+  <!-- ゲーム（進行中） -->
+  <section class="view" id="v-games" hidden>
+    <h2>進行中のゲーム</h2>
+    <p class="hint">結果が出たら、その客の欄で結果を押す。客は「客」タブで探して開始する。</p>
+    <div id="open-plays"></div>
+  </section>
+
+  <!-- 占い -->
+  <section class="view" id="v-teller" hidden>
+    <div id="teller"></div>
+  </section>
+
+  <!-- 受付 -->
+  <section class="view" id="v-reception" hidden>
+    <div class="card">
+      <h2>スマホで登録する客</h2>
+      <p class="hint">客に受付のQR（このアプリのトップ）を読んでもらうのが基本。ここで代わりに登録することもできる。</p>
+      <form id="reg-form" class="row" style="margin-top:10px">
+        <input class="in grow" id="reg-nick" placeholder="ニックネーム（1〜12文字）" maxlength="12" autocomplete="off">
+        <button class="btn pri" type="submit">登録してQRを出す</button>
+      </form>
+      <p class="msg" id="reg-msg"></p>
+    </div>
+    <div class="card">
+      <h2>印刷した札を渡す客</h2>
+      <p class="hint">札の番号（6文字）とニックネームを入れる。札のQRを客が読んで、名前を自分で入れてもいい。</p>
+      <form id="card-form" style="margin-top:10px;display:grid;gap:8px">
+        <div class="row"><input class="in big grow" id="card-code" placeholder="札の番号" maxlength="6" autocomplete="off" autocapitalize="characters"><button class="btn" id="card-scan" type="button">カメラ</button></div>
+        <input class="in" id="card-nick" placeholder="ニックネーム（1〜12文字）" maxlength="12" autocomplete="off">
+        <button class="btn pri block" type="submit">この札に名前をつける</button>
+        <p class="msg" id="card-msg"></p>
+      </form>
+    </div>
+    <div class="card" id="mgr-cards" hidden>
+      <h2>札の発行と印刷</h2>
+      <p class="hint">責任者以上。印刷用のページで枚数を決めて発行し、A4に印刷する。</p>
+      <a class="btn block" href="/staff/cards" target="_blank" rel="noopener" style="margin-top:10px">印刷用のページを開く</a>
+    </div>
+  </section>
+
+  <!-- 管理 -->
+  <section class="view" id="v-admin" hidden><div id="admin"></div></section>
+</main>
+
+<nav class="tabbar" id="tabbar" hidden>
+  <div class="wrap">
+    <button data-view="cust"><b>客</b>探す・開始</button>
+    <button data-view="games"><b>卓</b>進行中<span class="n" id="n-plays" hidden></span></button>
+    <button data-view="teller" id="tab-teller"><b>占</b>占い<span class="n" id="n-readings" hidden></span></button>
+    <button data-view="reception"><b>受</b>受付</button>
+    <button data-view="admin" id="tab-admin"><b>管</b>管理</button>
+  </div>
+</nav>
+
+<div class="sheet" id="qr-sheet" hidden>
+  <p style="font-size:12px;font-weight:700;letter-spacing:0.2em;color:#9f1111">客のスマホで読んでもらう</p>
+  <div class="qr" id="qr-sheet-box" style="margin-top:10px"></div>
+  <p class="big" id="qr-sheet-code"></p>
+  <p id="qr-sheet-name" style="color:#6b6466"></p>
+  <button class="btn" id="qr-sheet-close" type="button">閉じる</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="/vendor/qrcode.js"></script>
+<script src="/vendor/jsQR.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var S = { me: null, games: [], settings: {}, oracle: null, site: null, view: 'cust', cust: null, reading: null, step: 1, answers: { judge: [], mention: [] }, souOverride: null, kizashiId: null, openPlays: [], openReadings: [] };
+  var LV = { staff: 1, teller: 2, manager: 3, admin: 4 };
+  var RANK = { mu: '無', sho: '小', dai: '大', kaizan: '改竄' };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function yen(n) { return Number(n).toLocaleString('ja-JP'); }
+  function newId() { return crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random(); }
+  function api(path, method, body) {
+    var opts = { method: method || 'GET', headers: {} };
+    if (body !== undefined) { opts.headers['content-type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch(path, opts).then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
+  }
+  var toastT;
+  function toast(t, err) { var e = $('toast'); e.textContent = t; e.className = 'toast on' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(function () { e.className = 'toast'; }, 2200); }
+  function can(level) { return S.me && S.me.level >= level; }
+  function rankOf(amount) { var s = S.settings; if (amount >= Number(s.rank_kaizan)) return 'kaizan'; if (amount >= Number(s.rank_dai)) return 'dai'; if (amount >= Number(s.rank_sho)) return 'sho'; return 'mu'; }
+  function timeOf(s) { if (!s) return ''; var d = new Date(s.replace(' ', 'T') + (/Z|\+/.test(s) ? '' : 'Z')); return isNaN(d) ? s : d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', hour: 'numeric', minute: '2-digit' }); }
+
+  /* ============================================================
+     起動・ログイン
+  ============================================================ */
+  function boot() {
+    api('/api/staff/me').then(function (x) {
+      if (x.ok) { onLogin(x.d); return; }
+      api('/api/staff/bootstrap').then(function (b) {
+        var setup = b.ok && b.d.needsSetup;
+        if (b.ok && b.d.site) $('site-name').textContent = b.d.site.name;
+        $('login-title').textContent = setup ? '最初の管理者を作る' : 'スタッフのログイン';
+        $('login-hint').textContent = setup ? 'まだスタッフがいません。初期設定の合言葉（SETUP_CODE）と、自分の名前・ログイン用の合言葉（6文字以上）を入れてください。' : '名前と合言葉を入れてください。';
+        $('l-setup').hidden = !setup;
+        $('l-go').textContent = setup ? '管理者を作ってログイン' : 'ログイン';
+        $('l-setup').dataset.setup = setup ? '1' : '';
+        show('login');
+      });
+    });
+  }
+  $('login-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var setup = $('l-setup').dataset.setup === '1';
+    var msg = $('l-msg'); msg.className = 'msg'; msg.textContent = '確認しています…';
+    $('l-go').disabled = true;
+    var body = { name: $('l-name').value, code: $('l-code').value };
+    if (setup) body.setupCode = $('l-setup').value;
+    api(setup ? '/api/staff/setup' : '/api/staff/login', 'POST', body).then(function (x) {
+      $('l-go').disabled = false;
+      if (!x.ok) { msg.className = 'msg err'; msg.textContent = x.d.message || 'ログインできません'; return; }
+      $('l-code').value = '';
+      api('/api/staff/me').then(function (m) { if (m.ok) onLogin(m.d); });
+    });
+  });
+  $('logout').addEventListener('click', function () { api('/api/staff/logout', 'POST', {}).then(function () { location.reload(); }); });
+
+  function onLogin(me) {
+    S.me = me; S.games = me.games; S.settings = me.settings; S.oracle = me.oracle; S.site = me.site;
+    $('site-name').textContent = me.site.name;
+    $('who').hidden = false; $('who-name').textContent = me.name; $('who-level').textContent = me.levelName;
+    $('tab-teller').hidden = !can(LV.teller);
+    $('tab-admin').hidden = !can(LV.manager);
+    $('mgr-cards').hidden = !can(LV.manager);
+    $('tabbar').hidden = false;
+    var v = 'cust';
+    try { v = sessionStorage.getItem('mt:staff:view') || 'cust'; } catch (e) {}
+    go(v);
+    poll();
+  }
+
+  /* ============================================================
+     画面の切り替え
+  ============================================================ */
+  function show(v) { ['login', 'cust', 'games', 'teller', 'reception', 'admin'].forEach(function (k) { $('v-' + k).hidden = k !== v; }); }
+  function go(v) {
+    if (v === 'teller' && !can(LV.teller)) v = 'cust';
+    if (v === 'admin' && !can(LV.manager)) v = 'cust';
+    S.view = v; show(v);
+    document.querySelectorAll('#tabbar button').forEach(function (b) { b.classList.toggle('on', b.dataset.view === v); });
+    try { sessionStorage.setItem('mt:staff:view', v); } catch (e) {}
+    if (v !== 'cust') stopScan();
+    if (v === 'cust' && S.cust) refreshCust();   // 卓タブなどで進んだぶんを反映する
+    if (v === 'games') loadOpenPlays();
+    if (v === 'teller') renderTeller();
+    if (v === 'admin') renderAdmin();
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('#tabbar button').forEach(function (b) { b.addEventListener('click', function () { go(b.dataset.view); }); });
+
+  var pollT;
+  function poll() {
+    clearTimeout(pollT);
+    if (!S.me || document.hidden) { pollT = setTimeout(poll, 5000); return; }
+    var ps = [api('/api/staff/plays/open')];
+    if (can(LV.teller)) ps.push(api('/api/staff/readings/open'));
+    Promise.all(ps).then(function (r) {
+      if (r[0].ok) { S.openPlays = r[0].d.results; badge('n-plays', S.openPlays.length); if (S.view === 'games') renderOpenPlays(); }
+      if (r[1] && r[1].ok) { S.openReadings = r[1].d.results; badge('n-readings', S.openReadings.length); if (S.view === 'teller' && !S.reading) renderTeller(); }
+      // 開いている客が別の端末で進められたら、こちらの表示も追いつかせる
+      if (S.view === 'cust' && S.cust && (S.cust.openPlay || S.cust.openReading)) refreshCust();
+    }).finally(function () { pollT = setTimeout(poll, 6000); });
+  }
+  function badge(id, n) { var e = $(id); e.hidden = !n; e.textContent = n; }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
+
+  /* ============================================================
+     客を探す・カメラ
+  ============================================================ */
+  function lookup(q, pick) {
+    return api('/api/staff/lookup?q=' + encodeURIComponent(q)).then(function (x) {
+      var ul = $('q-results'); ul.innerHTML = '';
+      if (!x.ok) { toast(x.d.message || 'エラー', true); return; }
+      var rs = x.d.results;
+      if (!rs.length) { ul.innerHTML = '<li class="empty">見つかりません</li>'; return; }
+      if (rs.length === 1 || pick) { openCust(rs[0].id); return; }
+      rs.forEach(function (u) {
+        var li = document.createElement('li'); li.className = 'click';
+        li.innerHTML = '<span>' + esc(u.nickname || '（未登録の札）') + ' <span class="s">' + esc(u.shortCode) + '</span></span><span class="amt">' + yen(u.balance) + '</span>';
+        li.addEventListener('click', function () { openCust(u.id); });
+        ul.appendChild(li);
+      });
+    });
+  }
+  $('q-go').addEventListener('click', function () { if ($('q').value.trim()) lookup($('q').value); });
+  $('q').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); if ($('q').value.trim()) lookup($('q').value); } });
+
+  var stream = null, scanRaf = null, scanTarget = null;
+  function startScan(onCode) {
+    scanTarget = onCode || function (text) { $('q').value = text; lookup(text, true); };
+    $('cam').hidden = false; $('cam-off').hidden = true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camOff('この端末ではカメラが使えません。番号を手で入れてください。'); return; }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(function (s) {
+      stream = s; var v = $('video'); v.srcObject = s; v.play();
+      var cv = document.createElement('canvas'), ctx = cv.getContext('2d', { willReadFrequently: true });
+      var tick = function () {
+        if (!stream) return;
+        if (v.readyState >= 2) {
+          cv.width = v.videoWidth; cv.height = v.videoHeight;
+          ctx.drawImage(v, 0, 0);
+          try {
+            var img = ctx.getImageData(0, 0, cv.width, cv.height);
+            var code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+            if (code && code.data) { if (navigator.vibrate) navigator.vibrate(60); var cb = scanTarget; stopScan(); cb(code.data); return; }
+          } catch (e) {}
+        }
+        scanRaf = requestAnimationFrame(tick);
+      };
+      scanRaf = requestAnimationFrame(tick);
+    }).catch(function () { camOff('カメラを使えませんでした。番号を手で入れてください。'); });
+  }
+  function camOff(t) { $('cam-off').hidden = false; $('cam-off').textContent = t; }
+  function stopScan() {
+    if (scanRaf) cancelAnimationFrame(scanRaf); scanRaf = null;
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    $('cam').hidden = true;
+  }
+  $('scan-toggle').addEventListener('click', function () { if (stream) stopScan(); else startScan(); });
+  $('card-scan').addEventListener('click', function () {
+    go('cust');
+    startScan(function (text) {
+      // 札のQRはマイページのURL。番号は分からないので、探してから受付に戻す
+      api('/api/staff/lookup?q=' + encodeURIComponent(text)).then(function (x) {
+        go('reception');
+        if (x.ok && x.d.results[0]) { $('card-code').value = x.d.results[0].shortCode; $('card-nick').focus(); }
+        else toast('その札は見つかりません', true);
+      });
+    });
+  });
+
+  /* ============================================================
+     客のパネル
+  ============================================================ */
+  function openCust(id) {
+    return api('/api/staff/users/' + id).then(function (x) {
+      if (!x.ok) { toast(x.d.message || 'エラー', true); return; }
+      S.cust = x.d; renderCust(); go('cust');
+      $('cust-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+  function refreshCust() { if (S.cust) return api('/api/staff/users/' + S.cust.id).then(function (x) { if (x.ok) { S.cust = x.d; renderCust(); } }); return Promise.resolve(); }
+
+  function renderCust() {
+    var u = S.cust, el = $('cust-panel');
+    if (!u) { el.innerHTML = ''; return; }
+    var chips = '';
+    if (!u.claimed) chips += '<span class="chip">未登録の札</span>';
+    if (u.status !== 'active') chips += '<span class="chip">無効</span>';
+    if (u.openPlay) chips += '<span class="chip live">' + esc(u.openPlay.gameName) + ' プレイ中</span>';
+    if (u.openReading) chips += '<span class="chip live">占い中</span>';
+    if (u.position && u.position.bribePos) chips += '<span class="chip">賄賂 ' + u.position.bribePos + ' 位</span>';
+    var h = '<div class="card"><div class="cust">' +
+      '<div><p class="name">' + esc(u.nickname || '（未登録の札）') + '</p><p class="code">' + esc(u.shortCode) + '　#' + u.id + '</p></div>' +
+      '<p class="bal">' + yen(u.balance) + '<small>縁</small></p><div class="chips">' + chips + '</div></div>';
+
+    if (!u.claimed) {
+      h += '<p class="hint" style="margin-top:10px">この札はまだ誰のものでもありません。「受付」で名前をつけてください。</p>';
+      h += '<div class="row" style="margin-top:10px"><button class="btn" data-act="to-reception">受付へ</button></div></div>';
+      el.innerHTML = h; bind(el); return;
+    }
+
+    if (u.openPlay) {
+      h += '<h3>結果を入れる — ' + esc(u.openPlay.gameName) + '（' + yen(u.openPlay.stake) + '縁）</h3>' + resultUI(u.openPlay);
+    } else if (u.openReading) {
+      h += '<p class="hint" style="margin-top:10px">占いの最中です。</p>' + (can(LV.teller) ? '<div class="row" style="margin-top:8px"><button class="btn pri" data-act="to-reading" data-id="' + u.openReading.id + '">占いの画面へ</button></div>' : '');
+    } else if (u.status === 'active') {
+      h += '<h3>ゲームを始める</h3><div class="grid2">' + S.games.map(function (g) {
+        var fee = g.kind === 'bet' ? '賭け金は自由' : '参加費 ' + g.fee + '縁';
+        return '<button class="btn big" data-act="start" data-game="' + g.id + '" style="flex-direction:column;gap:0"><span style="font-family:var(--mincho);font-size:18px">' + esc(g.name) + '</span><small style="font-size:11px;color:var(--muted)">' + fee + '</small></button>';
+      }).join('') + '</div><div id="bet-box"></div>';
+      if (can(LV.teller)) h += '<h3>占い</h3><button class="btn gold block big" data-act="reading">占いを始める</button>';
+    }
+    if (can(LV.manager)) {
+      h += '<h3>責任者</h3><div class="row"><input class="in" id="adj-delta" type="number" inputmode="numeric" placeholder="±縁" style="width:110px"><input class="in grow" id="adj-note" placeholder="理由（必須）"><button class="btn" data-act="adjust">調整</button></div>' +
+        '<div class="row" style="margin-top:8px"><button class="btn danger" data-act="status" data-status="' + (u.status === 'active' ? 'disabled' : 'active') + '">' + (u.status === 'active' ? 'この客を無効にする' : '有効に戻す') + '</button>' +
+        '<a class="btn ghost" href="' + esc(u.url) + '" target="_blank" rel="noopener">マイページを開く</a></div>';
+    }
+    h += '<h3>履歴</h3><ul class="list">' + (u.history.length ? u.history.map(function (r) {
+      return '<li><span>' + esc(labelOf(r)) + '</span><span class="s">' + timeOf(r.created_at) + '</span><span class="amt ' + (r.type === 'bribe' ? 'bribe' : r.delta > 0 ? 'plus' : 'minus') + '">' + (r.delta > 0 ? '+' : '') + yen(r.delta) + '</span></li>';
+    }).join('') : '<li class="empty">まだ履歴はありません</li>') + '</ul>';
+    if (u.readings.length) h += '<h3>占いの結果</h3><ul class="list">' + u.readings.map(function (r) {
+      return '<li><span>' + esc(r.sou) + ' × ' + esc(r.kizashi) + '　<span class="chip">' + esc(r.rankName) + '</span></span><span class="s">' + esc(r.oracle) + '</span><span class="amt bribe">' + yen(r.bribe) + '</span></li>';
+    }).join('') + '</ul>';
+    h += '</div>';
+    el.innerHTML = h; bind(el);
+  }
+  function labelOf(r) {
+    var map = { grant: '受付で配布', fee: (r.game_name || 'ゲーム') + ' 参加', payout: (r.game_name || 'ゲーム') + ' 払い戻し', refund: '返金', bribe: '心付け', adjust: '調整' };
+    if ((r.type === 'payout' || r.type === 'adjust' || r.type === 'refund') && r.note) return map[r.type] + '（' + r.note + '）';
+    return map[r.type] || r.type;
+  }
+
+  // 結果の入力。fixed/bet はボタン、stack は段数
+  function resultUI(p) {
+    var g = S.games.filter(function (x) { return x.id === p.gameId; })[0];
+    if (!g) return '<p class="hint">このゲームは今は無効です。取消で返金できます。</p><div class="row" style="margin-top:8px"><button class="btn danger" data-act="void" data-play="' + p.id + '">取消して返金</button></div>';
+    var h = '';
+    if (g.kind === 'stack') {
+      var per = g.config.per_level, max = g.config.max_level;
+      h += '<div class="stepper"><button class="btn" data-act="lv" data-d="-1">−</button><p class="num"><span id="lv-num">0</span><small>段 ＝ <span id="lv-pay">0</span> 縁</small></p><button class="btn" data-act="lv" data-d="1">＋</button></div>' +
+        '<div class="quick">' + [0, 3, 5, 8, 10].map(function (n) { return '<button class="btn" data-act="lv-set" data-n="' + n + '">' + n + '</button>'; }).join('') + '</div>' +
+        '<div class="row" style="margin-top:10px"><button class="btn pri grow big" data-act="finish-stack" data-play="' + p.id + '" data-per="' + per + '" data-max="' + max + '">この段数で確定</button></div>';
+    } else {
+      h += '<div class="outcomes">' + g.config.outcomes.map(function (o, i) {
+        var pay = g.kind === 'bet' ? Math.round(p.stake * o.mult) : o.payout;
+        var sub = g.kind === 'bet' ? '×' + o.mult + ' ＝ ' + yen(pay) + '縁' : '払い戻し ' + yen(pay) + '縁';
+        return '<button class="btn ' + (pay > p.stake ? 'win' : pay === 0 ? 'lose' : '') + '" data-act="finish" data-play="' + p.id + '" data-outcome="' + i + '"><span>' + esc(o.label) + '</span><small>' + sub + '</small></button>';
+      }).join('') + '</div>';
+    }
+    h += '<div class="row" style="margin-top:10px"><button class="btn ghost danger" data-act="void" data-play="' + p.id + '">取消して ' + yen(p.stake) + '縁を返す</button></div>';
+    return h;
+  }
+
+  var pending = false;
+  function bind(root) {
+    root.querySelectorAll('[data-act]').forEach(function (b) {
+      b.addEventListener('click', function () { act(b, root); });
+    });
+  }
+  function act(b, root) {
+    var a = b.dataset.act, u = S.cust;
+    if (a === 'to-reception') { go('reception'); $('card-code').value = u.shortCode; $('card-nick').focus(); return; }
+    if (a === 'to-reading') { openReading(Number(b.dataset.id)); return; }
+    if (a === 'lv' || a === 'lv-set') {
+      var n = Number(root.querySelector('#lv-num').textContent);
+      n = a === 'lv' ? n + Number(b.dataset.d) : Number(b.dataset.n);
+      var fb = root.querySelector('[data-act=finish-stack]');
+      n = Math.max(0, Math.min(Number(fb.dataset.max), n));
+      root.querySelector('#lv-num').textContent = n; root.querySelector('#lv-pay').textContent = yen(n * Number(fb.dataset.per));
+      return;
+    }
+    if (pending) return;
+    if (a === 'start') {
+      var g = S.games.filter(function (x) { return x.id === Number(b.dataset.game); })[0];
+      if (g.kind === 'bet') { betBox(g, root); return; }
+      startPlay(g.id, undefined);
+      return;
+    }
+    if (a === 'bet-go') { var amt = Number(root.querySelector('#bet-amount').value); startPlay(Number(b.dataset.game), amt); return; }
+    if (a === 'bet-quick') { root.querySelector('#bet-amount').value = b.dataset.n === 'all' ? u.balance : b.dataset.n; return; }
+    if (a === 'finish') { busy(api('/api/staff/plays/' + b.dataset.play + '/finish', 'POST', { result: { outcome: Number(b.dataset.outcome) } }), function (p) { toast(p.result.label + '：' + (p.payout ? '+' + yen(p.payout) + '縁' : '払い戻しなし')); }); return; }
+    if (a === 'finish-stack') { var lv = Number(root.querySelector('#lv-num').textContent); busy(api('/api/staff/plays/' + b.dataset.play + '/finish', 'POST', { result: { level: lv } }), function (p) { toast(p.result.label + '：+' + yen(p.payout) + '縁'); }); return; }
+    if (a === 'void') { busy(api('/api/staff/plays/' + b.dataset.play + '/void', 'POST', {}), function () { toast('取消して返金しました'); }); return; }
+    if (a === 'reading') { busy(api('/api/staff/readings', 'POST', { userId: u.id }), function (r) { openReadingData(r); }); return; }
+    if (a === 'adjust') {
+      var d = Number(root.querySelector('#adj-delta').value), note = root.querySelector('#adj-note').value.trim();
+      if (!d) return toast('増減の額を入れてください', true);
+      if (!note) return toast('理由を入れてください', true);
+      busy(api('/api/staff/adjust', 'POST', { userId: u.id, delta: d, note: note, requestId: newId() }), function () { toast('調整しました'); });
+      return;
+    }
+    if (a === 'status') { busy(api('/api/staff/users/' + u.id + '/status', 'POST', { status: b.dataset.status }), function () { toast('変更しました'); }); return; }
+  }
+  function betBox(g, root) {
+    var box = root.querySelector('#bet-box');
+    var max = g.maxBet > 0 ? Math.min(g.maxBet, S.cust.balance) : S.cust.balance;
+    box.innerHTML = '<div class="card" style="margin-top:8px"><h3 style="margin-top:0">' + esc(g.name) + ' の賭け金</h3>' +
+      '<input class="in big" id="bet-amount" type="number" inputmode="numeric" min="' + g.minBet + '" max="' + max + '" value="' + Math.min(max, Math.max(g.minBet, 50)) + '">' +
+      '<div class="quick">' + [10, 50, 100, 500].map(function (n) { return '<button class="btn" data-act="bet-quick" data-n="' + n + '">' + n + '</button>'; }).join('') + '<button class="btn" data-act="bet-quick" data-n="all">全額</button></div>' +
+      '<p class="hint" style="margin-top:6px">' + g.minBet + '〜' + yen(max) + '縁。残高 ' + yen(S.cust.balance) + '縁</p>' +
+      '<button class="btn pri block big" data-act="bet-go" data-game="' + g.id + '" style="margin-top:8px">この額で開始（受け取る）</button></div>';
+    bind(box);
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function startPlay(gameId, stake) {
+    busy(api('/api/staff/plays', 'POST', { userId: S.cust.id, gameId: gameId, stake: stake, requestId: newId() }), function (p) { toast(p.gameName + ' 開始：' + yen(p.stake) + '縁 受け取り'); });
+  }
+  function busy(promise, onOk) {
+    pending = true;
+    promise.then(function (x) {
+      if (!x.ok) { toast(x.d.message || 'エラー', true); return; }
+      onOk(x.d);
+    }).then(refreshCust).then(poll).finally(function () { pending = false; });
+  }
+
+  /* ============================================================
+     進行中のゲーム（全スタッフ共通）
+  ============================================================ */
+  function loadOpenPlays() { api('/api/staff/plays/open').then(function (x) { if (x.ok) { S.openPlays = x.d.results; badge('n-plays', S.openPlays.length); renderOpenPlays(); } }); }
+  function renderOpenPlays() {
+    var el = $('open-plays');
+    if (!S.openPlays.length) { el.innerHTML = '<p class="empty">今、プレイ中の客はいません</p>'; return; }
+    el.innerHTML = S.openPlays.map(function (p) {
+      return '<div class="card" data-play-card="' + p.id + '"><div class="cust"><div><p class="name">' + esc(p.nickname) + '</p><p class="code">' + esc(p.shortCode) + '　' + timeOf(p.startedAt) + ' 開始・' + esc(p.staffName) + '</p></div><p class="bal" style="font-size:22px">' + esc(p.gameName) + '<small>' + yen(p.stake) + '縁</small></p></div>' + resultUI(p) + '</div>';
+    }).join('');
+    el.querySelectorAll('.card').forEach(function (card) {
+      card.querySelectorAll('[data-act]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var a = b.dataset.act;
+          if (a === 'lv' || a === 'lv-set') { act(b, card); return; }
+          if (pending) return;
+          var req;
+          if (a === 'finish') req = api('/api/staff/plays/' + b.dataset.play + '/finish', 'POST', { result: { outcome: Number(b.dataset.outcome) } });
+          else if (a === 'finish-stack') req = api('/api/staff/plays/' + b.dataset.play + '/finish', 'POST', { result: { level: Number(card.querySelector('#lv-num').textContent) } });
+          else if (a === 'void') req = api('/api/staff/plays/' + b.dataset.play + '/void', 'POST', {});
+          else return;
+          pending = true;
+          req.then(function (x) {
+            if (!x.ok) { toast(x.d.message || 'エラー', true); return; }
+            toast(x.d.status === 'void' ? '取消して返金しました' : esc(x.d.nickname) + '：' + (x.d.result ? x.d.result.label : '') + (x.d.payout ? ' +' + yen(x.d.payout) + '縁' : ''));
+          }).then(loadOpenPlays).finally(function () { pending = false; });
+        });
+      });
+    });
+  }
+
+  /* ============================================================
+     受付
+  ============================================================ */
+  $('reg-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = $('reg-msg'); msg.className = 'msg';
+    api('/api/staff/register', 'POST', { nickname: $('reg-nick').value }).then(function (x) {
+      if (!x.ok) { msg.className = 'msg err'; msg.textContent = x.d.message; return; }
+      $('reg-nick').value = ''; msg.textContent = '';
+      showQrSheet(x.d);
+    });
+  });
+  $('card-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = $('card-msg'); msg.className = 'msg';
+    api('/api/staff/register', 'POST', { nickname: $('card-nick').value, code: $('card-code').value }).then(function (x) {
+      if (!x.ok) { msg.className = 'msg err'; msg.textContent = x.d.message; return; }
+      $('card-nick').value = ''; $('card-code').value = '';
+      msg.className = 'msg ok'; msg.textContent = x.d.nickname + ' さんに ' + x.d.shortCode + ' を渡しました（' + yen(x.d.balance) + '縁）';
+      toast('登録しました');
+    });
+  });
+  function showQrSheet(u) {
+    var q = qrcode(0, 'M'); q.addData(location.origin + u.url); q.make();
+    $('qr-sheet-box').innerHTML = q.createSvgTag(4, 0);
+    $('qr-sheet-code').textContent = u.shortCode;
+    $('qr-sheet-name').textContent = u.nickname + '　' + yen(u.balance) + '縁';
+    $('qr-sheet').hidden = false;
+  }
+  $('qr-sheet-close').addEventListener('click', function () { $('qr-sheet').hidden = true; });
+
+  /* ============================================================
+     占い師
+  ============================================================ */
+  function renderTeller() {
+    var el = $('teller');
+    if (S.reading) { renderReading(); return; }
+    var h = '<h2>占い</h2><p class="hint">客の画面で「占いを始める」を押すか、下の進行中から開く。</p>';
+    h += '<div class="card"><div class="row"><input class="in grow" id="t-q" placeholder="札の番号・名前・QRの中身"><button class="btn" id="t-go">探す</button></div></div>';
+    h += '<h3>進行中の占い</h3>' + (S.openReadings.length ? S.openReadings.map(function (r) {
+      return '<div class="card" style="margin-top:8px"><div class="cust"><div><p class="name">' + esc(r.nickname) + '</p><p class="code">' + esc(r.shortCode) + '　' + timeOf(r.startedAt) + '</p></div><p class="bal" style="font-size:22px">' + yen(r.bribe) + '<small>縁 ' + esc(r.rankName || '') + '</small></p></div><div class="row" style="margin-top:8px"><button class="btn pri grow" data-open="' + r.id + '">開く</button></div></div>';
+    }).join('') : '<p class="empty">今は誰も占っていません</p>');
+    el.innerHTML = h;
+    el.querySelectorAll('[data-open]').forEach(function (b) { b.addEventListener('click', function () { openReading(Number(b.dataset.open)); }); });
+    $('t-go').addEventListener('click', function () { tellerLookup(); });
+    $('t-q').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); tellerLookup(); } });
+  }
+  function tellerLookup() {
+    var q = $('t-q').value.trim(); if (!q) return;
+    api('/api/staff/lookup?q=' + encodeURIComponent(q)).then(function (x) {
+      if (!x.ok || !x.d.results.length) return toast('見つかりません', true);
+      var u = x.d.results[0];
+      if (x.d.results.length > 1) { S.cust = null; go('cust'); $('q').value = q; lookup(q); return; }
+      api('/api/staff/readings', 'POST', { userId: u.id }).then(function (r) { if (!r.ok) return toast(r.d.message, true); openReadingData(r.d); });
+    });
+  }
+  function openReading(id) { api('/api/staff/readings/' + id).then(function (x) { if (!x.ok) return toast(x.d.message, true); openReadingData(x.d); }); }
+  function openReadingData(r) {
+    S.reading = r;
+    S.answers = r.answers ? { judge: r.answers.judge.slice(), mention: r.answers.mention.slice() } : { judge: [], mention: [] };
+    S.souOverride = r.answers ? r.answers.souOverride : null;
+    S.kizashiId = r.kizashi ? r.kizashi.id : null;
+    S.step = r.script ? 4 : r.bribe > 0 ? 2 : 1;
+    go('teller');
+  }
+  function judgeSou() {
+    var O = S.oracle, sum = { hot: 0, move: 0, out: 0 }, axes = ['hot', 'hot', 'hot', 'move', 'move', 'move', 'out', 'out', 'out'];
+    axes.forEach(function (a, i) { sum[a] += Number(S.answers.judge[i]) || 3; });
+    var hot = sum.hot >= 10, move = sum.move >= 10, out = sum.out >= 10;
+    return O.sou.filter(function (s) { return s.hot === hot && s.move === move && s.out === out; })[0] || O.sou[0];
+  }
+
+  function renderReading() {
+    var r = S.reading, el = $('teller'), O = S.oracle;
+    var rank = rankOf(r.bribe);
+    var h = '<div class="card"><div class="cust"><div><p class="name">' + esc(r.nickname) + '</p><p class="code">' + esc(r.shortCode) + '　残高 ' + yen(r.balance) + '縁</p></div><p class="bal">' + yen(r.bribe) + '<small>縁</small></p>' +
+      '<div class="chips"><span class="chip ' + (rank === 'kaizan' ? 'live' : '') + '">位：' + RANK[rank] + '</span>' + (r.status !== 'open' ? '<span class="chip">' + (r.status === 'done' ? '終了' : '取りやめ') + '</span>' : '') + '</div></div></div>';
+    h += '<div class="steps">' + [['心付け', 1], ['質問', 2], ['兆', 3], ['台本', 4]].map(function (s) { return '<button data-step="' + s[1] + '" class="' + (S.step === s[1] ? 'on' : S.step > s[1] ? 'done' : '') + '"><b>' + s[0] + '</b></button>'; }).join('') + '</div>';
+
+    if (S.step === 1) {
+      h += '<div class="card"><h3 style="margin-top:0">盆に置かれた縁</h3><p class="hint">客が置いた額を入れて受け取る。何回かに分けてもいい（合計で位が決まる）。</p>' +
+        '<input class="in big" id="bribe-amount" type="number" inputmode="numeric" min="1" placeholder="0" style="margin-top:8px">' +
+        '<div class="quick">' + [50, 100, 500, 1000].map(function (n) { return '<button class="btn" data-bq="' + n + '">+' + n + '</button>'; }).join('') + '<button class="btn" data-bq="all">全額</button></div>' +
+        '<div class="rank-big" id="rank-preview" data-rank="' + rank + '"><b>' + RANK[rank] + '</b><p class="hint" id="rank-note">今の合計 ' + yen(r.bribe) + '縁</p></div>' +
+        '<button class="btn pri block big" id="bribe-go" style="margin-top:10px">受け取る</button>' +
+        '<div class="row" style="margin-top:8px"><button class="btn grow" id="to-step2"' + (r.bribe > 0 ? '' : ' disabled') + '>心付けはここまで → 質問へ</button></div>' +
+        '<p class="hint" style="margin-top:8px">心付けなし（0縁）でも占える。その場合は「無」。</p><div class="row" style="margin-top:6px"><button class="btn ghost" id="skip-bribe">0縁のまま質問へ</button></div></div>';
+    } else if (S.step === 2) {
+      var auto = judgeSou();
+      h += '<div class="card"><h3 style="margin-top:0">判定用 9問</h3><p class="hint">質問票の答えを押す。未回答は 3。</p>' + O.judge.map(function (q, i) { return qRow('judge', i, q); }).join('') +
+        '<div class="rank-big" style="margin-top:12px"><p class="hint">この答えだと、相は</p><b style="font-size:28px" id="sou-live">' + esc((S.souOverride ? O.sou.filter(function (s) { return s.id === S.souOverride; })[0] : auto).name) + '</b></div>' +
+        '<h3>相を直接指定（任意）</h3><div class="cards4">' + O.sou.map(function (s) { return '<button data-sou="' + s.id + '" class="' + (S.souOverride === s.id ? 'on' : !S.souOverride && s.id === auto.id ? 'auto' : '') + '"><b>' + esc(s.name) + '</b><small>' + (s.hot ? '熱' : '冷') + '・' + (s.move ? '動' : '静') + '・' + (s.out ? '外' : '内') + '</small></button>'; }).join('') + '</div></div>';
+      h += '<div class="card"><h3 style="margin-top:0">言及用 10問</h3><p class="hint">極端な答えほど台本で刺される。</p>' + O.mention.map(function (q, i) { return qRow('mention', i, q); }).join('') + '</div>';
+      h += '<div class="row" style="margin-top:10px"><button class="btn pri grow big" id="to-step3">兆を引く →</button></div>';
+    } else if (S.step === 3) {
+      h += '<div class="card"><h3 style="margin-top:0">客が引いた札</h3><div class="cards4">' + O.kizashi.map(function (k) { return '<button data-kz="' + k.id + '" class="' + (S.kizashiId === k.id ? 'on' : '') + '" style="padding:18px 4px"><b style="font-size:28px">' + esc(k.name) + '</b><small>' + ({ good: '吉', bad: '凶', mixed: '混' }[k.omen]) + '</small></button>'; }).join('') + '</div></div>';
+      h += '<div class="row" style="margin-top:10px"><button class="btn pri grow big" id="to-step4"' + (S.kizashiId ? '' : ' disabled') + '>台本を出す →</button></div>';
+    } else {
+      var sc = r.script;
+      if (!sc) h += '<p class="empty">台本がまだありません。兆を選んでください。</p>';
+      else {
+        h += '<div class="direction"><b>演じ方 — ' + esc(r.rankName) + '</b>' + esc(sc.direction) + '</div>';
+        h += '<div class="row" style="margin-top:8px"><span class="chip">相 ' + esc(r.sou.name) + '</span><span class="chip">兆 ' + esc(r.kizashi.name) + '</span><span class="chip">心付け ' + yen(r.bribe) + '縁</span></div>';
+        sc.parts.forEach(function (p, i) {
+          h += '<div class="part' + (p.title === '改竄' ? ' kaizan' : '') + '"><h4>' + (p.title === '改竄' ? '' : '第' + '一二三'[i] + '部　') + esc(p.title) + '</h4>' + p.lines.map(function (l) { return '<p class="line ' + l.kind + '">' + esc(l.t) + '</p>'; }).join('') + '</div>';
+        });
+        h += '<div class="oracle-box">マイページとカードに載る一行<b>' + esc(r.oracle) + '</b></div>';
+        if (r.status === 'open') h += '<div class="row" style="margin-top:14px"><button class="btn pri grow big" id="finish">占い終了（マイページに出す）</button></div><div class="row" style="margin-top:8px"><button class="btn ghost danger" id="void-reading">取りやめて返金</button></div>';
+        else h += '<p class="msg ok">この占いは終了しています。マイページにカードが出ています。</p>';
+      }
+    }
+    h += '<div class="row" style="margin-top:14px"><button class="btn ghost" id="leave">一覧に戻る</button></div>';
+    el.innerHTML = h;
+    bindReading(el);
+  }
+  function qRow(kind, i, text) {
+    var v = S.answers[kind][i];
+    return '<div class="q"><p><i>' + (i + 1) + '</i>' + esc(text) + '</p><div class="scale">' + [1, 2, 3, 4, 5].map(function (n) { return '<button data-q="' + kind + '" data-i="' + i + '" data-v="' + n + '" class="' + (v === n ? 'on' : '') + '">' + n + '</button>'; }).join('') + '</div></div>';
+  }
+  function bindReading(el) {
+    var r = S.reading;
+    el.querySelectorAll('[data-step]').forEach(function (b) { b.addEventListener('click', function () { var s = Number(b.dataset.step); if (s === 4 && !r.script) return toast('先に兆を選んでください', true); S.step = s; renderReading(); }); });
+    var leave = el.querySelector('#leave'); if (leave) leave.addEventListener('click', function () { S.reading = null; renderTeller(); poll(); });
+    if (S.step === 1) {
+      var inp = el.querySelector('#bribe-amount');
+      var preview = function () { var t = r.bribe + (Number(inp.value) || 0); var rk = rankOf(t); var rb = el.querySelector('#rank-preview'); rb.dataset.rank = rk; rb.querySelector('b').textContent = RANK[rk]; el.querySelector('#rank-note').textContent = '受け取ると合計 ' + yen(t) + '縁'; };
+      inp.addEventListener('input', preview);
+      el.querySelectorAll('[data-bq]').forEach(function (b) { b.addEventListener('click', function () { inp.value = b.dataset.bq === 'all' ? r.balance : (Number(inp.value) || 0) + Number(b.dataset.bq); preview(); }); });
+      el.querySelector('#bribe-go').addEventListener('click', function () {
+        var amt = Number(inp.value); if (!amt) return toast('額を入れてください', true);
+        if (pending) return; pending = true;
+        api('/api/staff/readings/' + r.id + '/bribe', 'POST', { amount: amt, requestId: newId() }).then(function (x) {
+          if (!x.ok) return toast(x.d.message, true);
+          S.reading = x.d; toast(yen(amt) + '縁 受け取り → ' + x.d.rankName); renderReading();
+        }).finally(function () { pending = false; });
+      });
+      el.querySelector('#to-step2').addEventListener('click', function () { S.step = 2; renderReading(); });
+      el.querySelector('#skip-bribe').addEventListener('click', function () { S.step = 2; renderReading(); });
+    }
+    if (S.step === 2) {
+      el.querySelectorAll('[data-q]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var k = b.dataset.q, i = Number(b.dataset.i), v = Number(b.dataset.v);
+          S.answers[k][i] = S.answers[k][i] === v ? undefined : v;
+          var scale = b.parentNode; Array.prototype.forEach.call(scale.children, function (c) { c.classList.toggle('on', Number(c.dataset.v) === S.answers[k][i]); });
+          if (k === 'judge' && !S.souOverride) { var a = judgeSou(); el.querySelector('#sou-live').textContent = a.name; el.querySelectorAll('[data-sou]').forEach(function (c) { c.classList.toggle('auto', c.dataset.sou === a.id); }); }
+        });
+      });
+      el.querySelectorAll('[data-sou]').forEach(function (b) { b.addEventListener('click', function () { S.souOverride = S.souOverride === b.dataset.sou ? null : b.dataset.sou; renderReading(); }); });
+      el.querySelector('#to-step3').addEventListener('click', function () { saveReading().then(function () { S.step = 3; renderReading(); }); });
+    }
+    if (S.step === 3) {
+      el.querySelectorAll('[data-kz]').forEach(function (b) { b.addEventListener('click', function () { S.kizashiId = b.dataset.kz; renderReading(); }); });
+      el.querySelector('#to-step4').addEventListener('click', function () { saveReading().then(function (ok) { if (ok) { S.step = 4; renderReading(); } }); });
+    }
+    if (S.step === 4) {
+      var f = el.querySelector('#finish');
+      if (f) f.addEventListener('click', function () {
+        if (pending) return; pending = true;
+        api('/api/staff/readings/' + r.id + '/finish', 'POST', {}).then(function (x) {
+          if (!x.ok) return toast(x.d.message, true);
+          S.reading = x.d; toast('終了。マイページにカードが出ました'); renderReading();
+        }).finally(function () { pending = false; });
+      });
+      var v = el.querySelector('#void-reading');
+      if (v) v.addEventListener('click', function () {
+        if (!v.dataset.armed) { v.dataset.armed = '1'; v.textContent = 'もう一度押すと取りやめ（' + yen(r.bribe) + '縁を返金）'; setTimeout(function () { delete v.dataset.armed; v.textContent = '取りやめて返金'; }, 3000); return; }
+        api('/api/staff/readings/' + r.id + '/void', 'POST', {}).then(function (x) { if (!x.ok) return toast(x.d.message, true); toast('取りやめました'); S.reading = null; renderTeller(); poll(); });
+      });
+    }
+  }
+  function saveReading() {
+    var r = S.reading;
+    return api('/api/staff/readings/' + r.id, 'PUT', { judge: S.answers.judge, mention: S.answers.mention, kizashiId: S.kizashiId, souId: S.souOverride }).then(function (x) {
+      if (!x.ok) { toast(x.d.message, true); return false; }
+      S.reading = x.d; return true;
+    });
+  }
+
+  /* ============================================================
+     管理（責任者・管理者）
+  ============================================================ */
+  function renderAdmin() {
+    var el = $('admin');
+    el.innerHTML = '<h2>管理</h2><p class="hint">読み込み中…</p>';
+    var ps = [api('/api/staff/stats'), api('/api/staff/games')];
+    if (can(LV.admin)) ps.push(api('/api/staff/accounts'), api('/api/staff/audit'));
+    Promise.all(ps).then(function (r) {
+      var st = r[0].ok ? r[0].d : {}, games = r[1].ok ? r[1].d.results : [], accounts = r[2] && r[2].ok ? r[2].d.results : null, audit = r[3] && r[3].ok ? r[3].d.results : null;
+      var s = S.settings;
+      var h = '<h2>管理</h2>';
+      h += '<div class="kpis">' + [['登録', st.users, '人'], ['総残高', st.totalBalance, '縁'], ['ゲーム', st.plays, '回'], ['占い', st.readings, '回'], ['賄賂合計', st.bribes, '縁'], ['改竄', st.kaizan, '回']].map(function (k) { return '<div class="kpi"><b>' + yen(k[1] || 0) + '<small style="font-size:12px"> ' + k[2] + '</small></b><span>' + k[0] + '</span></div>'; }).join('') + '</div>';
+
+      h += '<div class="card"><h3 style="margin-top:0">設定</h3>' +
+        field('改竄の閾値（縁）', 'rank_kaizan', s.rank_kaizan) + field('大の下限', 'rank_dai', s.rank_dai) + field('小の下限', 'rank_sho', s.rank_sho) +
+        field('受付で配る縁', 'starting_en', s.starting_en) + field('登録の上限（人）', 'max_users', s.max_users) +
+        field('賄賂1位の称号', 'first_title', s.first_title, 'text') + field('所持金1位の称号', 'rich_title', s.rich_title, 'text') + field('番付の人数', 'ranking_size', s.ranking_size) +
+        '<div class="field"><label>受付</label><label class="row"><input type="checkbox" id="set-registration_open" ' + (s.registration_open === '1' ? 'checked' : '') + '> 受付中（オフで登録停止）</label></div>' +
+        '<div class="row" style="margin-top:10px"><button class="btn pri" id="save-settings">設定を保存</button></div><p class="msg" id="set-msg"></p></div>';
+
+      h += '<div class="card"><h3 style="margin-top:0">ゲーム</h3>' + games.map(function (g) {
+        var cfg = g.config, body;
+        if (g.kind === 'stack') body = '<div class="field"><label>1段あたり</label><input class="in" data-g="' + g.id + '" data-k="per_level" type="number" value="' + cfg.per_level + '"></div><div class="field"><label>最大段数</label><input class="in" data-g="' + g.id + '" data-k="max_level" type="number" value="' + cfg.max_level + '"></div>';
+        else body = cfg.outcomes.map(function (o, i) { return '<div class="field"><input class="in" data-g="' + g.id + '" data-o="' + i + '" data-k="label" value="' + esc(o.label) + '"><input class="in" data-g="' + g.id + '" data-o="' + i + '" data-k="' + (g.kind === 'bet' ? 'mult' : 'payout') + '" type="number" step="' + (g.kind === 'bet' ? '0.5' : '10') + '" value="' + (g.kind === 'bet' ? o.mult : o.payout) + '"></div>'; }).join('') +
+          '<div class="row" style="margin-top:6px"><button class="btn ghost" data-addo="' + g.id + '">結果を足す</button></div>';
+        return '<div class="card" style="margin-top:8px" data-game-card="' + g.id + '"><div class="row"><b style="font-family:var(--mincho);font-size:18px" class="grow">' + esc(g.name) + ' <small class="hint">' + ({ fixed: '結果ボタン', stack: '段数', bet: '賭け金×倍率' }[g.kind]) + '</small></b><label class="row"><input type="checkbox" data-g="' + g.id + '" data-k="enabled" ' + (g.enabled ? 'checked' : '') + '> 有効</label></div>' +
+          (g.kind === 'bet' ? '<div class="field"><label>賭け金 下限</label><input class="in" data-g="' + g.id + '" data-k="minBet" type="number" value="' + g.minBet + '"></div><div class="field"><label>賭け金 上限（0=残高まで）</label><input class="in" data-g="' + g.id + '" data-k="maxBet" type="number" value="' + g.maxBet + '"></div>' : '<div class="field"><label>参加費</label><input class="in" data-g="' + g.id + '" data-k="fee" type="number" value="' + g.fee + '"></div>') +
+          body + '<div class="row" style="margin-top:10px"><button class="btn" data-saveg="' + g.id + '">保存</button></div></div>';
+      }).join('') + '</div>';
+
+      if (accounts) {
+        h += '<div class="card"><h3 style="margin-top:0">スタッフ</h3><p class="hint">権限はピラミッド型。上の権限は下の権限を全部含む。</p><div class="scroll"><table><thead><tr><th>名前</th><th>権限</th><th></th></tr></thead><tbody>' + accounts.map(function (a) {
+          return '<tr><td>' + esc(a.name) + (a.active ? '' : ' <span class="chip">停止</span>') + '</td><td><select class="in" data-acc="' + a.id + '" data-k="level" style="padding:6px 8px">' + [1, 2, 3, 4].map(function (l) { return '<option value="' + l + '"' + (a.level === l ? ' selected' : '') + '>' + l + ' ' + S.me.levels[l] + '</option>'; }).join('') + '</select></td>' +
+            '<td class="row"><button class="btn" data-acc="' + a.id + '" data-k="code" style="min-height:34px;padding:4px 10px;font-size:12px">合言葉</button><button class="btn ' + (a.active ? 'danger' : '') + '" data-acc="' + a.id + '" data-k="active" data-v="' + (a.active ? '0' : '1') + '" style="min-height:34px;padding:4px 10px;font-size:12px">' + (a.active ? '停止' : '再開') + '</button></td></tr>';
+        }).join('') + '</tbody></table></div>' +
+          '<h3>追加</h3><div class="row"><input class="in grow" id="acc-name" placeholder="名前"><select class="in" id="acc-level" style="width:130px">' + [1, 2, 3, 4].map(function (l) { return '<option value="' + l + '">' + S.me.levels[l] + '</option>'; }).join('') + '</select></div><div class="row" style="margin-top:8px"><input class="in grow" id="acc-code" placeholder="合言葉（6文字以上）" autocomplete="new-password"><button class="btn pri" id="acc-add">追加</button></div><p class="msg" id="acc-msg"></p></div>';
+        h += '<div class="card"><h3 style="margin-top:0">書き出し（CSV）</h3><div class="row"><a class="btn" href="/api/staff/export?what=users">客と残高</a><a class="btn" href="/api/staff/export?what=ledger">縁の台帳</a><a class="btn" href="/api/staff/export?what=readings">占いの結果</a></div></div>';
+        h += '<div class="card"><h3 style="margin-top:0">操作ログ（直近）</h3><div class="scroll"><table><thead><tr><th>時刻</th><th>誰</th><th>何を</th><th>対象</th><th>内容</th></tr></thead><tbody>' + (audit || []).slice(0, 80).map(function (l) { return '<tr><td>' + timeOf(l.created_at) + '</td><td>' + esc(l.staff || '') + '</td><td>' + esc(l.action) + '</td><td>' + esc(l.target || '') + '</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(l.detail || '') + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
+      }
+      el.innerHTML = h;
+      bindAdmin(el, games);
+    });
+  }
+  function field(label, key, value, type) { return '<div class="field"><label>' + label + '</label><input class="in" id="set-' + key + '" type="' + (type || 'number') + '" value="' + esc(value) + '"></div>'; }
+  function bindAdmin(el, games) {
+    el.querySelector('#save-settings').addEventListener('click', function () {
+      var body = {};
+      ['rank_kaizan', 'rank_dai', 'rank_sho', 'starting_en', 'max_users', 'first_title', 'rich_title', 'ranking_size'].forEach(function (k) { body[k] = el.querySelector('#set-' + k).value; });
+      body.registration_open = el.querySelector('#set-registration_open').checked;
+      api('/api/staff/settings', 'PUT', body).then(function (x) {
+        var m = el.querySelector('#set-msg');
+        if (!x.ok) { m.className = 'msg err'; m.textContent = x.d.message; return; }
+        S.settings = x.d.settings; m.className = 'msg ok'; m.textContent = '保存しました'; toast('設定を保存しました');
+      });
+    });
+    el.querySelectorAll('[data-addo]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var g = games.filter(function (x) { return x.id === Number(b.dataset.addo); })[0];
+        g.config.outcomes.push(g.kind === 'bet' ? { label: '新しい結果', mult: 1 } : { label: '新しい結果', payout: 0 });
+        renderAdmin();
+      });
+    });
+    el.querySelectorAll('[data-saveg]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = Number(b.dataset.saveg), g = games.filter(function (x) { return x.id === id; })[0];
+        var card = el.querySelector('[data-game-card="' + id + '"]');
+        var val = function (k) { var i = card.querySelector('[data-k="' + k + '"]:not([data-o])'); return i ? (i.type === 'checkbox' ? i.checked : i.value) : undefined; };
+        var body = { enabled: val('enabled'), fee: val('fee'), minBet: val('minBet'), maxBet: val('maxBet') };
+        if (g.kind === 'stack') body.config = { per_level: val('per_level'), max_level: val('max_level') };
+        else {
+          var outs = [];
+          card.querySelectorAll('[data-o][data-k="label"]').forEach(function (i) {
+            var o = i.dataset.o, num = card.querySelector('[data-o="' + o + '"][data-k="' + (g.kind === 'bet' ? 'mult' : 'payout') + '"]').value;
+            if (i.value.trim()) outs.push(g.kind === 'bet' ? { label: i.value, mult: Number(num) } : { label: i.value, payout: Number(num) });
+          });
+          body.config = { outcomes: outs };
+        }
+        api('/api/staff/games/' + id, 'PUT', body).then(function (x) {
+          if (!x.ok) return toast(x.d.message, true);
+          toast(x.d.name + ' を保存しました');
+          api('/api/staff/me').then(function (m) { if (m.ok) { S.games = m.d.games; } renderAdmin(); });
+        });
+      });
+    });
+    var add = el.querySelector('#acc-add');
+    if (add) add.addEventListener('click', function () {
+      api('/api/staff/accounts', 'POST', { name: el.querySelector('#acc-name').value, level: Number(el.querySelector('#acc-level').value), code: el.querySelector('#acc-code').value }).then(function (x) {
+        var m = el.querySelector('#acc-msg');
+        if (!x.ok) { m.className = 'msg err'; m.textContent = x.d.message; return; }
+        toast(x.d.name + ' を追加しました'); renderAdmin();
+      });
+    });
+    el.querySelectorAll('[data-acc]').forEach(function (c) {
+      var id = Number(c.dataset.acc), k = c.dataset.k;
+      var send = function (body) { api('/api/staff/accounts/' + id, 'PATCH', body).then(function (x) { if (!x.ok) return toast(x.d.message, true); toast('変更しました'); renderAdmin(); }); };
+      if (k === 'level') c.addEventListener('change', function () { send({ level: Number(c.value) }); });
+      if (k === 'active') c.addEventListener('click', function () { send({ active: c.dataset.v === '1' }); });
+      if (k === 'code') c.addEventListener('click', function () {
+        var box = document.createElement('div'); box.className = 'row'; box.style.marginTop = '6px';
+        box.innerHTML = '<input class="in grow" placeholder="新しい合言葉（6文字以上）"><button class="btn">変更</button>';
+        c.parentNode.appendChild(box);
+        box.querySelector('button').addEventListener('click', function () { send({ code: box.querySelector('input').value }); });
+      });
+    });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

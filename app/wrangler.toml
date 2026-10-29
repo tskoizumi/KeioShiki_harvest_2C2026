@@ -1,0 +1,29 @@
+name = "moneytalks-app"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 本番は独自ドメインだけで公開する（workers.dev のURLは閉じる）
+workers_dev = false
+routes = [
+  { pattern = "app.moneytalks-uranai.com", custom_domain = true }
+]
+
+# 画面（public/）。Worker が先に経路を見て、API 以外を静的ファイルに回す
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "404-page"
+
+# データベース（D1）。database_id は `wrangler d1 create moneytalks-db` の出力に置き換える
+[[d1_databases]]
+binding = "DB"
+database_name = "moneytalks-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# 秘密（SESSION_SECRET / SETUP_CODE）は wrangler secret put で入れる。ここには書かない
+[vars]
+PUBLIC_ORIGIN = "https://app.moneytalks-uranai.com"
+LP_ORIGIN = "https://moneytalks-uranai.com"
