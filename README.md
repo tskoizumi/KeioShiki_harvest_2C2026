@@ -80,7 +80,7 @@ LPとそれ以外のつなぎ目は2つだけ（`config.js` の `resultUrl` と 
 ### 5. 勝手に変えないもの
 
 - **QRに焼き込むURL**（ドメイン・ファイル名・パラメータ名）。QRを刷ったあとは変更禁止。刷った紙が全部使えなくなる
-- 独自ドメインを買うなら、QRを刷る前に設定まで済ませる
+- ドメインは **`moneytalks-uranai.com`**（LP）。受付システムは **`app.moneytalks-uranai.com`** に置く予定。QRを刷る前に、どちらもつなぎ終える
 
 ### 6. 出す前に確認する
 
@@ -115,7 +115,7 @@ Cloudflare ダッシュボード → Workers & Pages → 作成 → Pages → Gi
 | ビルド出力ディレクトリ | `/` |
 | 本番ブランチ | `main` |
 
-`https://<プロジェクト名>.pages.dev/` で公開される。以後 `main` に push するたびに自動で再デプロイされる。
+**`https://moneytalks-uranai.com/`** で公開する（Pages の Custom domains でつなぐ。`https://<プロジェクト名>.pages.dev/` も引き続き使える）。以後 `main` に push するたびに自動で再デプロイされる。
 `main` 以外のブランチに push するとプレビュー用の別URLが出る。
 
 QR・結果まわりでビルドや Pages Functions を使う場合は、この設定を変えてよい（変えたらここを書き直す）。

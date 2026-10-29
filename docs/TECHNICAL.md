@@ -4,7 +4,7 @@
 担当・連絡のルール・開発のルールは [README](../README.md) に書いてある。
 
 - リポジトリ: `tskoizumi/KeioShiki_harvest_2C2026`（**公開リポジトリ**、本番ブランチ `main`）
-- 公開先: Cloudflare Pages（`https://<プロジェクト名>.pages.dev/`）。独自ドメインは未購入（候補: `moneytalks-uranai.com`）
+- 公開先: Cloudflare Pages。独自ドメインは **`https://moneytalks-uranai.com/`**（Cloudflare で購入済み）。受付システムは `https://app.moneytalks-uranai.com/` に置く予定
 - 公式アカウント: Instagram `@keioshiki2c79`／LP制作: `@tskoizumi`
 
 ---
@@ -78,7 +78,7 @@ QR・結果まわりの技術は担当が自由に選んでいい。LP側を巻�
 - `main` 以外のブランチは、プレビュー用のURL（`https://<ブランチ名>.<プロジェクト名>.pages.dev`）に出る
 - Pages Functions（`functions/` フォルダ）や D1 を足しても、このプロジェクトのまま動く。ビルドが必要な仕組みにするなら、上の設定を変えて README も直す
 
-**QRに焼き込むURL（ドメイン・パス・パラメータ名）は、刷ったあとに変えると全部読めなくなる。** 独自ドメインを使うなら、刷る前につなぎ終える。ドメインが決まったら、LPの `og:image` を絶対URLにする（相対URLだと一部のSNSで画像が出ない）。
+**QRに焼き込むURL（ドメイン・パス・パラメータ名）は、刷ったあとに変えると全部読めなくなる。** ドメインは `moneytalks-uranai.com` に決まったので、刷る前に Pages（LP）と受付システム（`app.` のサブドメイン）の両方をつなぎ終える。LPの `og:image` と `og:url` はこのドメインの絶対URLにしてある（相対URLだと一部のSNSで画像が出ない）。
 
 ---
 
@@ -203,7 +203,9 @@ python3 -m http.server 8765      # → http://localhost:8765/
 
 ## 10. 未決・TODO
 
-- [ ] 独自ドメインを買う（`moneytalk-uranai.com` か `moneytalks-uranai.com` か）→ Pagesにつなぐ → `og:image` を絶対URLに
+- [x] 独自ドメインを買う → `moneytalks-uranai.com`。`og:image` / `og:url` を絶対URLに
+- [ ] Pages（LP）の Custom domains に `moneytalks-uranai.com` をつなぐ
+- [ ] 受付システムを `app.moneytalks-uranai.com` で公開し、Access を設定する
 - [ ] QR・結果まわりのシステム（`soma1218`）→ できたら `resultUrl` `rankingUrl` を入れる
 - [ ] 日時を `config.js` の `date` に入れる
 - [ ] 改竄の閾値（2000）を当日の縁の増え方を見て調整
