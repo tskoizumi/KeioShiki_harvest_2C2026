@@ -8,7 +8,7 @@ import { ApiError, allSettings, rankOf, RANK_NAME, nowIso } from './util.js';
 export async function openReading(db, userId, staffId) {
   const u = await db.prepare("SELECT id, nickname, status FROM users WHERE id = ?").bind(userId).first();
   if (!u) throw new ApiError('NOT_FOUND', 'その客は見つかりません', 404);
-  if (u.nickname == null) throw new ApiError('UNCLAIMED', 'まだ名前が登録されていない札です', 409);
+  if (u.nickname == null) throw new ApiError('UNCLAIMED', 'まだ名前が登録されていないQRカードです', 409);
   if (u.status !== 'active') throw new ApiError('DISABLED', 'この客は無効になっています', 403);
   const open = await db.prepare("SELECT id FROM readings WHERE user_id = ? AND status = 'open'").bind(userId).first();
   if (open) return getReading(db, open.id);
@@ -53,11 +53,11 @@ function shape(r) {
 
 // 心付け。何回かに分けて置いてもいい（合計で位が決まる）
 export async function addBribe(db, id, amount, staffId, requestId) {
-  if (!Number.isInteger(amount) || amount <= 0) throw new ApiError('AMOUNT', '心付けの額が不正です');
+  if (!Number.isInteger(amount) || amount <= 0) throw new ApiError('AMOUNT', '賄賂の額が正しくありません');
   const r = await db.prepare('SELECT user_id, status FROM readings WHERE id = ?').bind(id).first();
   if (!r) throw new ApiError('NOT_FOUND', 'その占いは見つかりません', 404);
   if (r.status !== 'open') throw new ApiError('CLOSED', 'この占いは終わっています', 409);
-  const res = await applyDelta(db, { userId: r.user_id, delta: -amount, type: 'bribe', refType: 'reading', refId: id, staffId, note: '心付け', requestId });
+  const res = await applyDelta(db, { userId: r.user_id, delta: -amount, type: 'bribe', refType: 'reading', refId: id, staffId, note: '賄賂', requestId });
   if (!res.duplicate) {
     const s = await allSettings(db);
     const row = await db.prepare('SELECT bribe FROM readings WHERE id = ?').bind(id).first();
@@ -106,7 +106,7 @@ export async function finishReading(db, id) {
   const r = await db.prepare('SELECT status, script FROM readings WHERE id = ?').bind(id).first();
   if (!r) throw new ApiError('NOT_FOUND', 'その占いは見つかりません', 404);
   if (r.status !== 'open') throw new ApiError('CLOSED', 'この占いは終わっています', 409);
-  if (!r.script) throw new ApiError('NO_SCRIPT', '兆を選んで台本を出してから終了してください', 409);
+  if (!r.script) throw new ApiError('NO_SCRIPT', '引いたカードを選んで台本を出してから終了してください', 409);
   await db.prepare("UPDATE readings SET status = 'done', finished_at = ? WHERE id = ? AND status = 'open'").bind(nowIso(), id).run();
   return getReading(db, id);
 }

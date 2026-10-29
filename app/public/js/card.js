@@ -168,7 +168,7 @@ window.ShareCard = (function () {
     // 相
     ctx.fillStyle = t.accent;
     ctx.font = font(700, 32);
-    spaced(ctx, "あなたの相", cx, 560, 12, "center");
+    spaced(ctx, "あなたのタイプ", cx, 560, 12, "center");
     ctx.fillStyle = INK;
     var souSize = fit(ctx, d.sou, 800, 240, W - 240);
     ctx.font = font(800, souSize);
@@ -180,7 +180,7 @@ window.ShareCard = (function () {
     ctx.beginPath(); ctx.moveTo(cx - 300, ky); ctx.lineTo(cx + 300, ky); ctx.stroke();
     ctx.fillStyle = t.accent;
     ctx.font = font(700, 32);
-    spaced(ctx, "引いた兆", cx, ky + 80, 12, "center");
+    spaced(ctx, "引いたカード", cx, ky + 80, 12, "center");
     ctx.fillStyle = INK;
     var kSize = fit(ctx, d.kizashi, 800, 96, W - 300);
     ctx.font = font(800, kSize);
@@ -190,7 +190,7 @@ window.ShareCard = (function () {
     var my = 1270;
     ctx.fillStyle = t.accent;
     ctx.font = font(700, 32);
-    spaced(ctx, "心付け", cx - 110, my, 12, "center");
+    spaced(ctx, "賄賂", cx - 110, my, 12, "center");
     ctx.fillStyle = INK;
     var amt = yen(d.amount);
     ctx.font = font(800, 120);
@@ -264,7 +264,7 @@ window.ShareCard = (function () {
     ctx.fillStyle = LIGHT;
     ctx.globalAlpha = 0.6;
     ctx.font = font(700, 30);
-    spaced(ctx, "あなたの相", cx, 530, 12, "center");
+    spaced(ctx, "あなたのタイプ", cx, 530, 12, "center");
     ctx.globalAlpha = 1;
     var souSize = fit(ctx, d.sou, 800, 230, W - 260);
     ctx.font = font(800, souSize);
@@ -281,7 +281,7 @@ window.ShareCard = (function () {
     ctx.fillStyle = LIGHT;
     ctx.globalAlpha = 0.45;
     ctx.font = font(700, 30);
-    spaced(ctx, "引いた兆", cx, ky, 12, "center");
+    spaced(ctx, "引いたカード", cx, ky, 12, "center");
     var kSize = fit(ctx, d.kizashi, 800, 90, W - 320);
     ctx.font = font(800, kSize);
     var kw = ctx.measureText(d.kizashi).width + (d.kizashi.length - 1) * 10;
@@ -295,13 +295,13 @@ window.ShareCard = (function () {
 
     ctx.fillStyle = HOT;
     ctx.font = font(800, 52);
-    ctx.fillText("「この兆は、誤りでした。」", cx, ky + 200);
+    ctx.fillText("「このカードは、なかったことに。」", cx, ky + 200);
 
     // 新しい神託
     var oy = 1290;
     ctx.fillStyle = LIGHT;
     ctx.font = font(700, 30);
-    spaced(ctx, "新しい神託", cx, oy, 12, "center");
+    spaced(ctx, "書き換えた結果", cx, oy, 12, "center");
     ctx.font = font(800, 60);
     var lines = wrapBalanced(ctx, d.oracle, W - 240).slice(0, 3);
     lines.forEach(function (ln, i) { ctx.fillText(ln, cx, oy + 100 + i * 88); });
@@ -310,7 +310,7 @@ window.ShareCard = (function () {
     var my = 1700;
     ctx.textAlign = "left";
     ctx.font = font(700, 30);
-    ctx.fillText("心付け", 120, my - 60);
+    ctx.fillText("賄賂", 120, my - 60);
     ctx.font = font(800, 96);
     var amt = yen(d.amount);
     ctx.fillText(amt, 120, my + 40);
@@ -350,7 +350,7 @@ window.ShareCard = (function () {
     var data = { name: d.name || "", sou: d.sou || "—", kizashi: d.kizashi || "—", amount: Number(d.amount) || 0, oracle: d.oracle || "" };
     var rank = { id: d.rank || "mu", name: { mu: "無", sho: "小", dai: "大", kaizan: "改竄" }[d.rank] || "無" };
     var text = [site.name, site.event, site.className, data.name, data.sou, data.kizashi, data.oracle,
-                "あなたの相引いた兆心付け縁新しい神託この兆は、誤りでした。改竄済無小大0123456789,「」の　"].join("");
+                "あなたのタイプ引いたカード賄賂縁書き換えた結果このカードは、なかったことに。改竄済無小大0123456789,「」の　"].join("");
     var fontsReady = document.fonts
       ? Promise.all([document.fonts.load(font(800, 100), text), document.fonts.load(font(700, 100), text), document.fonts.load(font(500, 100), text)])
       : Promise.resolve();

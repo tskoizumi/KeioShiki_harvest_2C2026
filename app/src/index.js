@@ -36,6 +36,10 @@ async function handle(request, env, ctx) {
     if (p === '/api/staff/setup' && m === 'POST') return await staffRoutes.setup(request, env);
     if (p === '/api/staff/login' && m === 'POST') return await staffRoutes.login(request, env);
     if (p === '/api/staff/logout' && m === 'POST') return staffRoutes.logout(request);
+    if ((mm = p.match(/^\/api\/staff\/join\/([A-Za-z0-9]+)$/))) {
+      if (m === 'GET') return await staffRoutes.inviteInfo(env, mm[1]);
+      if (m === 'POST') return await staffRoutes.join(request, env, mm[1]);
+    }
     if (p.startsWith('/api/staff/')) {
       const staff = await currentStaff(request, env);
       if (!staff) return fail('LOGIN', 'スタッフとしてログインしてください', 401);
@@ -48,6 +52,7 @@ async function handle(request, env, ctx) {
     if (p.startsWith('/u/')) return env.ASSETS.fetch(new Request(new URL('/u', url), request));
     if (p === '/staff' || p === '/staff/') return env.ASSETS.fetch(new Request(new URL('/staff', url), request));
     if (p === '/staff/cards') return env.ASSETS.fetch(new Request(new URL('/cards', url), request));
+    if (p === '/staff/join') return env.ASSETS.fetch(new Request(new URL('/join', url), request));
     if (p === '/training' || p === '/training/') {   // 手引きは研修ホストだけ
       const nf = await env.ASSETS.fetch(new Request(new URL('/404', url), request));
       return new Response(nf.body, { status: 404, headers: nf.headers });

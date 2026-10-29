@@ -23,9 +23,9 @@ export async function setup(request, env) {
   const n = (await env.DB.prepare('SELECT COUNT(*) AS n FROM staff').first()).n;
   if (n > 0) throw new ApiError('DONE', '初期設定は済んでいます', 409);
   const b = await readJson(request);
-  if (!env.SETUP_CODE || String(b.setupCode || '') !== env.SETUP_CODE) throw new ApiError('SETUP_CODE', '初期設定の合言葉が違います', 403);
+  if (!env.SETUP_CODE || String(b.setupCode || '') !== env.SETUP_CODE) throw new ApiError('SETUP_CODE', '初期設定のパスワード（SETUP_CODE）が違います', 403);
   const name = cleanNickname(b.name) || '管理者';
-  if (!validCode(b.code)) throw new ApiError('CODE', 'ログインの合言葉は6文字以上にしてください');
+  if (!validCode(b.code)) throw new ApiError('CODE', 'パスワードは6文字以上にしてください');
   const { hash, salt } = await hashCode(b.code);
   const ins = await env.DB.prepare('INSERT INTO staff (name, level, code_hash, code_salt) VALUES (?, 4, ?, ?)').bind(name, hash, salt).run();
   await audit(env.DB, ins.meta.last_row_id, '初期設定', `staff:${ins.meta.last_row_id}`, '最初の管理者を作成');
@@ -36,12 +36,12 @@ export async function login(request, env) {
   const b = await readJson(request);
   const code = String(b.code || '');
   const name = cleanNickname(b.name);
-  if (!name || !code) throw new ApiError('LOGIN', '名前と合言葉を入れてください');
+  if (!name || !code) throw new ApiError('LOGIN', '名前とパスワードを入れてください');
   const s = await env.DB.prepare('SELECT * FROM staff WHERE name = ? AND active = 1').bind(name).first();
   // 名前が違っても同じ時間をかける（名前の存在を当てられないように）
   if (!s) {
     await hashCode(code, undefined);
-    throw new ApiError('LOGIN', '名前か合言葉が違います', 401);
+    throw new ApiError('LOGIN', '名前かパスワードが違います', 401);
   }
   if (s.locked_until && new Date(s.locked_until) > new Date()) throw new ApiError('LOCKED', '失敗が続いたので1分待ってください', 429);
   const { hash } = await hashCode(code, s.code_salt);
@@ -49,7 +49,7 @@ export async function login(request, env) {
     const fails = s.fail_count + 1;
     const lock = fails >= 5 ? new Date(Date.now() + 60000).toISOString() : null;
     await env.DB.prepare('UPDATE staff SET fail_count = ?, locked_until = ? WHERE id = ?').bind(lock ? 0 : fails, lock, s.id).run();
-    throw new ApiError('LOGIN', '名前か合言葉が違います', 401);
+    throw new ApiError('LOGIN', '名前かパスワードが違います', 401);
   }
   await env.DB.prepare('UPDATE staff SET fail_count = 0, locked_until = NULL WHERE id = ?').bind(s.id).run();
   return finishLogin(request, env, s.id);
@@ -66,7 +66,7 @@ export function logout(request) {
 }
 
 function shapeStaff(s) {
-  return { id: s.id, name: s.name, level: s.level, levelName: LEVEL_NAME[s.level], active: s.active == null ? true : !!s.active, createdAt: s.created_at };
+  return { id: s.id, name: s.name, level: s.level, levelName: LEVEL_NAME[s.level], active: s.active == null ? true : !!s.active, createdAt: s.created_at, viaInvite: s.invite_id != null };
 }
 
 export async function bootstrapState(env) {
@@ -111,7 +111,7 @@ export async function handle(request, env, url, staff) {
     if (code) {
       // 印刷QRの札に名前を紐づける
       const card = await db.prepare('SELECT id, nickname FROM users WHERE short_code = ?').bind(code).first();
-      if (!card) throw new ApiError('NOT_FOUND', 'その番号の札はありません', 404);
+      if (!card) throw new ApiError('NOT_FOUND', 'その番号のQRカードはありません', 404);
       if (card.nickname != null) throw new ApiError('CLAIMED', `その札はもう「${card.nickname}」さんのものです`, 409);
       await db.prepare("UPDATE users SET nickname = ?, source = 'card', claimed_at = datetime('now') WHERE id = ?").bind(nickname, card.id).run();
       userId = card.id;
@@ -247,7 +247,7 @@ export async function handle(request, env, url, staff) {
     if (!g) throw new ApiError('NOT_FOUND', 'そのゲームはありません', 404);
     const cfg = validateGameConfig(g.kind, b.config ?? JSON.parse(g.config));
     await db
-      .prepare('UPDATE games SET name = ?, fee = ?, min_bet = ?, max_bet = ?, config = ?, role_label = ?, enabled = ? WHERE id = ?')
+      .prepare('UPDATE games SET name = ?, fee = ?, min_bet = ?, max_bet = ?, config = ?, role_label = ?, enabled = ?, rules = ? WHERE id = ?')
       .bind(
         cleanNickname(b.name) || g.name,
         toInt(b.fee, g.fee),
@@ -256,6 +256,7 @@ export async function handle(request, env, url, staff) {
         JSON.stringify(cfg),
         b.roleLabel == null ? g.role_label : String(b.roleLabel).trim(),
         b.enabled == null ? g.enabled : b.enabled ? 1 : 0,
+        b.rules == null ? g.rules || '' : String(b.rules).slice(0, 2000),
         g.id,
       )
       .run();
@@ -273,7 +274,7 @@ export async function handle(request, env, url, staff) {
       await db.prepare("INSERT INTO users (token, short_code, source) VALUES (?, ?, 'card')").bind(token, code).run();
       made.push({ token, shortCode: code });
     }
-    await audit(db, staff.id, '印刷用の札を発行', 'cards', `${n}枚`);
+    await audit(db, staff.id, 'QRカードを発行', 'cards', `${n}枚`);
     return json({ results: made }, 201);
   }
   if (p === '/cards' && m === 'GET') {
@@ -281,6 +282,38 @@ export async function handle(request, env, url, staff) {
     const r = await db.prepare('SELECT token, short_code, nickname, created_at FROM users WHERE source = ? ORDER BY id').bind('card').all();
     return json({ results: r.results.map((x) => ({ token: x.token, shortCode: x.short_code, nickname: x.nickname, createdAt: x.created_at })) });
   }
+  /* ---------- スタッフの招待（責任者以上。自分より下の権限だけ作れる） ---------- */
+  if (p === '/invites' && m === 'GET') {
+    needLevel(staff, LEVEL.manager);
+    const r = await db
+      .prepare('SELECT i.*, s.name AS by_name FROM staff_invites i LEFT JOIN staff s ON s.id = i.created_by ORDER BY i.id DESC LIMIT 50')
+      .all();
+    const joined = await db.prepare('SELECT invite_id, COUNT(*) AS n FROM staff WHERE invite_id IS NOT NULL GROUP BY invite_id').all();
+    const n = Object.fromEntries(joined.results.map((x) => [x.invite_id, x.n]));
+    return json({ results: r.results.map((i) => shapeInvite(i, n[i.id] || 0)) });
+  }
+  if (p === '/invites' && m === 'POST') {
+    needLevel(staff, LEVEL.manager);
+    const b = await body();
+    const level = Number(b.level);
+    const maxLevel = Math.min(3, staff.level === LEVEL.admin ? 3 : staff.level - 1);
+    if (!(level >= 1 && level <= maxLevel)) throw new ApiError('LEVEL', `作れる招待は「${LEVEL_NAME[maxLevel]}」までです`, 403);
+    const hours = Math.min(24 * 14, Math.max(1, Number(b.hours) || 72));
+    const maxUses = Math.min(200, Math.max(1, Number(b.maxUses) || 50));
+    const code = inviteCode();
+    const exp = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    const ins = await db.prepare('INSERT INTO staff_invites (code, level, created_by, max_uses, expires_at) VALUES (?, ?, ?, ?, ?)').bind(code, level, staff.id, maxUses, exp).run();
+    await audit(db, staff.id, '招待を作成', `invite:${ins.meta.last_row_id}`, `${LEVEL_NAME[level]} ${maxUses}人まで ${hours}時間`);
+    const i = await db.prepare('SELECT i.*, s.name AS by_name FROM staff_invites i LEFT JOIN staff s ON s.id = i.created_by WHERE i.id = ?').bind(ins.meta.last_row_id).first();
+    return json(shapeInvite(i, 0), 201);
+  }
+  if ((mm = p.match(/^\/invites\/(\d+)\/stop$/)) && m === 'POST') {
+    needLevel(staff, LEVEL.manager);
+    await db.prepare('UPDATE staff_invites SET active = 0 WHERE id = ?').bind(Number(mm[1])).run();
+    await audit(db, staff.id, '招待を止める', `invite:${mm[1]}`, null);
+    return json({ ok: true });
+  }
+
   if (p === '/rankings' && m === 'GET') {
     needLevel(staff, LEVEL.staff);
     return json(await rankings(db));
@@ -289,7 +322,7 @@ export async function handle(request, env, url, staff) {
   /* ---------- 管理者 ---------- */
   if (p === '/accounts' && m === 'GET') {
     needLevel(staff, LEVEL.admin);
-    const r = await db.prepare('SELECT id, name, level, active, created_at FROM staff ORDER BY level DESC, id').all();
+    const r = await db.prepare('SELECT id, name, level, active, created_at, invite_id FROM staff ORDER BY level DESC, id').all();
     return json({ results: r.results.map(shapeStaff) });
   }
   if (p === '/accounts' && m === 'POST') {
@@ -299,7 +332,7 @@ export async function handle(request, env, url, staff) {
     const level = Number(b.level);
     if (!name) throw new ApiError('NAME', '名前を入れてください');
     if (!(level >= 1 && level <= 4)) throw new ApiError('LEVEL', '権限が不正です');
-    if (!validCode(b.code)) throw new ApiError('CODE', '合言葉は6文字以上にしてください');
+    if (!validCode(b.code)) throw new ApiError('CODE', 'パスワードは6文字以上にしてください');
     const dup = await db.prepare('SELECT 1 FROM staff WHERE name = ?').bind(name).first();
     if (dup) throw new ApiError('DUP', 'その名前のスタッフはもういます', 409);
     const { hash, salt } = await hashCode(b.code);
@@ -321,7 +354,7 @@ export async function handle(request, env, url, staff) {
     }
     if (b.active != null) await db.prepare('UPDATE staff SET active = ? WHERE id = ?').bind(b.active ? 1 : 0, id).run();
     if (b.code != null) {
-      if (!validCode(b.code)) throw new ApiError('CODE', '合言葉は6文字以上にしてください');
+      if (!validCode(b.code)) throw new ApiError('CODE', 'パスワードは6文字以上にしてください');
       const { hash, salt } = await hashCode(b.code);
       await db.prepare('UPDATE staff SET code_hash = ?, code_salt = ?, fail_count = 0, locked_until = NULL WHERE id = ?').bind(hash, salt, id).run();
     }
@@ -381,6 +414,56 @@ function validateGameConfig(kind, cfg) {
     return { label, payout };
   });
   return { outcomes };
+}
+
+/* ---------- 招待 ---------- */
+
+const INVITE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+function inviteCode() {
+  const b = new Uint8Array(12);
+  crypto.getRandomValues(b);
+  let s = '';
+  for (const x of b) s += INVITE_ALPHABET[x % INVITE_ALPHABET.length];
+  return s;
+}
+function inviteState(i) {
+  if (!i.active) return 'stopped';
+  if (new Date(i.expires_at) < new Date()) return 'expired';
+  if (i.uses >= i.max_uses) return 'full';
+  return 'open';
+}
+function shapeInvite(i, joined) {
+  return { id: i.id, code: i.code, url: `/staff/join?c=${i.code}`, level: i.level, levelName: LEVEL_NAME[i.level], maxUses: i.max_uses, uses: i.uses, joined, expiresAt: i.expires_at, state: inviteState(i), byName: i.by_name || null, createdAt: i.created_at };
+}
+
+// 招待のQRを開いたとき（ログイン不要）
+export async function inviteInfo(env, code) {
+  const i = await env.DB.prepare('SELECT * FROM staff_invites WHERE code = ?').bind(code).first();
+  if (!i) throw new ApiError('NOT_FOUND', 'この招待は見つかりません。QRを作った人に確認してください', 404);
+  const st = inviteState(i);
+  return json({ level: i.level, levelName: LEVEL_NAME[i.level], state: st, expiresAt: i.expires_at, site: SITE });
+}
+
+// 招待から自分で登録する（ログイン不要）
+export async function join(request, env, code) {
+  const db = env.DB;
+  const i = await db.prepare('SELECT * FROM staff_invites WHERE code = ?').bind(code).first();
+  if (!i) throw new ApiError('NOT_FOUND', 'この招待は見つかりません', 404);
+  const st = inviteState(i);
+  if (st !== 'open') throw new ApiError('INVITE', { stopped: 'この招待は止められています', expired: 'この招待は期限が切れています', full: 'この招待はもう定員です' }[st], 403);
+  const b = await readJson(request);
+  const name = cleanNickname(b.name);
+  if (!name || name.length > 20) throw new ApiError('NAME', '名前を1〜20文字で入れてください');
+  if (!validCode(b.code)) throw new ApiError('CODE', 'パスワードは6文字以上にしてください');
+  const dup = await db.prepare('SELECT 1 FROM staff WHERE name = ?').bind(name).first();
+  if (dup) throw new ApiError('DUP', 'その名前はもう使われています。名字を足すなど、別の名前にしてください', 409);
+  // 使った数を先に増やす（同時に押されても定員を超えない）
+  const upd = await db.prepare('UPDATE staff_invites SET uses = uses + 1 WHERE id = ? AND active = 1 AND uses < max_uses').bind(i.id).run();
+  if (!upd.meta.changes) throw new ApiError('INVITE', 'この招待はもう定員です', 403);
+  const { hash, salt } = await hashCode(b.code);
+  const ins = await db.prepare('INSERT INTO staff (name, level, code_hash, code_salt, invite_id) VALUES (?, ?, ?, ?, ?)').bind(name, i.level, hash, salt, i.id).run();
+  await audit(db, ins.meta.last_row_id, '招待から登録', `staff:${ins.meta.last_row_id}`, `${name} ${LEVEL_NAME[i.level]}（招待 ${i.id}）`);
+  return finishLogin(request, env, ins.meta.last_row_id);
 }
 
 /* ---------- 客の検索と詳細 ---------- */

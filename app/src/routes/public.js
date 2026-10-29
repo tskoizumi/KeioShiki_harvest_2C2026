@@ -48,7 +48,7 @@ export async function uniqueShortCode(db) {
     const dup = await db.prepare('SELECT 1 FROM users WHERE short_code = ?').bind(c).first();
     if (!dup) return c;
   }
-  throw new ApiError('CODE', '札の番号を作れませんでした', 500);
+  throw new ApiError('CODE', '番号を作れませんでした', 500);
 }
 
 // 受付で配る縁。同じ客には一度だけ

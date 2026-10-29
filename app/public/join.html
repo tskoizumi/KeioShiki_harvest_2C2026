@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#121011">
+  <meta name="robots" content="noindex">
+  <title>スタッフ登録 — 運命、賄賂で買いませんか？</title>
+  <link rel="icon" href="/assets/favicon.png" type="image/png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #121011; --s1: #1d1a1c; --line2: rgba(255, 255, 255, 0.18); --text: #f7f2ea; --muted: #c4bbbe; --red: #ff5446; --gold: #f2c86b; --ok: #6fdc8c;
+      --gothic: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif; }
+    html, body { background: var(--bg); color: var(--text); font-family: var(--gothic); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    [hidden] { display: none !important; }
+    main { max-width: 480px; margin: 0 auto; padding: 32px 16px 48px; }
+    img { width: 72px; height: 72px; display: block; margin: 0 auto 12px; }
+    .k { text-align: center; font-size: 14px; font-weight: 800; color: var(--muted); letter-spacing: 0.1em; }
+    h1 { text-align: center; font-size: 26px; font-weight: 800; margin-top: 4px; }
+    .lv { display: block; width: max-content; margin: 14px auto 0; padding: 6px 16px; border-radius: 999px; background: rgba(242, 200, 107, 0.16); color: var(--gold); font-weight: 800; }
+    .card { margin-top: 20px; padding: 20px; border-radius: 22px; background: var(--s1); border: 1px solid var(--line2); }
+    label { display: block; font-weight: 800; margin-top: 14px; margin-bottom: 6px; }
+    label:first-child { margin-top: 0; }
+    .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    input { width: 100%; min-height: 54px; padding: 12px 16px; border-radius: 14px; border: 1.5px solid var(--line2); background: #0c0a0b; color: var(--text); font: inherit; font-size: 17px; outline: none; }
+    input:focus { border-color: var(--gold); }
+    button { width: 100%; min-height: 62px; margin-top: 20px; border: none; border-radius: 18px; background: var(--red); color: #fff; font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; }
+    button:disabled { opacity: 0.5; }
+    .msg { min-height: 22px; margin-top: 12px; font-size: 14px; color: #ffb3aa; text-align: center; }
+    .bad { text-align: center; color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <img src="/assets/mark-alpha.webp" alt="">
+  <p class="k">運命、賄賂で買いませんか？</p>
+  <h1>スタッフ登録</h1>
+  <span class="lv" id="lv" hidden></span>
+
+  <div class="card" id="form-card" hidden>
+    <form id="form">
+      <label for="name">名前</label>
+      <input id="name" maxlength="20" autocomplete="username" placeholder="例：こいずみ">
+      <p class="hint">ログインのときに使います。同じ名前の人がいたら、名字を足してください。</p>
+      <label for="code">パスワード（6文字以上）</label>
+      <input id="code" type="password" autocomplete="new-password">
+      <label for="code2">もう一度</label>
+      <input id="code2" type="password" autocomplete="new-password">
+      <button id="go" type="submit">登録してはじめる</button>
+      <p class="msg" id="msg"></p>
+    </form>
+  </div>
+  <div class="card bad" id="bad" hidden><p id="bad-t"></p></div>
+</main>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var code = new URLSearchParams(location.search).get('c') || '';
+  function bad(t) { $('bad-t').textContent = t; $('bad').hidden = false; $('form-card').hidden = true; }
+  if (!/^[a-z0-9]{6,}$/i.test(code)) { bad('招待のQRが正しく読めていません。もう一度読んでください。'); return; }
+  fetch('/api/staff/join/' + code).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); }).then(function (x) {
+    if (!x.ok) { bad(x.d.message || 'この招待は使えません'); return; }
+    if (x.d.state !== 'open') { bad({ expired: 'この招待は期限が切れています。作った人に新しいQRをもらってください。', full: 'この招待は定員になりました。作った人に新しいQRをもらってください。', stopped: 'この招待は止められています。' }[x.d.state] || 'この招待は使えません'); return; }
+    $('lv').textContent = '権限：' + x.d.levelName; $('lv').hidden = false;
+    $('form-card').hidden = false;
+  }).catch(function () { bad('通信できませんでした。電波のいいところで開き直してください。'); });
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = $('msg'); msg.textContent = '';
+    if ($('code').value !== $('code2').value) { msg.textContent = 'パスワードが2回で違います'; return; }
+    $('go').disabled = true;
+    fetch('/api/staff/join/' + code, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: $('name').value, code: $('code').value }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        $('go').disabled = false;
+        if (!x.ok) { msg.textContent = x.d.message || '登録できませんでした'; return; }
+        location.href = '/staff';
+      })
+      .catch(function () { $('go').disabled = false; msg.textContent = '通信できませんでした'; });
+  });
+})();
+</script>
+</body>
+</html>

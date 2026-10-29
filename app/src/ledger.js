@@ -16,7 +16,7 @@ export async function applyDelta(db, { userId, delta, type, refType = null, refI
     const u = await db.prepare('SELECT balance, status, nickname FROM users WHERE id = ?').bind(userId).first();
     if (!u) throw new ApiError('NOT_FOUND', 'その客は見つかりません', 404);
     if (u.status !== 'active') throw new ApiError('DISABLED', 'この客は無効になっています', 403);
-    if (u.nickname == null) throw new ApiError('UNCLAIMED', 'まだ誰にも渡っていない札です。先に受付で名前を登録してください', 409);
+    if (u.nickname == null) throw new ApiError('UNCLAIMED', 'まだ誰にも渡していないQRカードです。先に受付で名前を登録してください', 409);
 
     const after = u.balance + delta;
     if (after < 0) throw new ApiError('INSUFFICIENT', `縁が足りません（残高 ${u.balance} 縁）`, 409);

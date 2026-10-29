@@ -15,6 +15,7 @@ export function shapeGame(g) {
     maxBet: g.max_bet,
     config: JSON.parse(g.config),
     roleLabel: g.role_label,
+    rules: g.rules || '',
     enabled: !!g.enabled,
     sort: g.sort,
   };

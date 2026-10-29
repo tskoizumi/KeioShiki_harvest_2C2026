@@ -4,7 +4,9 @@
 //   - /training に手引き。POST /api/training/reset でいつでも最初の状態に戻せる
 //   - すべての画面の上に「研修モード」の帯を差し込む（本番と見分けがつくように）
 
-import SCHEMA from '../migrations/0001_init.sql';
+import SCHEMA_1 from '../migrations/0001_init.sql';
+import SCHEMA_2 from '../migrations/0002_invites_rules.sql';
+const SCHEMA = SCHEMA_1 + '\n;\n' + SCHEMA_2;
 import { trainingDb } from './training-do.js';
 import { json, fail, readJson, randomToken, shortCode, audit, cleanNickname } from './util.js';
 import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME } from './auth.js';
@@ -210,7 +212,7 @@ export async function resetTraining(env) {
   for (let i = 0; i < 10; i++) {
     await db.prepare("INSERT INTO users (token, short_code, source) VALUES (?, ?, 'card')").bind(randomToken(), shortCode(6)).run();
   }
-  await audit(db, manager, '印刷用の札を発行', 'cards', '10枚');
+  await audit(db, manager, 'QRカードを発行', 'cards', '10枚');
 
   // ここまで来たら完成。途中で失敗したら、次に開いたときにもう一度作り直す
   await db.prepare("INSERT INTO settings (key, value) VALUES ('training_seeded', '1')").run();

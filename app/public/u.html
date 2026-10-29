@@ -13,53 +13,159 @@
   <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/app.css">
   <style>
-    /* 残高の札 */
-    .bal-label { font-size: 12px; font-weight: 700; letter-spacing: 0.22em; color: #a29b9e; }
-    .bal { margin-top: 6px; font-family: var(--mincho); font-weight: 800; font-size: 56px; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
-    .bal small { font-size: 20px; margin-left: 6px; }
-    .bal-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-    .who { font-family: var(--mincho); font-weight: 800; font-size: 18px; }
-    .who small { display: block; font-family: var(--gothic); font-weight: 600; font-size: 11px; letter-spacing: 0.2em; color: #a29b9e; }
-    .ink .chip { background: rgba(255, 255, 255, 0.12); color: #f4efe6; }
-    .ink .chip.live { background: rgba(224, 53, 43, 0.25); color: #ffd7d2; }
-    .actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
-    .delta { position: absolute; right: 22px; top: 22px; font-family: var(--mincho); font-weight: 800; font-size: 22px; opacity: 0; transform: translateY(6px); transition: opacity 0.4s, transform 0.4s; pointer-events: none; }
-    .delta.show { opacity: 1; transform: none; }
-    .delta.plus { color: #9fe3a8; } .delta.minus { color: #ffb3aa; }
+    body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+    .page { padding-top: 10px; }
+
+    /* 上の帯 */
+    .bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .bar .brand { padding: 6px 12px 6px 6px; font-size: 12px; }
+    .bar .brand img { width: 24px; height: 24px; }
+    .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--glass-edge); background: var(--glass); display: grid; place-items: center; cursor: pointer; box-shadow: 0 8px 20px -14px rgba(60, 30, 55, 0.4); }
+    .icon-btn svg { width: 18px; height: 18px; }
+    .icon-btn.spin svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ? ボタン */
+    .q { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid currentColor; font: 800 12px/1 var(--gothic); opacity: 0.65; cursor: pointer; vertical-align: 2px; margin-left: 6px; background: none; color: inherit; padding: 0; flex-shrink: 0; }
+    .q:hover { opacity: 1; }
+
+    /* 財布（名前・残高・QR） */
+    .wallet { position: relative; overflow: hidden; margin-top: 12px; border-radius: 28px; background: var(--ink); color: #f6f1e8; padding: 22px 20px 20px; box-shadow: 0 30px 60px -30px rgba(40, 10, 30, 0.6); }
+    .wallet::before { content: ""; position: absolute; right: -30%; top: -45%; width: 90%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(224, 53, 43, 0.42), transparent 65%); filter: blur(10px); }
+    .wallet > * { position: relative; }
+    .w-name { font-family: var(--mincho); font-weight: 800; font-size: clamp(28px, 8.6vw, 36px); line-height: 1.15; word-break: break-all; }
+    .w-name small { font-size: 0.5em; margin-left: 6px; color: #b9b0b3; font-weight: 700; }
+    .w-bal { display: flex; align-items: baseline; gap: 6px; margin-top: 8px; }
+    .w-bal b { font-family: var(--mincho); font-weight: 800; font-size: 52px; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+    .w-bal span { font-family: var(--mincho); font-weight: 800; font-size: 20px; }
+    .w-label { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; color: #b9b0b3; margin-top: 14px; display: flex; align-items: center; }
+    .state { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 11px 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.08); font-size: 14px; font-weight: 700; }
+    .state .dot { width: 9px; height: 9px; border-radius: 50%; background: #8f878a; flex-shrink: 0; }
+    .state.live { background: rgba(224, 53, 43, 0.22); }
+    .state.live .dot { background: var(--hot); animation: pulse 1.2s infinite; }
+    .state small { display: block; font-weight: 600; font-size: 12px; color: #cfc6c9; }
+    .qr-plate { display: grid; grid-template-columns: 132px 1fr; gap: 14px; align-items: center; width: 100%; margin-top: 14px; padding: 12px; border-radius: 20px; background: #fff; color: var(--ink); border: none; text-align: left; cursor: pointer; font: inherit; }
+    .qr-plate .qr { width: 132px; height: 132px; }
+    .qr-plate .qr svg { width: 100%; height: 100%; display: block; }
+    .qr-plate b { display: block; font-family: var(--mincho); font-weight: 800; font-size: 19px; line-height: 1.3; white-space: nowrap; }
+    .qr-plate .code { display: block; margin-top: 6px; font-family: var(--mincho); font-weight: 800; font-size: 20px; letter-spacing: 0.16em; }
+    .qr-plate small { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
+
+    /* 増えた・減ったの知らせ */
+    .pop { position: fixed; left: 50%; top: 18px; z-index: 60; transform: translate(-50%, -140%); padding: 12px 20px; border-radius: 999px; background: var(--ink); color: #fff; font-weight: 800; font-size: 15px; box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6); transition: transform 0.45s var(--ease); white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
+    .pop.on { transform: translate(-50%, 0); }
+    .pop b { font-family: var(--mincho); font-size: 20px; margin-right: 8px; }
+    .pop.plus b { color: #9fe3a8; } .pop.minus b { color: #ffb3aa; }
+
+    /* 見出し */
+    .sec { margin-top: 22px; }
+    .sec-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .sec-h h2 { font-family: var(--mincho); font-weight: 800; font-size: 19px; display: flex; align-items: center; }
+    .sec-h .more { font-size: 13px; font-weight: 700; color: var(--red); background: none; border: none; cursor: pointer; }
+    .panel { padding: 16px 18px; }
+
+    /* ランクの目安 */
+    .meter { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 14px; }
+    .meter .seg { position: relative; height: 10px; border-radius: 999px; background: rgba(28, 26, 27, 0.08); overflow: hidden; }
+    .meter .seg i { position: absolute; inset: 0; width: 0; background: var(--red); border-radius: 999px; transition: width 0.8s var(--ease); }
+    .meter .seg.kz i { background: linear-gradient(90deg, var(--red), var(--hot)); }
+    .meter-l { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; text-align: center; }
+    .meter-l div { font-size: 11px; color: var(--muted); line-height: 1.3; }
+    .meter-l b { display: block; font-family: var(--mincho); font-size: 17px; color: var(--faint); }
+    .meter-l .on b { color: var(--red); }
+    .meter-l .on { color: var(--ink); font-weight: 700; }
+    .meter-note { margin-top: 12px; font-size: 14px; }
+    .meter-note b { font-family: var(--mincho); font-size: 17px; color: var(--red); }
+
+    /* ゲーム */
+    .games { display: grid; gap: 8px; }
+    .game { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .game:last-child { border-bottom: none; }
+    .game b { font-family: var(--mincho); font-weight: 800; font-size: 18px; }
+    .game .s { font-size: 13px; color: var(--muted); }
+    .game .btn { grid-row: span 2; }
+
+    /* 履歴 */
+    .hist { list-style: none; }
+    .hist li { display: grid; grid-template-columns: 36px 1fr auto; gap: 0 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .hist li:last-child { border-bottom: none; }
+    .hist .ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-family: var(--mincho); font-weight: 800; font-size: 15px; background: rgba(28, 26, 27, 0.06); color: var(--muted); grid-row: span 2; }
+    .hist .ic.game { background: rgba(188, 220, 232, 0.55); color: #2b5b6b; }
+    .hist .ic.bribe { background: rgba(159, 17, 17, 0.1); color: var(--red); }
+    .hist .ic.grant { background: rgba(217, 184, 220, 0.5); color: var(--plum); }
+    .hist .t { font-size: 15px; font-weight: 700; line-height: 1.35; }
+    .hist .s { font-size: 12px; color: var(--faint); grid-column: 2; }
+    .hist .amt { font-family: var(--mincho); font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; grid-row: 1 / span 2; grid-column: 3; text-align: right; }
+    .hist .amt.plus { color: var(--ok); } .hist .amt.minus { color: var(--muted); } .hist .amt.bribe { color: var(--red); }
+
+    /* 占いの結果 */
+    .results { display: grid; gap: 14px; }
+    .res { display: grid; grid-template-columns: 104px 1fr; gap: 14px; padding: 12px; align-items: start; }
+    .res .thumb { width: 104px; aspect-ratio: 9 / 16; border-radius: 12px; background: #eee center / cover no-repeat; box-shadow: 0 12px 24px -16px rgba(40, 20, 30, 0.6); cursor: pointer; border: none; padding: 0; }
+    .res .meta { font-size: 12px; color: var(--faint); }
+    .res .names { font-family: var(--mincho); font-weight: 800; font-size: 18px; margin-top: 2px; }
+    .res .oracle { margin-top: 6px; font-size: 14px; line-height: 1.6; }
+    .res .btns { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .res.kz { background: var(--ink); color: #f6f1e8; }
+    .res.kz .meta { color: #a29b9e; }
+    .seal.sm { width: 30px; height: 30px; font-size: 13px; border-width: 1.5px; vertical-align: middle; margin-right: 6px; }
+    .seal.sm.kaizan { font-size: 9px; }
+    .again { margin-top: 12px; padding: 14px 16px; font-size: 14px; color: var(--muted); }
+    .again b { color: var(--ink); }
+
+    /* ランキング */
+    .seg-sw { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(28, 26, 27, 0.06); }
+    .seg-sw button { padding: 10px; border-radius: 999px; border: none; background: none; font-weight: 700; font-size: 14px; color: var(--muted); cursor: pointer; }
+    .seg-sw button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.25); }
+    .mine { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 14px 18px; border-radius: 20px; background: var(--ink); color: #f6f1e8; }
+    .mine p { font-size: 12px; color: #b9b0b3; font-weight: 700; letter-spacing: 0.08em; }
+    .mine b { font-family: var(--mincho); font-weight: 800; font-size: 28px; }
+    .mine .amt { text-align: right; }
+    .mine .amt b { font-size: 22px; }
+    .board { list-style: none; margin-top: 8px; }
+    .board li { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+    .board li:last-child { border-bottom: none; }
+    .board .pos { font-family: var(--mincho); font-weight: 800; font-size: 17px; color: var(--faint); text-align: center; }
+    .board li:nth-child(1) .pos { color: #fff; background: var(--red); border-radius: 50%; width: 30px; height: 30px; display: grid; place-items: center; }
+    .board li:nth-child(2) .pos, .board li:nth-child(3) .pos { color: var(--red); }
+    .board .nm { font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .board .ttl { display: block; font-size: 11px; color: var(--red); font-weight: 700; letter-spacing: 0.08em; }
+    .board .amt { font-family: var(--mincho); font-weight: 800; font-size: 17px; }
+    .board li.me { background: rgba(159, 17, 17, 0.07); margin: 0 -10px; padding: 12px 10px; border-radius: 14px; border-bottom-color: transparent; }
+
+    /* 下のタブ */
+    .ctab { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: rgba(254, 254, 252, 0.9); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-top: 1px solid var(--line); }
+    .ctab .in { max-width: 480px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .ctab button { position: relative; display: grid; justify-items: center; gap: 3px; padding: 7px 4px; border: none; background: none; border-radius: 14px; font-size: 11px; font-weight: 700; color: var(--muted); cursor: pointer; }
+    .ctab button svg { width: 22px; height: 22px; }
+    .ctab button[aria-selected="true"] { color: var(--red); background: rgba(159, 17, 17, 0.07); }
+    .ctab .n { position: absolute; top: 3px; left: calc(50% + 8px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--hot); color: #fff; font-size: 11px; display: grid; place-items: center; }
+
+    /* シート */
+    .sheet { z-index: 70; }
+    .sheet .close { z-index: 2; }
+    .qrbig { width: min(84vw, 360px); padding: 18px; background: #fff; border-radius: 24px; box-shadow: var(--glass-shadow); }
+    .qrbig svg { width: 100%; height: auto; display: block; }
+    .info { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center; background: rgba(28, 26, 27, 0.35); }
+    .info .box { width: 100%; max-width: 520px; max-height: 82vh; overflow: auto; padding: 24px 22px calc(24px + env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0; background: var(--paper); animation: up 0.35s var(--ease); }
+    @keyframes up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .info h3 { font-family: var(--mincho); font-weight: 800; font-size: 22px; }
+    .info .body { margin-top: 10px; font-size: 15px; line-height: 1.8; white-space: pre-line; }
+    .info .body b { color: var(--red); }
+    .info table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    .info td { padding: 9px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .info td:first-child { font-family: var(--mincho); font-weight: 800; font-size: 18px; width: 64px; color: var(--red); }
+    .info .btn { margin-top: 18px; }
+    .cardimg { width: min(70vw, 300px); border-radius: 18px; box-shadow: 0 30px 70px -30px rgba(60, 30, 55, 0.6); }
+    .sheet .btns { display: flex; gap: 8px; margin-top: 16px; width: min(78vw, 320px); }
+    .sheet .btns .btn { flex: 1; }
+    .sheet .hint { margin-top: 10px; font-size: 12px; color: var(--faint); text-align: center; }
+    .sheet .ttl { font-family: var(--mincho); font-weight: 800; font-size: 20px; margin-bottom: 14px; text-align: center; }
 
     /* ログイン */
     .login { text-align: center; padding-top: 36px; }
     .login img { width: 120px; height: 120px; margin: 0 auto 10px; }
     .login form { margin-top: 16px; display: grid; gap: 10px; }
-
-    /* 占い結果 */
-    .reading { display: grid; grid-template-columns: auto 1fr; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); align-items: start; }
-    .reading:last-child { border-bottom: none; }
-    .reading .meta { font-size: 12px; color: var(--faint); }
-    .reading .names { font-family: var(--mincho); font-weight: 800; font-size: 17px; }
-    .reading .oracle { margin-top: 4px; font-size: 14px; }
-    .reading .btns { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
-    .kaizan-row { border-radius: 16px; background: var(--ink); color: #f4efe6; padding: 14px; margin: 6px 0; }
-    .kaizan-row .meta { color: #a29b9e; }
-
-    /* 番付 */
-    .board { list-style: none; }
-    .board li { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-    .board li:last-child { border-bottom: none; }
-    .board .pos { font-family: var(--mincho); font-weight: 800; color: var(--faint); }
-    .board li:nth-child(-n+3) .pos { color: var(--red); }
-    .board .who2 { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .board .amt { font-family: var(--mincho); font-weight: 800; }
-    .board .amt.kz { color: var(--red); }
-    .board li.me { background: rgba(159, 17, 17, 0.06); margin: 0 -8px; padding: 10px 8px; border-radius: 10px; }
-    .title-tag { font-size: 12px; font-weight: 700; color: var(--red); letter-spacing: 0.1em; }
-    .mypos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-
-    /* シェアカード */
-    .cardimg { width: min(72vw, 300px); border-radius: 18px; box-shadow: 0 30px 70px -30px rgba(60, 30, 55, 0.6); }
-    .sheet .btns { display: flex; gap: 8px; margin-top: 16px; width: min(78vw, 320px); }
-    .sheet .btns .btn { flex: 1; }
-    .hint { margin-top: 10px; font-size: 12px; color: var(--faint); text-align: center; }
   </style>
 </head>
 <body>
@@ -80,51 +186,64 @@
 
   <!-- マイページ -->
   <section id="v-main" hidden>
-    <div class="top">
-      <a class="brand" href="/"><img src="/assets/mark-alpha.webp" alt=""><span id="site-name">運命、賄賂で買いませんか？</span></a>
-      <button class="btn small ghost" id="refresh" type="button" aria-label="更新">更新</button>
+    <div class="bar">
+      <a class="brand" href="https://moneytalks-uranai.com/" target="_blank" rel="noopener"><img src="/assets/mark-alpha.webp" alt=""><span id="site-name">運命、賄賂で買いませんか？</span></a>
+      <button class="icon-btn" id="refresh" type="button" aria-label="最新にする"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     </div>
 
-    <div class="ink rise">
-      <p class="bal-label">残高</p>
-      <p class="bal"><span id="bal">—</span><small>縁</small></p>
-      <p class="delta" id="delta"></p>
-      <div class="bal-row">
-        <p class="who"><span id="nick">—</span><small id="code">札番号 —</small></p>
-        <span class="chip" id="status">—</span>
+    <div class="wallet rise">
+      <p class="w-name" id="nick">—</p>
+      <p class="w-label">残高<button class="q" type="button" data-hint="en" aria-label="縁とは">?</button></p>
+      <p class="w-bal"><b id="bal">—</b><span>縁</span></p>
+      <div class="state" id="state"><span class="dot"></span><span id="state-t">—</span></div>
+      <button class="qr-plate" id="qr-plate" type="button" aria-label="QRを大きく表示">
+        <span class="qr" id="qr-small"></span>
+        <span><b>スタッフに見せる</b><small>ゲームや占いの前に</small><span class="code" id="code">—</span><small>タップで大きく</small></span>
+      </button>
+    </div>
+
+    <!-- ホーム -->
+    <section id="pg-home">
+      <div class="sec">
+        <div class="sec-h"><h2>占いのランク<button class="q" type="button" data-hint="rank" aria-label="ランクとは">?</button></h2></div>
+        <div class="glass panel">
+          <p style="font-size:14px;color:var(--muted)">占い師に渡す賄賂の額で、占いの中身が変わります。</p>
+          <div class="meter" id="meter"><div class="seg"><i></i></div><div class="seg"><i></i></div><div class="seg"><i></i></div><div class="seg kz"><i></i></div></div>
+          <div class="meter-l" id="meter-l"></div>
+          <p class="meter-note" id="meter-note"></p>
+        </div>
       </div>
-    </div>
-    <div class="actions">
-      <button class="btn solid" id="show-qr" type="button">QRを見せる</button>
-      <button class="btn" id="to-top" type="button">番付</button>
-    </div>
 
-    <div class="tabs" role="tablist">
-      <button role="tab" aria-selected="true" data-tab="history">履歴</button>
-      <button role="tab" aria-selected="false" data-tab="readings">占い</button>
-      <button role="tab" aria-selected="false" data-tab="ranking">番付</button>
-    </div>
+      <div class="sec">
+        <div class="sec-h"><h2>ミニゲーム</h2></div>
+        <div class="glass panel"><div class="games" id="games"></div></div>
+      </div>
 
-    <section class="card glass" id="tab-history">
-      <ul class="list" id="history"></ul>
+      <div class="sec">
+        <div class="sec-h"><h2>履歴</h2><button class="more" id="hist-more" type="button" hidden>すべて見る</button></div>
+        <div class="glass panel"><ul class="hist" id="history"></ul></div>
+      </div>
     </section>
 
-    <section class="card glass" id="tab-readings" hidden>
-      <div id="readings"></div>
+    <!-- 占いの結果 -->
+    <section id="pg-results" hidden>
+      <div class="sec">
+        <div class="sec-h"><h2>占いの結果</h2></div>
+        <div class="results" id="readings"></div>
+        <p class="glass again"><b>占いは何回でも受けられます。</b>また縁を増やして、占いの部屋でQRを見せてください。賄賂を増やすほど、結果が良くなります。</p>
+      </div>
     </section>
 
-    <section id="tab-ranking" hidden>
-      <div class="card glass">
-        <p class="eyebrow">賄賂番付</p>
-        <p class="sub">占い師に渡した心付けの合計。貯めても意味はない。</p>
-        <div class="mypos" id="mypos-bribe"></div>
-        <ol class="board" id="board-bribe" style="margin-top:8px"></ol>
-      </div>
-      <div class="card glass">
-        <p class="eyebrow">所持金番付</p>
-        <p class="sub">今の残高。</p>
-        <div class="mypos" id="mypos-balance"></div>
-        <ol class="board" id="board-balance" style="margin-top:8px"></ol>
+    <!-- ランキング -->
+    <section id="pg-rank" hidden>
+      <div class="sec">
+        <div class="seg-sw" role="tablist">
+          <button role="tab" aria-selected="true" data-board="bribe">賄賂ランキング</button>
+          <button role="tab" aria-selected="false" data-board="balance">お金持ちランキング</button>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin-top:10px" id="board-note"></p>
+        <div class="mine" id="mine"></div>
+        <div class="glass panel" style="margin-top:12px"><ol class="board" id="board"></ol></div>
       </div>
     </section>
 
@@ -136,24 +255,45 @@
   </section>
 </main>
 
-<!-- QRのシート -->
+<nav class="ctab" id="ctab" hidden>
+  <div class="in" role="tablist">
+    <button role="tab" aria-selected="true" data-pg="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>ホーム</button>
+    <button role="tab" aria-selected="false" data-pg="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="11" r="7"/><path d="M6 21h12M9 8.5a3.5 3.5 0 0 1 3-1.5"/></svg>占いの結果<span class="n" id="n-res" hidden></span></button>
+    <button role="tab" aria-selected="false" data-pg="rank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 21V12h4v9M10 21V5h4v16M16 21v-6h4v6"/></svg>ランキング</button>
+  </div>
+</nav>
+
+<div class="pop" id="pop"></div>
+
+<!-- QRを大きく -->
 <div class="sheet" id="qr-sheet" hidden>
   <button class="btn small close" id="qr-close" type="button">閉じる</button>
-  <p class="eyebrow">スタッフに見せる</p>
-  <div class="qrbox" id="qrbox" style="margin-top:12px"></div>
+  <p class="eyebrow">スタッフに見せてください</p>
+  <div class="qrbig" id="qrbox" style="margin-top:12px"></div>
   <p class="code" id="qr-code" style="margin-top:14px"></p>
-  <p class="sub" id="qr-name"></p>
+  <p class="w-name" id="qr-name" style="color:var(--ink);margin-top:4px;text-align:center"></p>
+  <p class="sub" style="margin-top:6px">画面を明るくすると読み取りやすくなります</p>
 </div>
 
-<!-- シェアカードのシート -->
+<!-- 結果の画像 -->
 <div class="sheet" id="card-sheet" hidden>
   <button class="btn small close" id="card-close" type="button">閉じる</button>
-  <img class="cardimg" id="card-img" alt="占い結果のカード">
+  <p class="ttl" id="card-ttl" hidden>占いの結果が届きました</p>
+  <img class="cardimg" id="card-img" alt="占いの結果の画像">
   <div class="btns">
-    <a class="btn" id="card-save" download="shintaku.png">保存</a>
+    <a class="btn" id="card-save" download="uranai.png">保存</a>
     <button class="btn solid" id="card-share" type="button">シェア</button>
   </div>
-  <p class="hint">保存できないときは、画像を長押し。</p>
+  <p class="hint">保存できないときは、画像を長押し。<br>Instagram で @keioshiki2c79 をメンションしてくれたらうれしいです。</p>
+</div>
+
+<!-- 説明（? ボタンとルール） -->
+<div class="info" id="info" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="info-h">
+    <h3 id="info-h"></h3>
+    <div class="body" id="info-body"></div>
+    <button class="btn block" id="info-close" type="button">閉じる</button>
+  </div>
 </div>
 
 <script src="/vendor/qrcode.js"></script>
@@ -164,21 +304,51 @@
   var token = decodeURIComponent(location.pathname.split('/').pop());
   var key = null;
   try { key = localStorage.getItem('mt:key:' + token); } catch (e) {}
-  var me = null, rankings = null, timer = null, lastBalance = null;
+  var me = null, games = [], boards = null, boardKind = 'bribe', timer = null, lastBalance = null, lastHistId = null, histAll = false;
+  var cardCache = {};
 
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function yen(n) { return Number(n).toLocaleString('ja-JP'); }
-  function show(id) { ['v-login', 'v-main', 'v-error'].forEach(function (v) { $(v).hidden = v !== id; }); }
+  function show(id) { ['v-login', 'v-main', 'v-error'].forEach(function (v) { $(v).hidden = v !== id; }); $('ctab').hidden = id !== 'v-main'; }
   function api(path, opts) {
     opts = opts || {};
     opts.headers = Object.assign({}, opts.headers || {}, key ? { 'X-User-Key': key } : {});
     return fetch(path, opts).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
   }
+  var RANK_ORDER = ['mu', 'sho', 'dai', 'kaizan'];
+  var RANK_NAME = { mu: '無', sho: '小', dai: '大', kaizan: '改竄' };
+
+  /* ---------- 説明 ---------- */
+  var HINTS = {
+    en: ['縁（えん）とは', '<b>この出し物の中だけで使えるお金</b>です。本物のお金はいりません。\n\n・受付で 100縁 もらえます\n・ミニゲームで増やせます\n・占いのとき、占い師に「賄賂」として渡します\n\n残高はこのページにいつでも出ています。'],
+    rank: ['占いのランク', null],
+    kaizan: ['改竄（かいざん）とは', '<b>2,000縁以上</b>の賄賂を渡すと「改竄」になります。\n\n鈴が鳴り、占い師が占いの結果を<b>書き換えて</b>くれます。どんな結果が出ても、最高の結果に変わります。\n\n改竄に必要な額は、混み具合で変わることがあります。'],
+    qr: ['このQRについて', 'このQRがあなたの財布です。\n\nゲームを始めるとき、占いを受けるときに、スタッフに見せてください。スタッフが読み取ると、縁が自動で増えたり減ったりします。\n\nこのページを閉じても大丈夫です。ブックマークするか、受付でもらったQRをもう一度読めば戻れます。'],
+  };
+  function openInfo(title, html) { $('info-h').textContent = title; $('info-body').innerHTML = html; $('info').hidden = false; }
+  $('info-close').addEventListener('click', function () { $('info').hidden = true; });
+  $('info').addEventListener('click', function (e) { if (e.target === $('info')) $('info').hidden = true; });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-hint]'); if (!b) return;
+    e.stopPropagation();
+    var k = b.dataset.hint;
+    if (k === 'rank') { openInfo('占いのランク', rankTable()); return; }
+    openInfo(HINTS[k][0], HINTS[k][1]);
+  });
+  function rankTable() {
+    var r = me ? me.ranks : { sho: 100, dai: 500, kaizan: 2000 };
+    return '占い師に渡す<b>賄賂の額</b>で、占いのランクが決まります。額が大きいほど、占い師は親切になります。' +
+      '<table><tr><td>無</td><td>0〜' + yen(r.sho - 1) + '縁<br>事実だけを短く。</td></tr>' +
+      '<tr><td>小</td><td>' + yen(r.sho) + '〜' + yen(r.dai - 1) + '縁<br>少しだけアドバイスがつく。</td></tr>' +
+      '<tr><td>大</td><td>' + yen(r.dai) + '〜' + yen(r.kaizan - 1) + '縁<br>とても丁寧に、ほめてくれる。</td></tr>' +
+      '<tr><td>改竄</td><td>' + yen(r.kaizan) + '縁以上<br>鈴が鳴り、結果を最高のものに書き換える。</td></tr></table>' +
+      '\n占いは何回でも受けられます。';
+  }
 
   /* ---------- ログイン ---------- */
   function showLogin(claimed, message) {
     $('login-title').textContent = claimed ? '名前を入れてください' : 'ニックネームを決めてください';
-    $('login-sub').textContent = claimed ? '受付で登録したニックネームです。' : 'この札はまだ誰のものでもありません。名前を決めると、あなたのものになります。';
+    $('login-sub').textContent = claimed ? '受付で登録したニックネームです。' : 'このQRカードはまだ誰のものでもありません。名前を決めると、あなたのものになります。';
     $('login-go').textContent = claimed ? '開く' : '登録して、始める';
     $('login-msg').textContent = message || '';
     show('v-login');
@@ -201,11 +371,12 @@
   /* ---------- 読み込み ---------- */
   function load() {
     return api('/api/u/' + encodeURIComponent(token)).then(function (x) {
-      if (x.status === 401) { showLogin(x.d.claimed, key ? '' : ''); return; }
+      if (x.status === 401) { showLogin(x.d.claimed); return; }
       if (!x.ok) { $('err-title').textContent = '開けません'; $('err-text').textContent = x.d.message || ''; show('v-error'); return; }
+      var first = !me;
       me = x.d;
       try { localStorage.setItem('mt:last', token); } catch (e) {}
-      render();
+      render(first);
       show('v-main');
       schedule();
     }).catch(function () {
@@ -213,74 +384,118 @@
       schedule();
     });
   }
-
   function schedule() {
     clearTimeout(timer);
     var busy = me && (me.openPlay || me.openReading);
     timer = setTimeout(function () { if (!document.hidden) load(); else schedule(); }, busy ? 3000 : 6000);
   }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+  fetch('/api/config').then(function (r) { return r.json(); }).then(function (c) { games = c.games || []; if (me) renderGames(); }).catch(function () {});
 
   /* ---------- 描画 ---------- */
-  function render() {
+  function render(first) {
     $('site-name').textContent = me.site.name;
-    $('nick').textContent = me.nickname;
-    $('code').textContent = '札番号 ' + me.shortCode;
-    if (lastBalance != null && lastBalance !== me.balance) flashDelta(me.balance - lastBalance);
-    lastBalance = me.balance;
+    $('nick').innerHTML = ''; $('nick').appendChild(document.createTextNode(me.nickname)); $('nick').appendChild(el('small', null, 'さん'));
+    $('code').textContent = me.shortCode;
     $('bal').textContent = yen(me.balance);
+    if (first) drawQr();
 
-    var st = $('status');
-    st.className = 'chip';
-    if (me.openPlay) { st.classList.add('live'); st.textContent = me.openPlay.gameName + ' プレイ中'; }
-    else if (me.openReading) { st.classList.add('live'); st.textContent = '占い中' + (me.openReading.rankName ? '・' + me.openReading.rankName : ''); }
-    else st.textContent = '待機中';
+    // 増えた・減った
+    var top = me.history[0];
+    if (!first && top && top.id !== lastHistId && lastBalance != null && lastBalance !== me.balance) popDelta(me.balance - lastBalance, labelOf(top));
+    lastBalance = me.balance; lastHistId = top ? top.id : null;
 
-    // 履歴
-    var h = $('history'); h.textContent = '';
-    if (!me.history.length) h.appendChild(el('li', 'empty', 'まだ履歴はありません'));
-    me.history.forEach(function (r) {
-      var li = el('li');
-      li.appendChild(el('p', 't', labelOf(r)));
-      li.appendChild(el('p', 's', timeOf(r.created_at)));
-      var a = el('p', 'amt ' + (r.type === 'bribe' ? 'bribe' : r.delta > 0 ? 'plus' : 'minus'), (r.delta > 0 ? '+' : '') + yen(r.delta));
-      li.appendChild(a);
-      h.appendChild(li);
-    });
+    // いまの状態
+    var st = $('state'), t = $('state-t');
+    st.className = 'state';
+    if (me.openPlay) { st.classList.add('live'); t.innerHTML = ''; t.appendChild(document.createTextNode(me.openPlay.gameName + ' をプレイ中')); t.appendChild(el('small', null, (me.openPlay.stake ? yen(me.openPlay.stake) + '縁を預かっています。' : '') + '結果はスタッフが入れます')); }
+    else if (me.openReading) { st.classList.add('live'); t.innerHTML = ''; t.appendChild(document.createTextNode('占いの最中')); t.appendChild(el('small', null, me.openReading.bribe ? '賄賂 ' + yen(me.openReading.bribe) + '縁（ランク ' + me.openReading.rankName + '）' : '占い師に賄賂を渡してください')); }
+    else { t.innerHTML = ''; t.appendChild(document.createTextNode(nextStep())); }
 
-    // 占い
-    var rd = $('readings'); rd.textContent = '';
-    if (!me.readings.length) rd.appendChild(el('p', 'empty', 'まだ占っていません。占いの部屋でQRを見せてください。'));
-    me.readings.forEach(function (r) {
-      var row = el('div', 'reading' + (r.rank === 'kaizan' ? ' kaizan-row' : ''));
-      var seal = el('div', 'seal ' + r.rank, r.rankName);
-      row.appendChild(seal);
-      var body = el('div');
-      body.appendChild(el('p', 'meta', timeOf(r.finishedAt) + '　心付け ' + yen(r.bribe) + ' 縁'));
-      body.appendChild(el('p', 'names', (r.sou || '—') + ' × ' + (r.kizashi || '—')));
-      body.appendChild(el('p', 'oracle', r.oracle || ''));
-      var btns = el('div', 'btns');
-      var b = el('button', 'btn small' + (r.rank === 'kaizan' ? ' solid' : ''), 'カードを作る');
-      b.type = 'button';
-      b.addEventListener('click', function () { makeCard(r); });
-      btns.appendChild(b);
-      body.appendChild(btns);
-      row.appendChild(body);
-      rd.appendChild(row);
-    });
-
-    // 番付（自分の順位）
-    renderMyPos();
+    renderMeter();
+    renderGames();
+    renderHistory();
+    renderReadings(first);
+    if (!$('pg-rank').hidden) loadBoards();
     $('updated').textContent = '　' + new Date().toTimeString().slice(0, 5) + ' 更新';
   }
+  function nextStep() {
+    if (!me.readings.length && me.balance >= me.ranks.sho) return '次は：占いの部屋でQRを見せて占ってもらおう';
+    if (!me.readings.length) return '次は：ミニゲームで縁を増やそう';
+    return '占いは何回でも受けられます';
+  }
+  function drawQr() {
+    var q = qrcode(0, 'M'); q.addData(location.origin + '/u/' + token); q.make();
+    $('qr-small').innerHTML = q.createSvgTag(4, 0);
+  }
 
+  function renderMeter() {
+    var r = me.ranks, b = me.balance;
+    var th = [0, r.sho, r.dai, r.kaizan, r.kaizan * 1.5];
+    var segs = $('meter').querySelectorAll('.seg i');
+    for (var i = 0; i < 4; i++) {
+      var lo = th[i], hi = th[i + 1];
+      var f = b >= hi ? 1 : b <= lo ? 0 : (b - lo) / (hi - lo);
+      if (i === 3) f = b >= r.kaizan ? 1 : 0;
+      segs[i].style.width = (f * 100) + '%';
+    }
+    var cur = b >= r.kaizan ? 'kaizan' : b >= r.dai ? 'dai' : b >= r.sho ? 'sho' : 'mu';
+    var lab = $('meter-l'); lab.innerHTML = '';
+    [['mu', '0〜'], ['sho', yen(r.sho) + '〜'], ['dai', yen(r.dai) + '〜'], ['kaizan', yen(r.kaizan) + '〜']].forEach(function (x) {
+      var d = el('div', x[0] === cur ? 'on' : '');
+      d.appendChild(el('b', null, RANK_NAME[x[0]]));
+      d.appendChild(document.createTextNode(x[1]));
+      if (x[0] === 'kaizan') { var q = el('button', 'q', '?'); q.type = 'button'; q.dataset.hint = 'kaizan'; q.setAttribute('aria-label', '改竄とは'); q.style.width = '18px'; q.style.height = '18px'; q.style.fontSize = '10px'; d.appendChild(q); }
+      lab.appendChild(d);
+    });
+    var n = $('meter-note'); n.innerHTML = '';
+    var next = cur === 'mu' ? ['sho', r.sho] : cur === 'sho' ? ['dai', r.dai] : cur === 'dai' ? ['kaizan', r.kaizan] : null;
+    n.appendChild(document.createTextNode('いまの残高なら「'));
+    n.appendChild(el('b', null, RANK_NAME[cur]));
+    n.appendChild(document.createTextNode('」まで受けられます。'));
+    if (next) { n.appendChild(el('br')); n.appendChild(document.createTextNode('「' + RANK_NAME[next[0]] + '」まで あと ')); n.appendChild(el('b', null, yen(next[1] - b) + '縁')); }
+  }
+
+  function renderGames() {
+    var box = $('games'); box.innerHTML = '';
+    if (!games.length) { box.appendChild(el('p', 'empty', '読み込み中…')); return; }
+    games.forEach(function (g) {
+      var row = el('div', 'game');
+      row.appendChild(el('b', null, g.name));
+      var btn = el('button', 'btn small', 'ルール'); btn.type = 'button';
+      btn.addEventListener('click', function () { openInfo(g.name + ' のルール', esc(g.rules || 'ルールは会場でスタッフが説明します。')); });
+      row.appendChild(btn);
+      row.appendChild(el('span', 's', g.kind === 'bet' ? '賭け金は自由（' + g.minBet + '縁から）' : '参加費 ' + g.fee + '縁'));
+      box.appendChild(row);
+    });
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  function renderHistory() {
+    var h = $('history'); h.textContent = '';
+    var list = histAll ? me.history : me.history.slice(0, 5);
+    $('hist-more').hidden = me.history.length <= 5;
+    $('hist-more').textContent = histAll ? '閉じる' : 'すべて見る';
+    if (!list.length) h.appendChild(el('li', 'empty', 'まだ履歴はありません'));
+    list.forEach(function (r) {
+      var li = el('li');
+      var kind = r.type === 'bribe' ? 'bribe' : r.type === 'grant' ? 'grant' : (r.type === 'fee' || r.type === 'payout') ? 'game' : '';
+      li.appendChild(el('span', 'ic ' + kind, { bribe: '賄', grant: '始', game: '遊' }[kind] || (r.type === 'refund' ? '返' : '調')));
+      li.appendChild(el('p', 't', labelOf(r)));
+      li.appendChild(el('p', 'amt ' + (r.type === 'bribe' ? 'bribe' : r.delta > 0 ? 'plus' : 'minus'), (r.delta > 0 ? '+' : '') + yen(r.delta)));
+      li.appendChild(el('p', 's', timeOf(r.created_at)));
+      h.appendChild(li);
+    });
+  }
+  $('hist-more').addEventListener('click', function () { histAll = !histAll; renderHistory(); });
   function labelOf(r) {
-    var map = { grant: '受付で配布', fee: (r.game_name || 'ゲーム') + ' 参加', payout: (r.game_name || 'ゲーム') + ' 払い戻し', refund: '返金', bribe: '心付け', adjust: '調整' };
-    var base = map[r.type] || r.type;
-    if (r.type === 'payout' && r.note) return r.note;
-    if (r.type === 'adjust' && r.note) return '調整（' + r.note + '）';
-    if (r.type === 'refund' && r.note) return '返金（' + r.note + '）';
-    return base;
+    if (r.type === 'grant') return 'はじめにもらった縁';
+    if (r.type === 'fee') return (r.game_name || 'ゲーム') + 'の参加費';
+    if (r.type === 'payout') return (r.note || (r.game_name || 'ゲーム')).replace('：', ' ');
+    if (r.type === 'bribe') return '占い師への賄賂';
+    if (r.type === 'refund') return '返金' + (r.note ? '（' + r.note + '）' : '');
+    if (r.type === 'adjust') return 'スタッフによる調整' + (r.note ? '（' + r.note + '）' : '');
+    return r.type;
   }
   function timeOf(s) {
     if (!s) return '';
@@ -288,93 +503,133 @@
     if (isNaN(d)) return s;
     return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', hour: 'numeric', minute: '2-digit' });
   }
-  function flashDelta(d) {
-    var e = $('delta');
-    e.textContent = (d > 0 ? '+' : '') + yen(d);
-    e.className = 'delta show ' + (d > 0 ? 'plus' : 'minus');
-    setTimeout(function () { e.className = 'delta'; }, 2500);
+  var popT;
+  function popDelta(d, label) {
+    var e = $('pop'); e.innerHTML = '';
+    e.appendChild(el('b', null, (d > 0 ? '+' : '') + yen(d) + '縁'));
+    e.appendChild(document.createTextNode(label));
+    e.className = 'pop on ' + (d > 0 ? 'plus' : 'minus');
+    if (navigator.vibrate) navigator.vibrate(d > 0 ? [40, 60, 40] : 40);
+    clearTimeout(popT); popT = setTimeout(function () { e.className = 'pop'; }, 3200);
   }
 
-  /* ---------- 番付 ---------- */
-  function renderMyPos() {
-    var p = me.position || {};
-    var mb = $('mypos-bribe'); mb.textContent = '';
-    mb.appendChild(el('span', 'chip', p.bribePos ? 'あなたは ' + p.bribePos + ' 位' : 'まだ番付外'));
-    mb.appendChild(el('span', 'chip', '渡した合計 ' + yen(p.bribeTotal || 0) + ' 縁'));
-    var ml = $('mypos-balance'); ml.textContent = '';
-    ml.appendChild(el('span', 'chip', 'あなたは ' + (p.balancePos || '—') + ' 位'));
-  }
-  function loadRankings() {
-    return fetch('/api/rankings').then(function (r) { return r.json(); }).then(function (d) {
-      rankings = d;
-      renderBoard('board-bribe', d.bribe, d.kaizanThreshold);
-      renderBoard('board-balance', d.balance, null);
-    }).catch(function () {});
-  }
-  function renderBoard(id, data, kz) {
-    var ol = $(id); ol.textContent = '';
-    if (!data.entries.length) { ol.appendChild(el('li', 'empty', 'まだ誰もいません')); return; }
-    data.entries.forEach(function (e, i) {
-      var li = el('li' + '', me && e.id === me.id ? 'me' : '');
-      li.appendChild(el('span', 'pos', String(i + 1)));
-      var w = el('span', 'who2', e.name);
-      if (i === 0 && data.title) w.appendChild(el('span', 'title-tag', '　' + data.title));
-      li.appendChild(w);
-      li.appendChild(el('span', 'amt' + (kz && e.amount >= kz ? ' kz' : ''), yen(e.amount) + ' 縁'));
-      ol.appendChild(li);
+  /* ---------- 占いの結果 ---------- */
+  function renderReadings(first) {
+    var n = me.readings.length;
+    $('n-res').hidden = !n; $('n-res').textContent = n;
+    var rd = $('readings'); rd.textContent = '';
+    if (!n) {
+      var p = el('div', 'glass panel'); p.appendChild(el('p', 'empty', 'まだ占っていません。占いの部屋でQRを見せてください。')); rd.appendChild(p);
+    }
+    me.readings.forEach(function (r) {
+      var row = el('div', 'res glass' + (r.rank === 'kaizan' ? ' kz' : ''));
+      var th = el('button', 'thumb'); th.type = 'button'; th.setAttribute('aria-label', '結果の画像を開く');
+      th.addEventListener('click', function () { openCard(r, false); });
+      cardUrl(r).then(function (u) { th.style.backgroundImage = 'url(' + u + ')'; });
+      row.appendChild(th);
+      var body = el('div');
+      body.appendChild(el('p', 'meta', timeOf(r.finishedAt) + '　賄賂 ' + yen(r.bribe) + '縁'));
+      var nm = el('p', 'names'); nm.appendChild(el('span', 'seal sm ' + r.rank, r.rankName)); nm.appendChild(document.createTextNode((r.sou || '—') + ' × ' + (r.kizashi || '—'))); body.appendChild(nm);
+      body.appendChild(el('p', 'oracle', r.oracle || ''));
+      var btns = el('div', 'btns');
+      var b1 = el('button', 'btn small' + (r.rank === 'kaizan' ? '' : ' solid'), '画像を開く'); b1.type = 'button';
+      b1.addEventListener('click', function () { openCard(r, false); });
+      btns.appendChild(b1);
+      body.appendChild(btns);
+      row.appendChild(body);
+      rd.appendChild(row);
     });
+    // 新しい結果が届いたら、すぐに見せる
+    //   この端末で初めて開いたときは、前からある結果では出さない
+    var seen = null; try { seen = localStorage.getItem('mt:seen:' + token); } catch (e) {}
+    if (seen == null && first) seen = String(n);
+    if (n > Number(seen || 0)) openCard(me.readings[0], true);
+    try { localStorage.setItem('mt:seen:' + token, String(n)); } catch (e) {}
   }
-
-  /* ---------- タブ ---------- */
-  var tabs = document.querySelectorAll('.tabs [role=tab]');
-  function selectTab(name) {
-    tabs.forEach(function (t) { t.setAttribute('aria-selected', String(t.dataset.tab === name)); });
-    ['history', 'readings', 'ranking'].forEach(function (n) { $('tab-' + n).hidden = n !== name; });
-    if (name === 'ranking') loadRankings();
-    try { sessionStorage.setItem('mt:tab', name); } catch (e) {}
+  function cardUrl(r) {
+    if (cardCache[r.id]) return cardCache[r.id].p;
+    var p = ShareCard.render({ name: me.nickname, sou: r.sou, kizashi: r.kizashi, amount: r.bribe, oracle: r.oracle, rank: r.rank }, { site: me.site })
+      .then(function (blob) { cardCache[r.id].blob = blob; return URL.createObjectURL(blob); });
+    cardCache[r.id] = { p: p };
+    return p;
   }
-  tabs.forEach(function (t) { t.addEventListener('click', function () { selectTab(t.dataset.tab); }); });
-  $('to-top').addEventListener('click', function () { selectTab('ranking'); });
-  $('refresh').addEventListener('click', function () { $('refresh').disabled = true; load().then(function () { $('refresh').disabled = false; }); });
-
-  /* ---------- QR ---------- */
-  $('show-qr').addEventListener('click', function () {
-    var q = qrcode(0, 'M');
-    q.addData(location.origin + '/u/' + token);
-    q.make();
-    $('qrbox').innerHTML = q.createSvgTag(4, 0);
-    $('qr-code').textContent = me.shortCode;
-    $('qr-name').textContent = me.nickname;
-    $('qr-sheet').hidden = false;
-  });
-  $('qr-close').addEventListener('click', function () { $('qr-sheet').hidden = true; });
-
-  /* ---------- シェアカード ---------- */
-  var currentBlob = null;
-  function makeCard(r) {
+  var currentId = null;
+  function openCard(r, fresh) {
+    currentId = r.id;
+    $('card-ttl').hidden = !fresh;
     $('card-sheet').hidden = false;
     $('card-img').removeAttribute('src');
-    ShareCard.render({ name: me.nickname, sou: r.sou, kizashi: r.kizashi, amount: r.bribe, oracle: r.oracle, rank: r.rank }, { site: me.site })
-      .then(function (blob) {
-        currentBlob = blob;
-        var url = URL.createObjectURL(blob);
-        $('card-img').src = url;
-        $('card-save').href = url;
-      });
+    cardUrl(r).then(function (u) { $('card-img').src = u; $('card-save').href = u; });
+    if (fresh && navigator.vibrate) navigator.vibrate([60, 80, 60]);
   }
   $('card-close').addEventListener('click', function () { $('card-sheet').hidden = true; });
   $('card-share').addEventListener('click', function () {
-    if (!currentBlob) return;
-    var file = new File([currentBlob], 'shintaku.png', { type: 'image/png' });
+    var c = cardCache[currentId]; if (!c || !c.blob) return;
+    var file = new File([c.blob], 'uranai.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: me.site.name, text: me.site.name + ' で神託を買った。' }).catch(function () {});
+      navigator.share({ files: [file], title: me.site.name, text: me.site.name + ' で占ってもらった。 @keioshiki2c79' }).catch(function () {});
     } else {
       $('card-save').click();
     }
   });
 
+  /* ---------- ランキング ---------- */
+  function loadBoards() {
+    return fetch('/api/rankings').then(function (r) { return r.json(); }).then(function (d) { boards = d; renderBoard(); }).catch(function () {});
+  }
+  function renderBoard() {
+    if (!boards) return;
+    var data = boards[boardKind], p = me.position || {};
+    $('board-note').textContent = boardKind === 'bribe' ? '占い師に渡した賄賂の合計。1位には「' + (data.title || '') + '」の称号。' : 'いまの残高。1位には「' + (data.title || '') + '」の称号。';
+    var mine = $('mine'); mine.innerHTML = '';
+    var l = el('div'); l.appendChild(el('p', null, 'あなたの順位'));
+    var pos = boardKind === 'bribe' ? p.bribePos : p.balancePos;
+    l.appendChild(el('b', null, pos ? pos + '位' : 'まだ圏外')); mine.appendChild(l);
+    var r = el('div', 'amt'); r.appendChild(el('p', null, boardKind === 'bribe' ? '渡した合計' : '残高'));
+    r.appendChild(el('b', null, yen(boardKind === 'bribe' ? (p.bribeTotal || 0) : me.balance) + '縁')); mine.appendChild(r);
+    var ol = $('board'); ol.textContent = '';
+    if (!data.entries.length) { ol.appendChild(el('li', 'empty', 'まだ誰もいません')); return; }
+    data.entries.forEach(function (e, i) {
+      var li = el('li', e.id === me.id ? 'me' : '');
+      li.appendChild(el('span', 'pos', String(i + 1)));
+      var w = el('span', 'nm', e.name);
+      if (i === 0 && data.title) w.appendChild(el('span', 'ttl', data.title));
+      li.appendChild(w);
+      li.appendChild(el('span', 'amt', yen(e.amount) + '縁'));
+      ol.appendChild(li);
+    });
+  }
+  document.querySelectorAll('[data-board]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      boardKind = b.dataset.board;
+      document.querySelectorAll('[data-board]').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+      renderBoard();
+    });
+  });
+
+  /* ---------- タブ ---------- */
+  function selectPg(name) {
+    document.querySelectorAll('.ctab [data-pg]').forEach(function (t) { t.setAttribute('aria-selected', String(t.dataset.pg === name)); });
+    ['home', 'results', 'rank'].forEach(function (n) { $('pg-' + n).hidden = n !== name; });
+    if (name === 'rank') loadBoards();
+    try { sessionStorage.setItem('mt:pg', name); } catch (e) {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('.ctab [data-pg]').forEach(function (t) { t.addEventListener('click', function () { selectPg(t.dataset.pg); }); });
+  $('refresh').addEventListener('click', function () { var b = $('refresh'); b.classList.add('spin'); load().then(function () { setTimeout(function () { b.classList.remove('spin'); }, 400); }); });
+
+  /* ---------- QR ---------- */
+  $('qr-plate').addEventListener('click', function () {
+    var q = qrcode(0, 'M'); q.addData(location.origin + '/u/' + token); q.make();
+    $('qrbox').innerHTML = q.createSvgTag(4, 0);
+    $('qr-code').textContent = me.shortCode;
+    $('qr-name').textContent = me.nickname + ' さん';
+    $('qr-sheet').hidden = false;
+  });
+  $('qr-close').addEventListener('click', function () { $('qr-sheet').hidden = true; });
+
   /* ---------- 起動 ---------- */
-  try { var t0 = sessionStorage.getItem('mt:tab'); if (t0) selectTab(t0); } catch (e) {}
+  try { var t0 = sessionStorage.getItem('mt:pg'); if (t0) selectPg(t0); } catch (e) {}
   load();
 })();
 </script>
