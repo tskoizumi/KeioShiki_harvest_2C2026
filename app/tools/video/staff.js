@@ -39,7 +39,6 @@ const { open, state, reset, sleep, encode, addAudio } = require('./lib');
   /* ---------- 1. ログイン ---------- */
   await s.load(T, '/staff');
   await s.title(false);
-  s.sfx('whoosh');
   await s.cap('1　ログイン', '名前とパスワードで<br>ログイン', 'スタッフの登録は、管理する人が作る<br><b>招待のQR</b>を読むだけ。<br><br>権限は4つ：<br>スタッフ ＜ 占い師 ＜ 責任者 ＜ 管理者');
   s.say('スタッフは、名前とパスワードでログインします。スタッフの登録は、管理する人が作る、招待のQRを読むだけです。権限は四つあって、上の人は、下の人のできることを、全部できます。');
   await sleep(2500);

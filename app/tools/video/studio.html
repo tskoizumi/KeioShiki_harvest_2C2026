@@ -12,7 +12,7 @@
     --paper: #fefefc; --ink: #1c1a1b; --muted: #6b6466; --red: #9f1111; --hot: #e0352b; --plum: #663661; --lilac: #d9b8dc; --sky: #bcdce8;
     --mincho: "Shippori Mincho B1", serif; --gothic: "Noto Sans JP", sans-serif;
   }
-  html { zoom: 2; } html, body { width: 100%; height: 100%; overflow: hidden; background: var(--paper); color: var(--ink); font-family: var(--gothic); }
+  html { zoom: 2; } html, body { width: 100%; height: 100%; overflow: clip; background: var(--paper); color: var(--ink); font-family: var(--gothic); }
   #bg { position: fixed; inset: 0; overflow: hidden; background: var(--paper); }
   .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55; transition: transform 2s ease; }
   .b1 { width: 70vmin; height: 70vmin; left: -20vmin; top: -20vmin; background: var(--sky); }
@@ -22,9 +22,20 @@
   body.dark #bg { background: #0d0b0c; }
   body.dark .blob { opacity: 0.22; }
 
-  .frame { position: absolute; border-radius: 34px; background: #121011; padding: 10px; box-shadow: 0 30px 60px -20px rgba(40, 20, 35, 0.55), 0 0 0 1px rgba(0,0,0,0.3); transition: opacity 0.6s, transform 0.6s; }
-  .frame::before { content: ""; position: absolute; left: 50%; top: 10px; transform: translateX(-50%); width: 90px; height: 7px; border-radius: 999px; background: #000; z-index: 2; }
-  .frame iframe { border: 0; display: block; background: #fefefc; border-radius: 24px; width: 100%; height: 100%; }
+  /* 本物のスマホと同じ大きさ（iPhone 390×844）で描いて、枠ごと縮める */
+  .frame { --s: 0.75; position: absolute; padding: calc(12px * var(--s)); border-radius: calc(64px * var(--s)); background: linear-gradient(145deg, #3a3639, #121011 40%, #2a2629); box-shadow: 0 30px 60px -20px rgba(40, 20, 35, 0.55), 0 0 0 1px rgba(0,0,0,0.45), inset 0 0 0 1.5px rgba(255,255,255,0.12); transition: opacity 0.6s, transform 0.6s; }
+  .frame::before, .frame::after { content: ""; position: absolute; width: 3px; border-radius: 2px; background: #2a2629; }
+  .frame::before { left: -3px; top: calc(180px * var(--s)); height: calc(60px * var(--s)); box-shadow: 0 calc(80px * var(--s)) 0 #2a2629; }
+  .frame::after { right: -3px; top: calc(220px * var(--s)); height: calc(100px * var(--s)); }
+  .screen { --sbg: #fefefc; --sfg: #1c1a1b; position: relative; width: calc(390px * var(--s)); height: calc(844px * var(--s)); border-radius: calc(52px * var(--s)); overflow: clip; background: var(--sbg); }
+  .status { position: relative; height: calc(47px * var(--s)); display: flex; align-items: center; justify-content: space-between; padding: 0 calc(32px * var(--s)) 0 calc(40px * var(--s)); color: var(--sfg); font: 600 calc(16px * var(--s)) -apple-system, "Noto Sans JP", sans-serif; }
+  .status .ic { display: flex; gap: calc(6px * var(--s)); align-items: center; }
+  .status .bat { width: calc(25px * var(--s)); height: calc(12px * var(--s)); border: 1px solid currentColor; border-radius: calc(4px * var(--s)); padding: 1px; opacity: 0.85; }
+  .status .bat::after { content: ""; display: block; height: 100%; width: 78%; background: currentColor; border-radius: 1px; }
+  .status .sig { width: calc(17px * var(--s)); height: calc(11px * var(--s)); background: linear-gradient(90deg, currentColor 20%, transparent 20% 27%, currentColor 27% 47%, transparent 47% 54%, currentColor 54% 74%, transparent 74% 81%, currentColor 81%); clip-path: polygon(0 100%, 100% 0, 100% 100%); }
+  .island { position: absolute; z-index: 3; top: calc(11px * var(--s)); left: 50%; transform: translateX(-50%); width: calc(122px * var(--s)); height: calc(35px * var(--s)); border-radius: 999px; background: #000; }
+  .screen iframe { border: 0; display: block; width: 390px; height: 797px; transform: scale(var(--s)); transform-origin: 0 0; background: var(--sbg); }
+  #f-staff .screen { --sbg: #121011; --sfg: #f7f2ea; }
   .frame.hide { opacity: 0; transform: translateY(20px); pointer-events: none; }
   .frame .label { position: absolute; left: 50%; bottom: -30px; transform: translateX(-50%); font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: var(--muted); white-space: nowrap; }
   body.dark .frame .label { color: #9a9195; }
@@ -43,17 +54,18 @@
   body.phone .text { left: 28px; right: 28px; top: 70px; height: 184px; }
   body.phone .text .cap { font-size: 30px; }
   body.phone .text .sub { font-size: 15px; margin-top: 8px; }
-  body.phone #f-phone { left: 90px; top: 266px; width: 360px; height: 654px; }
+  body.phone #f-phone { --s: 0.745; left: 113px; top: 266px; }
   body.phone #f-staff { display: none; }
 
   /* 横（スタッフ） */
-  body.staff .brandline { left: 36px; top: 20px; }
-  body.staff .text { left: 470px; top: 90px; width: 450px; }
+  body.staff .brandline { left: 340px; top: 26px; }
+  body.staff .text { left: 340px; top: 86px; width: 560px; }
   body.staff .text .cap { font-size: 36px; }
   body.staff .text .sub { font-size: 17px; }
-  body.staff #f-staff { left: 36px; top: 58px; width: 400px; height: 470px; }
-  body.staff #f-phone { left: 620px; top: 58px; width: 316px; height: 470px; }
-  body.staff.duo .text { left: 470px; width: 130px; top: 70px; }
+  body.staff #f-staff { --s: 0.545; left: 70px; top: 26px; }
+  body.staff #f-phone { --s: 0.545; left: 660px; top: 26px; }
+  body.staff .frame .label { bottom: -21px; }
+  body.staff.duo .text { left: 340px; width: 280px; top: 86px; }
   body.staff.duo .text .cap { font-size: 24px; }
   body.staff.duo .text .sub { font-size: 13px; }
   body.staff:not(.duo) #f-phone { opacity: 0; pointer-events: none; }
@@ -85,8 +97,8 @@
 <div id="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
 <div class="brandline"><img src="../../public/assets/mark-alpha.webp" alt=""><span id="brand">運命、賄賂で買いませんか？</span></div>
 <div class="text"><p class="chapter" id="chapter"></p><p class="cap" id="cap"></p><div class="sub" id="sub"></div></div>
-<div class="frame" id="f-phone"><iframe id="phone" src="about:blank"></iframe><span class="label" id="l-phone">お客さんのスマホ</span></div>
-<div class="frame" id="f-staff"><iframe id="staff" src="about:blank"></iframe><span class="label">スタッフの端末</span></div>
+<div class="frame" id="f-phone"><div class="screen"><div class="island"></div><div class="status"><span>10:30</span><span class="ic"><span class="sig"></span><span class="bat"></span></span></div><iframe id="phone" src="about:blank"></iframe></div><span class="label" id="l-phone">お客さんのスマホ</span></div>
+<div class="frame" id="f-staff"><div class="screen"><div class="island"></div><div class="status"><span>10:30</span><span class="ic"><span class="sig"></span><span class="bat"></span></span></div><iframe id="staff" src="about:blank"></iframe></div><span class="label">スタッフのスマホ</span></div>
 <div id="title"><img src="../../public/assets/mark-alpha.webp" alt=""><p class="k" id="t-k">収穫祭 2026　2年C組</p><h1 id="t-h">運命、賄賂で<br>買いませんか？</h1><p id="t-p"></p><p class="big" id="t-big"></p></div>
 <script>
   var mode = new URLSearchParams(location.search).get('mode') || 'phone';
@@ -113,6 +125,7 @@
     duo: function (on) { document.body.classList.toggle('duo', !!on); },
     dark: function (on) { document.body.classList.toggle('dark', !!on); },
     tap: function (x, y) { var d = document.createElement('div'); d.className = 'tap'; d.style.left = x + 'px'; d.style.top = y + 'px'; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 700); },
+    scale: function (which) { return parseFloat(getComputedStyle(document.getElementById(which).closest('.frame')).getPropertyValue('--s')) || 1; },
     load: function (which, url) { return new Promise(function (res) { var f = document.getElementById(which); f.onload = function () { res(); }; f.src = url; }); },
   };
 </script>

@@ -65,7 +65,8 @@ async function open(mode) {
       }, sel);
       await sleep(opts.settle ?? 250);
       const fb = await (await page.$('#' + which)).boundingBox();
-      await page.evaluate(([x, y]) => window.studio.tap(x, y), [fb.x / 2 + r.x + r.w / 2, fb.y / 2 + r.y + r.h / 2]);
+      const sc = await page.evaluate((w) => window.studio.scale(w), which);
+      await page.evaluate(([x, y]) => window.studio.tap(x, y), [fb.x / 2 + (r.x + r.w / 2) * sc, fb.y / 2 + (r.y + r.h / 2) * sc]);
       events.push({ type: 'tap', t: now() });
       await sleep(opts.before ?? 380);
       await f.evaluate((sel) => document.querySelector(sel).click(), sel);

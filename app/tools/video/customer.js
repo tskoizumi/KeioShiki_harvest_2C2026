@@ -19,7 +19,6 @@ const { open, staffApi, reset, sleep, encode, addAudio } = require('./lib');
   await s.load(P, '/?new');
   await s.cap('① 受付', '受付のQRを読んで、<br>ニックネームを決める', 'はじめに <b>100縁</b>（えん）がもらえます。<br>縁は、この出し物の中だけで使えるお金。');
   await s.title(false);
-  s.sfx('whoosh');
   s.say('受付のQRを、スマホで読みます。ニックネームを入れると、はじめに百えん、もらえます。えんは、この出し物の中だけで使える、お金です。');
   await sleep(2600);
   await s.type(P, '#nick', 'たろう');
