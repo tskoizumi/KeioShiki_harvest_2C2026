@@ -5,116 +5,112 @@
 <title>ポスター — 運命、賄賂で買いませんか？</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
-  /* A4 縦。1240×1754 のCSSピクセルで組み、2倍で描くと 300dpi 相当 */
+  /* 友達の元デザインを土台に：市松の背景・水色の水晶玉・黄緑のラインの一文・手書き風の題。
+     A4 縦。1240×1754 のCSSピクセルで組み、2倍で描くと 300dpi 相当 */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --paper: #fefefc; --ink: #1c1a1b; --muted: #6b6466; --red: #9f1111; --hot: #e0352b; --plum: #663661; --lilac: #d9b8dc; --sky: #bcdce8;
-    --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", serif; --gothic: "Noto Sans JP", "Hiragino Sans", sans-serif;
+    --cream: #f4e9d4; --black: #3b3a3c; --red: #a3383c; --ink: #1a1819;
+    --cyan: #3ee6f2; --cyan2: #0fc9dc; --purple: #8a3cc4; --violet: #c48bdc; --lime: #c6f243; --hot: #ff2a2a;
+    --hand: "Yusei Magic", "Hiragino Sans", sans-serif; --display: "Dela Gothic One", "Yusei Magic", sans-serif; --gothic: "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
   }
   html, body { background: #888; }
-  .poster { position: relative; width: 1240px; height: 1754px; overflow: hidden; background: var(--paper); color: var(--ink); font-family: var(--gothic); margin: 0 auto; }
+  .poster { position: relative; width: 1240px; height: 1754px; overflow: hidden; background: var(--cream); color: var(--ink); font-family: var(--gothic); margin: 0 auto; }
   @media print { html, body { background: none; } .poster { margin: 0; } @page { size: A4 portrait; margin: 0; } }
 
-  /* 背景：紙のにじみと、ごく薄い繊維 */
-  .bg { position: absolute; inset: 0; overflow: hidden; }
-  .blob { position: absolute; border-radius: 50%; filter: blur(90px); }
-  .b1 { width: 900px; height: 900px; left: -320px; top: -260px; background: var(--sky); opacity: 0.55; }
-  .b2 { width: 760px; height: 760px; right: -300px; top: 420px; background: var(--lilac); opacity: 0.5; }
-  .b3 { width: 700px; height: 700px; left: 120px; bottom: -380px; background: #a7709f; opacity: 0.18; }
-  .grain { position: absolute; inset: 0; opacity: 0.35; mix-blend-mode: multiply;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.47 0 0 0 0.06 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>"); }
-  .frame { position: absolute; inset: 34px; border: 1.5px solid rgba(28, 26, 27, 0.22); pointer-events: none; }
-  .frame::before, .frame::after { content: ""; position: absolute; width: 26px; height: 26px; border: 1.5px solid var(--red); }
-  .frame::before { left: -1.5px; top: -1.5px; border-right: 0; border-bottom: 0; }
-  .frame::after { right: -1.5px; bottom: -1.5px; border-left: 0; border-top: 0; }
+  /* 背景：ひし形の市松（黒と赤をクリームで区切る）。上と下に薄い帯を置いて文字を読ませる */
+  .bg { position: absolute; inset: 0; }
+  .bg svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .wash { position: absolute; left: 0; right: 0; }
+  .wash.top { top: 0; height: 600px; background: linear-gradient(180deg, rgba(246, 237, 220, 0.9) 0%, rgba(246, 237, 220, 0.86) 55%, rgba(246, 237, 220, 0) 100%); }
+  .wash.mid { top: 1130px; height: 360px; background: linear-gradient(180deg, rgba(246, 237, 220, 0) 0%, rgba(246, 237, 220, 0.9) 28%, rgba(246, 237, 220, 0.9) 72%, rgba(246, 237, 220, 0) 100%); }
+  .wash.foot { bottom: 0; height: 250px; background: linear-gradient(0deg, rgba(246, 237, 220, 0.94) 0%, rgba(246, 237, 220, 0.8) 70%, rgba(246, 237, 220, 0) 100%); }
 
-  /* 上：学校・収穫祭 */
-  .eyebrow { position: absolute; left: 0; right: 0; top: 72px; text-align: center; font-size: 19px; font-weight: 700; letter-spacing: 0.42em; color: var(--muted); }
-  .eyebrow b { color: var(--red); font-weight: 700; }
+  /* 題：手書き風。白いふちで背景から浮かせる */
+  .title { position: absolute; left: 0; right: 0; top: 96px; text-align: center; font-family: var(--hand); font-size: 118px; line-height: 1.18; letter-spacing: 0.02em; color: var(--ink);
+    paint-order: stroke fill; -webkit-text-stroke: 10px #fffaf0; text-shadow: 0 6px 0 rgba(255, 250, 240, 0.9), 0 10px 24px rgba(40, 20, 20, 0.25); }
+  .title .w { display: block; }
+  .title .bribe { display: inline-block; font-family: var(--hand); font-size: 214px; line-height: 1; color: var(--violet); -webkit-text-stroke: 18px var(--hot); paint-order: stroke fill; letter-spacing: 0; vertical-align: -0.06em; margin: 0 4px; transform: rotate(-3deg); text-shadow: 0 10px 0 #8a0f0f, 0 20px 30px rgba(120, 0, 0, 0.35); }
+  .title .q { display: inline-block; transform: rotate(6deg); }
 
-  /* 題：ロゴの文字レイヤー（1000px の正方形の下のほうに文字がある） */
-  .title { position: absolute; left: 90px; width: 1060px; top: 112px; height: 320px; overflow: hidden; }
-  .title img { position: absolute; left: 0; width: 1060px; top: -725px; }
+  /* 水晶玉 */
+  .ball { position: absolute; left: 330px; top: 628px; width: 580px; height: 560px; isolation: isolate; }
+  .ball .glass { position: absolute; left: 50px; top: 0; width: 480px; height: 480px; border-radius: 50%;
+    background: radial-gradient(circle at 36% 30%, #c8fbff 0%, #6eeefb 24%, var(--cyan) 50%, var(--cyan2) 82%, #089fb0 100%);
+    box-shadow: inset -24px -30px 60px rgba(0, 120, 140, 0.35), inset 14px 18px 40px rgba(255, 255, 255, 0.55), 0 40px 60px -30px rgba(0, 60, 80, 0.55); border: 6px solid #fffaf0; }
+  .ball .hl1 { position: absolute; left: 118px; top: 58px; width: 150px; height: 70px; border-radius: 50%; background: #fff; transform: rotate(-32deg); opacity: 0.95; }
+  .ball .hl2 { position: absolute; left: 150px; top: 44px; width: 36px; height: 36px; border-radius: 50%; background: #fff; }
+  .ball .hl3 { position: absolute; left: 400px; top: 300px; width: 70px; height: 34px; border-radius: 50%; background: #fff; opacity: 0.55; transform: rotate(-28deg); }
+  .ball .base { position: absolute; left: 0; top: 400px; width: 580px; height: 170px; border-radius: 50%; background: radial-gradient(ellipse at 50% 30%, #a564d8, var(--purple) 70%); border: 6px solid #fffaf0; box-shadow: 0 30px 50px -20px rgba(60, 0, 90, 0.5); z-index: -1; }
+  .ball .base::after { content: ""; position: absolute; left: 60px; right: 60px; top: 18px; height: 30px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); }
 
-  /* 水晶玉と手 */
-  .mark { position: absolute; left: 140px; top: 445px; width: 960px; height: 960px; }
-  .mark img { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .mark .hand { transform: translate(4px, -6px) rotate(-3deg); }
-  .mark::after { content: ""; position: absolute; left: 110px; right: 110px; bottom: 28px; height: 70px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(60, 30, 55, 0.22), transparent 70%); z-index: -1; filter: blur(8px); }
+  /* 一文：黄緑のラインの上に手書き */
+  .lead { position: absolute; left: 0; right: 0; top: 1212px; text-align: center; font-family: var(--hand); font-size: 50px; line-height: 1.75; color: var(--ink); letter-spacing: 0.02em; }
+  .lead span { display: inline; padding: 0 10px; background: linear-gradient(transparent 58%, var(--lime) 58%, var(--lime) 92%, transparent 92%); -webkit-box-decoration-break: clone; box-decoration-break: clone;
+    paint-order: stroke fill; -webkit-text-stroke: 5px #fffaf0; }
+  .lead b { font-weight: inherit; color: var(--red); }
 
-  /* 呼びかけの一文 */
-  .lead { position: absolute; left: 0; right: 0; top: 1178px; text-align: center; font-family: var(--mincho); font-weight: 800; font-size: 42px; line-height: 1.45; letter-spacing: 0.06em; }
-  .lead .hl { color: var(--red); }
-  .lead .u { background: linear-gradient(transparent 62%, rgba(217, 184, 220, 0.9) 62%); }
+  /* 遊び方（元にはない。小さく） */
+  .steps { position: absolute; left: 90px; right: 90px; top: 1392px; display: flex; justify-content: center; gap: 22px; font-family: var(--gothic); font-weight: 700; font-size: 20px; color: var(--ink); }
+  .steps span { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 999px; background: #fffaf0; border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+  .steps i { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; font-style: normal; font-size: 15px; font-family: var(--display); }
 
-  /* 遊び方 三段 */
-  .steps { position: absolute; left: 90px; right: 90px; top: 1352px; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 14px; }
-  .step { text-align: center; }
-  .step .n { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: var(--paper); font-family: var(--mincho); font-weight: 800; font-size: 20px; margin-bottom: 8px; }
-  .step .t { font-family: var(--mincho); font-weight: 800; font-size: 27px; letter-spacing: 0.04em; }
-  .step .s { font-size: 16px; color: var(--muted); margin-top: 4px; font-weight: 500; }
-  .step .t em { font-style: normal; color: var(--red); }
-  .arrow { font-family: var(--mincho); font-size: 30px; color: var(--muted); }
-
-  /* 位の印 */
-  .seals { position: absolute; left: 0; right: 0; top: 1486px; display: flex; justify-content: center; align-items: center; gap: 18px; }
-  .seals .l { font-size: 15px; font-weight: 700; letter-spacing: 0.2em; color: var(--muted); margin-right: 8px; }
-  .seal { display: inline-grid; place-items: center; width: 52px; height: 52px; border: 2.5px solid var(--red); border-radius: 5px; color: var(--red); font-family: var(--mincho); font-weight: 800; font-size: 24px; transform: rotate(-6deg); }
-  .seal.mu { border-color: #a29b9e; color: #a29b9e; }
-  .seal.kz { background: var(--ink); border-color: var(--hot); color: var(--hot); font-size: 15px; line-height: 1.05; text-align: center; width: 60px; height: 60px; transform: rotate(5deg); }
-  .seals .amt { font-size: 13px; color: var(--muted); font-weight: 700; margin-top: 4px; text-align: center; }
-  .seals .c { display: grid; justify-items: center; }
-
-  /* 下：場所と QR */
-  .foot { position: absolute; left: 60px; right: 60px; bottom: 48px; height: 118px; display: grid; grid-template-columns: 1fr auto auto; gap: 26px; align-items: stretch; }
-  .place { background: var(--ink); color: #f4efe6; border-radius: 18px; padding: 12px 26px; display: flex; align-items: center; gap: 22px; }
-  .place .k { font-size: 15px; font-weight: 700; letter-spacing: 0.3em; color: var(--lilac); writing-mode: vertical-rl; }
-  .place .v { font-family: var(--mincho); font-weight: 800; font-size: 46px; letter-spacing: 0.06em; line-height: 1; white-space: nowrap; }
-  .place .v small { display: block; font-family: var(--gothic); font-size: 16px; font-weight: 500; letter-spacing: 0.12em; color: #c9c0c3; margin-top: 10px; }
-  .qr { display: grid; grid-template-columns: 100px auto; gap: 12px; align-items: center; padding: 8px 14px 8px 8px; border-radius: 18px; background: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 18px 40px -24px rgba(60,30,55,0.4); }
-  .qr svg { width: 100px; height: 100px; display: block; }
-  .qr .cap { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); line-height: 1.5; }
-  .qr .cap b { display: block; font-family: var(--mincho); font-size: 17px; color: var(--ink); letter-spacing: 0; white-space: nowrap; }
+  /* 下：QR・Instagram・場所 */
+  .foot { position: absolute; left: 70px; right: 70px; bottom: 64px; display: grid; grid-template-columns: auto auto 1fr; gap: 26px; align-items: end; }
+  .qr { display: grid; justify-items: center; gap: 8px; }
+  .qr .box { width: 190px; height: 190px; padding: 12px; background: #fff; border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); }
+  .qr .box svg { width: 100%; height: 100%; display: block; }
+  .qr .box.ig { border-color: transparent; background: linear-gradient(#fff, #fff) padding-box, linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7) border-box; border-width: 5px; box-shadow: 6px 6px 0 #6228d7; }
+  .qr .cap { font-family: var(--hand); font-size: 22px; letter-spacing: 0.08em; }
+  .qr .cap.ig { font-family: var(--gothic); font-weight: 900; font-size: 18px; letter-spacing: 0.06em; background: linear-gradient(45deg, #ee2a7b, #6228d7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .place { justify-self: end; border: 4px double var(--ink); background: rgba(255, 250, 240, 0.92); padding: 22px 36px 26px; text-align: center; box-shadow: 8px 8px 0 var(--ink); }
+  .place .k { font-family: var(--hand); font-size: 30px; letter-spacing: 0.1em; }
+  .place .v { font-family: var(--display); font-size: 72px; line-height: 1.1; letter-spacing: 0.04em; margin-top: 4px; white-space: nowrap; }
+  .place .s { font-family: var(--gothic); font-weight: 700; font-size: 17px; letter-spacing: 0.2em; color: #5a5558; margin-top: 8px; }
 </style>
 </head>
 <body>
 <div class="poster">
-  <div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="grain"></div></div>
-  <div class="frame"></div>
-
-  <p class="eyebrow">慶應義塾志木高等学校　<b>収穫祭 2026</b>　2年C組</p>
-
-  <div class="title"><img src="../layer-copy.webp" alt="運命、賄賂で買いませんか？"></div>
-
-  <div class="mark">
-    <img class="ball" src="../layer-ball.webp" alt="">
-    <img class="hand" src="../layer-hand.webp" alt="">
+  <div class="bg">
+    <svg viewBox="0 0 1240 1754" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <pattern id="checks" width="280" height="280" patternUnits="userSpaceOnUse" patternTransform="rotate(45) translate(40 20)">
+          <rect width="280" height="280" fill="#f4e9d4"/>
+          <rect x="0" y="0" width="140" height="140" fill="#3b3a3c"/>
+          <rect x="140" y="140" width="140" height="140" fill="#a3383c"/>
+        </pattern>
+        <filter id="worn" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="3" seed="7" result="n"/>
+          <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.96  0 0 0 0 0.92  0 0 0 0 0.83  0 0 0 0.55 -0.12" result="wash"/>
+          <feComposite in="wash" in2="SourceGraphic" operator="over"/>
+        </filter>
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/>
+          <feColorMatrix values="0 0 0 0 0.2 0 0 0 0 0.15 0 0 0 0 0.15 0 0 0 0.07 0"/>
+        </filter>
+      </defs>
+      <rect width="1240" height="1754" fill="url(#checks)"/>
+      <rect width="1240" height="1754" fill="#f4e9d4" filter="url(#worn)" opacity="0.32"/>
+      <rect width="1240" height="1754" filter="url(#grain)"/>
+    </svg>
+    <div class="wash top"></div>
+    <div class="wash mid"></div>
+    <div class="wash foot"></div>
   </div>
 
-  <p class="lead">ミニゲームで<span class="hl">賄賂</span>を稼いで、占い師を買収し、<br><span class="u">未来を、ねじ曲げろ。</span></p>
+  <h1 class="title"><span class="w">運命、<span class="bribe">賄賂</span>で</span><span class="w">買いませんか<span class="q">？</span></span></h1>
 
-  <div class="steps">
-    <div class="step"><span class="n">1</span><p class="t">ミニゲーム</p><p class="s">遊んで「縁（えん）」を増やす</p></div>
-    <span class="arrow">→</span>
-    <div class="step"><span class="n">2</span><p class="t">占い師に<em>心付け</em></p><p class="s">額は自由。渡すほど、態度が変わる</p></div>
-    <span class="arrow">→</span>
-    <div class="step"><span class="n">3</span><p class="t">神託を受ける</p><p class="s">結果はスマホに届く。シェアしよう</p></div>
-  </div>
+  <div class="ball"><div class="base"></div><div class="glass"></div><div class="hl1"></div><div class="hl2"></div><div class="hl3"></div></div>
 
-  <div class="seals">
-    <span class="l">心付けの位</span>
-    <div class="c"><span class="seal mu">無</span><span class="amt">0〜</span></div>
-    <div class="c"><span class="seal">小</span><span class="amt">100〜</span></div>
-    <div class="c"><span class="seal">大</span><span class="amt">500〜</span></div>
-    <div class="c"><span class="seal kz">改<br>竄</span><span class="amt">2,000〜 神託を書き換える</span></div>
-  </div>
+  <p class="lead"><span>ミニゲームで<b>賄賂</b>を稼いで占い師を</span><br><span>買収し、未来をねじ曲げろ！</span></p>
+
+  <div class="steps"><span><i>1</i>ミニゲームで縁を稼ぐ</span><span><i>2</i>占い師に心付け</span><span><i>3</i>結果はスマホに届く</span></div>
 
   <div class="foot">
-    <div class="place"><span class="k">場所</span><p class="v">HR棟 3F　2C<small>収穫祭 2026　2年C組</small></p></div>
-    <div class="qr"><div id="qr-hp"></div><p class="cap">公式サイト<b>moneytalks-uranai.com</b>遊び方・番付</p></div>
-    <div class="qr"><div id="qr-ig"></div><p class="cap">Instagram<b>@keioshiki2c79</b>最新情報</p></div>
+    <div class="qr"><div class="box" id="qr-hp"></div><p class="cap">△公式HP△</p></div>
+    <div class="qr"><div class="box ig" id="qr-ig"></div><p class="cap ig">@KEIOSHIKI2C79</p></div>
+    <div class="place"><p class="k">《場所》</p><p class="v">HR棟3F 2C</p><p class="s">収穫祭 2026　慶應義塾志木高等学校</p></div>
   </div>
 </div>
 <script src="../../app/public/vendor/qrcode.js"></script>
