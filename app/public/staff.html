@@ -204,7 +204,11 @@
         <button class="btn" id="q-go" type="button">探す</button>
         <button class="btn gold" id="scan-toggle" type="button">カメラ</button>
       </div>
-      <div class="cam" id="cam" hidden><video id="video" playsinline muted></video><div class="frame"></div><div class="off" id="cam-off" hidden></div></div>
+      <div class="cam" id="cam" hidden><video id="video" playsinline muted autoplay></video><div class="frame"></div><div class="off" id="cam-off" hidden></div></div>
+      <div class="row" id="cam-tools" hidden style="margin-top:8px">
+        <label class="btn grow" style="cursor:pointer">写真で読む（カメラが使えないとき）<input id="cam-file" type="file" accept="image/*" capture="environment" hidden></label>
+        <button class="btn" id="cam-stop" type="button">閉じる</button>
+      </div>
       <ul class="list" id="q-results"></ul>
     </div>
     <div id="cust-panel"></div>
@@ -401,36 +405,81 @@
   $('q').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); if ($('q').value.trim()) lookup($('q').value); } });
 
   var stream = null, scanRaf = null, scanTarget = null;
+  var CAM_REASON = {
+    NotAllowedError: 'カメラの許可がオフです。ブラウザのアドレス欄の鍵（または設定 → サイトの許可）でカメラを許可して、もう一度押してください。',
+    PermissionDeniedError: 'カメラの許可がオフです。ブラウザの設定でカメラを許可して、もう一度押してください。',
+    NotFoundError: 'この端末にカメラが見つかりません。',
+    NotReadableError: 'カメラが他のアプリに使われています。他のアプリを閉じてから、もう一度押してください。',
+    SecurityError: 'このブラウザではカメラが使えません。Safari か Chrome で開き直してください（LINE や Instagram の中のブラウザでは使えません）。',
+  };
   function startScan(onCode) {
     scanTarget = onCode || function (text) { $('q').value = text; lookup(text, true); };
-    $('cam').hidden = false; $('cam-off').hidden = true;
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camOff('この端末ではカメラが使えません。番号を手で入れてください。'); return; }
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(function (s) {
-      stream = s; var v = $('video'); v.srcObject = s; v.play();
-      var cv = document.createElement('canvas'), ctx = cv.getContext('2d', { willReadFrequently: true });
-      var tick = function () {
-        if (!stream) return;
-        if (v.readyState >= 2) {
-          cv.width = v.videoWidth; cv.height = v.videoHeight;
-          ctx.drawImage(v, 0, 0);
-          try {
-            var img = ctx.getImageData(0, 0, cv.width, cv.height);
-            var code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
-            if (code && code.data) { if (navigator.vibrate) navigator.vibrate(60); var cb = scanTarget; stopScan(); cb(code.data); return; }
-          } catch (e) {}
-        }
+    $('cam').hidden = false; $('cam-off').hidden = true; $('cam-tools').hidden = false;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      camOff((location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1')
+        ? 'カメラは https のページでしか使えません。' : 'このブラウザではカメラが使えません。Safari か Chrome で開き直すか、「写真で読む」を使ってください。');
+      return;
+    }
+    // 背面カメラ → どのカメラでも、の順に試す
+    var tries = [{ video: { facingMode: { exact: 'environment' } }, audio: false }, { video: { facingMode: 'environment' }, audio: false }, { video: true, audio: false }];
+    var lastErr = null;
+    (function next(k) {
+      if (k >= tries.length) { camOff((lastErr && CAM_REASON[lastErr.name]) || ('カメラを使えませんでした（' + (lastErr && lastErr.name || '不明') + '）。「写真で読む」か、番号を手で入れてください。')); return; }
+      navigator.mediaDevices.getUserMedia(tries[k]).then(function (s) {
+        stream = s; var v = $('video'); v.srcObject = s;
+        var p = v.play(); if (p && p.catch) p.catch(function () {});
+        var cv = document.createElement('canvas'), ctx = cv.getContext('2d', { willReadFrequently: true });
+        var tick = function () {
+          if (!stream) return;
+          if (v.readyState >= 2 && v.videoWidth) {
+            // 大きすぎる映像は縮めて読む（速くなる）
+            var sc = Math.min(1, 800 / v.videoWidth);
+            cv.width = Math.round(v.videoWidth * sc); cv.height = Math.round(v.videoHeight * sc);
+            ctx.drawImage(v, 0, 0, cv.width, cv.height);
+            var code = decodeCanvas(cv, ctx);
+            if (code) { if (navigator.vibrate) navigator.vibrate(60); var cb = scanTarget; stopScan(); cb(code); return; }
+          }
+          scanRaf = requestAnimationFrame(tick);
+        };
         scanRaf = requestAnimationFrame(tick);
-      };
-      scanRaf = requestAnimationFrame(tick);
-    }).catch(function () { camOff('カメラを使えませんでした。番号を手で入れてください。'); });
+      }).catch(function (e) { lastErr = e; if (e && (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError' || e.name === 'SecurityError')) next(tries.length); else next(k + 1); });
+    })(0);
   }
+  function decodeCanvas(cv, ctx) {
+    try {
+      var img = ctx.getImageData(0, 0, cv.width, cv.height);
+      var code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+      return code && code.data ? code.data : null;
+    } catch (e) { return null; }
+  }
+  // 写真から読む（カメラの許可がないブラウザや、アプリの中のブラウザ向け）
+  $('cam-file').addEventListener('change', function () {
+    var f = this.files && this.files[0]; this.value = ''; if (!f) return;
+    var url = URL.createObjectURL(f), im = new Image();
+    im.onload = function () {
+      URL.revokeObjectURL(url);
+      var cv = document.createElement('canvas'), ctx = cv.getContext('2d', { willReadFrequently: true });
+      var code = null;
+      // 大きさを変えて何回か試す（写真は大きいので）
+      [1000, 1600, 600].some(function (w) {
+        var sc = Math.min(1, w / im.width); cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
+        ctx.drawImage(im, 0, 0, cv.width, cv.height); code = decodeCanvas(cv, ctx); return !!code;
+      });
+      if (!code) { toast('QRが読めませんでした。QR全体が写るように、近づいて撮ってください', true); return; }
+      var cb = scanTarget || function (text) { $('q').value = text; lookup(text, true); };
+      stopScan(); cb(code);
+    };
+    im.onerror = function () { URL.revokeObjectURL(url); toast('写真を開けませんでした', true); };
+    im.src = url;
+  });
+  $('cam-stop').addEventListener('click', function () { stopScan(); });
   function camOff(t) { $('cam-off').hidden = false; $('cam-off').textContent = t; }
   function stopScan() {
     if (scanRaf) cancelAnimationFrame(scanRaf); scanRaf = null;
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
-    $('cam').hidden = true;
+    $('cam').hidden = true; $('cam-tools').hidden = true;
   }
-  $('scan-toggle').addEventListener('click', function () { if (stream) stopScan(); else startScan(); });
+  $('scan-toggle').addEventListener('click', function () { if (!$('cam').hidden) stopScan(); else startScan(); });
   $('card-scan').addEventListener('click', function () {
     go('cust');
     startScan(function (text) {
