@@ -9,7 +9,7 @@
 /config.js           @tskoizumi
 /assets/             @tskoizumi
 
-# ルールと資料は二人で見る
-/README.md           @tskoizumi @soma1218
-/docs/               @tskoizumi @soma1218
-/.github/            @tskoizumi @soma1218
+# ルールと資料も tskoizumi（soma1218 の確認は不要）
+/README.md           @tskoizumi
+/docs/               @tskoizumi
+/.github/            @tskoizumi
