@@ -28,17 +28,33 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
+      # Secrets が入るまでは、失敗にせず静かに終わる
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID が未設定なのでデプロイを飛ばします（app/README.md を参照）"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: .
       - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci
+        if: steps.check.outputs.ready == 'true'
       - run: npm test
+        if: steps.check.outputs.ready == 'true'
 
       # D1 がなければ作り、その id を wrangler.toml に入れる
       - name: Prepare D1
+        if: steps.check.outputs.ready == 'true'
         run: |
           set -e
           ID=$(npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=JSON.parse(s);const d=l.find(x=>x.name==="moneytalks-db");console.log(d?d.uuid:"")})')
@@ -51,10 +67,12 @@ jobs:
           npx wrangler d1 migrations apply moneytalks-db --remote
 
       - name: Deploy
+        if: steps.check.outputs.ready == 'true'
         run: npx wrangler deploy
 
       # 秘密はここから入れる（リポジトリには書かない）
       - name: Secrets
+        if: steps.check.outputs.ready == 'true'
         run: |
           printf '%s' "${{ secrets.APP_SESSION_SECRET }}" | npx wrangler secret put SESSION_SECRET
           printf '%s' "${{ secrets.APP_SETUP_CODE }}" | npx wrangler secret put SETUP_CODE

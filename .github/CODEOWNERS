@@ -4,10 +4,11 @@
 # LP以外（QR・結果ページ・占い師画面・データなど）は soma1218
 *                    @soma1218
 
-# LP は tskoizumi
+# LP と app/ は tskoizumi
 /index.html          @tskoizumi
 /config.js           @tskoizumi
 /assets/             @tskoizumi
+/app/                @tskoizumi
 
 # ルールと資料も tskoizumi（soma1218 の確認は不要）
 /README.md           @tskoizumi
