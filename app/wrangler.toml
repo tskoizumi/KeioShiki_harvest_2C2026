@@ -4,9 +4,11 @@ compatibility_date = "2026-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 # 本番は独自ドメインだけで公開する（workers.dev のURLは閉じる）
+# training. は研修モード：同じ画面・同じ処理を、別のデータベースに向けて動かす（本番には触れない）
 workers_dev = false
 routes = [
-  { pattern = "app.moneytalks-uranai.com", custom_domain = true }
+  { pattern = "app.moneytalks-uranai.com", custom_domain = true },
+  { pattern = "training.moneytalks-uranai.com", custom_domain = true }
 ]
 
 # 画面（public/）。Worker が先に経路を見て、API 以外を静的ファイルに回す
@@ -23,7 +25,24 @@ database_name = "moneytalks-db"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
+# 研修モードのデータベース（Durable Object の SQLite）。本番の D1 とは別物
+[[durable_objects.bindings]]
+name = "TRAINING"
+class_name = "TrainingDb"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TrainingDb"]
+
+# migrations/*.sql を文字列として import する（研修モードがスキーマを作るのに使う）
+[[rules]]
+type = "Text"
+globs = ["**/*.sql"]
+fallthrough = true
+
 # 秘密（SESSION_SECRET / SETUP_CODE）は wrangler secret put で入れる。ここには書かない
 [vars]
 PUBLIC_ORIGIN = "https://app.moneytalks-uranai.com"
 LP_ORIGIN = "https://moneytalks-uranai.com"
+# このホスト名で来たら研修モード。手元では `npm run dev:training`（wrangler dev --host でこのホスト名を名乗る）
+TRAINING_HOSTS = "training.moneytalks-uranai.com"

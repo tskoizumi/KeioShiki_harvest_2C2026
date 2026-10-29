@@ -94,3 +94,14 @@ export async function audit(db, staffId, action, target, detail) {
     .bind(staffId ?? null, action, target ?? null, detail == null ? null : typeof detail === 'string' ? detail : JSON.stringify(detail))
     .run();
 }
+
+// SQL ファイルを文に分ける（`--` のコメントを外して ; で区切る）。migrations/*.sql は文字列の中に ; を使わない
+export function splitSql(text) {
+  return text
+    .split('\n')
+    .map((l) => l.replace(/--.*$/, ''))
+    .join('\n')
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
