@@ -20,6 +20,9 @@ async function open(mode) {
   await page.evaluate(() => document.fonts.ready);
   await sleep(400);
   const rec = await startRecorder(page, ctx, vp);
+  const events = [];
+  const now = () => (rec.wall0() ? (Date.now() - rec.wall0()) / 1000 : 0);
+  let sayEnd = 0;
 
   const frameOf = async (which) => (await page.$('#' + which)).contentFrame();
   const s = {
@@ -42,7 +45,8 @@ async function open(mode) {
     // 画面の中に要素が出るまで待つ
     wait: async (which, sel, timeout = 15000) => {
       const f = await frameOf(which);
-      await f.waitForSelector(sel, { state: 'visible', timeout });
+      try { await f.waitForSelector(sel, { state: 'visible', timeout }); }
+      catch (e) { await page.screenshot({ path: path.join(OUT, 'fail.png') }); console.log('FAIL at', sel, 'toast:', await f.evaluate(() => (document.getElementById('toast') || {}).textContent || '').catch(() => '')); throw e; }
     },
     // 文字が出るまで待つ
     waitText: async (which, sel, text, timeout = 15000) => {
@@ -62,6 +66,7 @@ async function open(mode) {
       await sleep(opts.settle ?? 250);
       const fb = await (await page.$('#' + which)).boundingBox();
       await page.evaluate(([x, y]) => window.studio.tap(x, y), [fb.x / 2 + r.x + r.w / 2, fb.y / 2 + r.y + r.h / 2]);
+      events.push({ type: 'tap', t: now() });
       await sleep(opts.before ?? 380);
       await f.evaluate((sel) => document.querySelector(sel).click(), sel);
       await sleep(opts.after ?? 900);
@@ -83,8 +88,18 @@ async function open(mode) {
       await f.evaluate((y) => window.scrollTo({ top: y, behavior: 'smooth' }), y);
       await sleep(ms);
     },
+    // ナレーション。読み終わるまで待たずに次の操作に進める（waitSay で待つ）
+    say: (text) => {
+      const dur = narration(text);
+      events.push({ type: 'say', t: now() + 0.15, file: dur.file, text });
+      sayEnd = Date.now() + 150 + dur.sec * 1000;
+      return dur.sec;
+    },
+    waitSay: async (extra = 400) => { const w = sayEnd - Date.now() + extra; if (w > 0) await sleep(w); },
+    sfx: (type) => events.push({ type, t: now() }),
     close: async () => {
       const dir = await rec.stop();
+      fs.writeFileSync(path.join(dir, 'events.json'), JSON.stringify(events, null, 1));
       await browser.close();
       return dir;
     },
@@ -98,7 +113,9 @@ async function startRecorder(page, ctx, vp) {
   const cdp = await ctx.newCDPSession(page);
   const frames = [];
   let n = 0;
+  let wall0 = 0;
   cdp.on('Page.screencastFrame', ({ data, metadata, sessionId }) => {
+    if (!wall0) wall0 = Date.now();
     const file = path.join(dir, `f${String(n++).padStart(6, '0')}.jpg`);
     fs.writeFileSync(file, Buffer.from(data, 'base64'));
     frames.push({ file, t: metadata.timestamp });
@@ -106,6 +123,7 @@ async function startRecorder(page, ctx, vp) {
   });
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 90, maxWidth: vp.width, maxHeight: vp.height, everyNthFrame: 1 });
   return {
+    wall0: () => wall0,
     stop: async () => {
       await sleep(300);
       await cdp.send('Page.stopScreencast').catch(() => {});
@@ -121,6 +139,27 @@ async function startRecorder(page, ctx, vp) {
       return dir;
     },
   };
+}
+
+// ナレーションを合成する（同じ文はキャッシュ）
+function narration(text) {
+  const { execFileSync } = require('child_process');
+  const crypto = require('crypto');
+  const dir = path.join(__dirname, 'voice'); fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, crypto.createHash('md5').update(text).digest('hex').slice(0, 12) + '.wav');
+  const meta = file + '.txt';
+  if (!fs.existsSync(meta)) {
+    const sec = execFileSync(process.env.TTS_PY || 'python3', [path.join(__dirname, 'audio.py'), 'tts', text, file], { encoding: 'utf8' }).trim().split('\n').pop();
+    fs.writeFileSync(meta, sec);
+  }
+  return { file, sec: Number(fs.readFileSync(meta, 'utf8')) };
+}
+
+// 映像に音を重ねる
+function addAudio(dir, video, out, mood) {
+  const { execFileSync } = require('child_process');
+  execFileSync(process.env.TTS_PY || 'python3', [path.join(__dirname, 'audio.py'), 'mix', dir, video, out, mood], { stdio: 'inherit' });
+  return out;
 }
 
 // スタッフのAPIを node から叩く（客向け動画で、裏でスタッフが操作する分）
@@ -147,4 +186,4 @@ function encode(dir, outFile) {
   return outFile;
 }
 
-module.exports = { open, staffApi, state, reset, sleep, encode, APP, OUT };
+module.exports = { open, staffApi, state, reset, sleep, encode, addAudio, APP, OUT };

@@ -12,3 +12,7 @@ node_modules/
 # OSが勝手に作るもの
 .DS_Store
 Thumbs.db
+
+# 動画を作るときの途中のファイル
+app/tools/video/out/
+app/tools/video/voice/

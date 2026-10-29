@@ -1,7 +1,7 @@
 // スタッフの画面の動き（staff.html が読む）
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var S = { me: null, games: [], settings: {}, oracle: null, site: null, view: 'cust', cust: null, reading: null, step: 1, answers: { judge: [], mention: [] }, souOverride: null, kizashiId: null, openPlays: [], openReadings: [], adminTab: 'summary', betFor: null, histAll: false };
+  var S = { me: null, games: [], settings: {}, oracle: null, site: null, view: 'cust', cust: null, reading: null, step: 1, answers: { judge: [], mention: [] }, souOverride: null, kizashiId: null, openPlays: [], openReadings: [], adminTab: 'summary', betFor: null, histAll: false, lv: {}, mgrOpen: false };
   var LV = { staff: 1, teller: 2, manager: 3, admin: 4 };
   var RANK = { mu: '無', sho: '小', dai: '大', kaizan: '改竄' };
   var TITLES = { login: 'スタッフ', cust: 'お客さん', games: 'ゲーム中', teller: '占い', reception: '受付', admin: '管理' };
@@ -151,8 +151,9 @@
     if (can(LV.teller)) ps.push(api('/api/staff/readings/open'));
     Promise.all(ps).then(function (r) {
       if (r[0].ok) { S.openPlays = r[0].d.results; badge('n-plays', S.openPlays.length); if (S.view === 'games') renderOpenPlays(); }
-      if (r[1] && r[1].ok) { S.openReadings = r[1].d.results; badge('n-readings', S.openReadings.length); if (S.view === 'teller' && !S.reading) renderTeller(); }
-      if (S.view === 'cust' && S.cust && (S.cust.openPlay || S.cust.openReading)) refreshCust();
+      if (r[1] && r[1].ok) { S.openReadings = r[1].d.results; badge('n-readings', S.openReadings.length); if (S.view === 'teller' && !S.reading) renderTellerList(); }
+      var typing = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+      if (S.view === 'cust' && S.cust && (S.cust.openPlay || S.cust.openReading) && !typing) refreshCust();
     }).finally(function () { pollT = setTimeout(poll, 6000); });
   }
   function badge(id, n) { var e = $(id); e.hidden = !n; e.textContent = n; }
@@ -262,7 +263,7 @@
   function openCust(id) {
     return api('/api/staff/users/' + id).then(function (x) {
       if (!x.ok) { err(x.d.message || 'エラー'); return; }
-      S.cust = x.d; S.betFor = null; S.histAll = false; remember(x.d);
+      S.cust = x.d; S.betFor = null; S.histAll = false; S.mgrOpen = false; remember(x.d);
       $('q-results').innerHTML = ''; $('q').value = '';
       if (S.view !== 'cust') go('cust'); else renderCust();
       window.scrollTo(0, 0);
@@ -317,7 +318,7 @@
     }).join('') + '</ul></div>';
 
     if (can(LV.manager) && u.claimed) {
-      h += '<details class="mgr"><summary>責任者メニュー（残高を直す・使えなくする）</summary><div>' +
+      h += '<details class="mgr" id="mgr"' + (S.mgrOpen ? ' open' : '') + '><summary>責任者メニュー（残高を直す・使えなくする）</summary><div>' +
         '<p class="hint">ゲームの景品は、必ずゲームの結果で入れてください。ここは間違いを直すときだけ使います。記録に残ります。</p>' +
         '<div class="sw" style="margin-top:12px"><button type="button" class="on plus" data-sign="1">増やす</button><button type="button" data-sign="-1">減らす</button></div>' +
         '<div class="row" style="margin-top:10px"><input class="in" id="adj-amt" type="number" inputmode="numeric" min="1" placeholder="何縁" style="width:130px"><input class="in grow" id="adj-note" placeholder="理由（必ず書く）"></div>' +
@@ -327,6 +328,7 @@
         '</div></details>';
     }
     el.innerHTML = h;
+    var mg = el.querySelector('#mgr'); if (mg) mg.addEventListener('toggle', function () { S.mgrOpen = mg.open; });
     bindCust(el);
   }
   function labelOf(r) {
@@ -348,7 +350,8 @@
       h += '<p style="margin-top:10px">このゲームは今は止めてあります。取り消して返金してください。</p>';
     } else if (g.kind === 'stack') {
       var per = g.config.per_level, max = g.config.max_level;
-      h += '<div class="stepper" style="margin-top:14px"><button class="btn" data-act="lv" data-d="-1" aria-label="1段へらす">−</button><p class="num"><span data-lv>0</span><small>段 ＝ <span data-pay>0</span>縁 戻る</small></p><button class="btn" data-act="lv" data-d="1" aria-label="1段ふやす">＋</button></div>' +
+      var lv0 = S.lv[p.id] || 0;
+      h += '<div class="stepper" style="margin-top:14px"><button class="btn" data-act="lv" data-d="-1" aria-label="1段へらす">−</button><p class="num"><span data-lv>' + lv0 + '</span><small>段 ＝ <span data-pay>' + yen(lv0 * per) + '</span>縁 戻る</small></p><button class="btn" data-act="lv" data-d="1" aria-label="1段ふやす">＋</button></div>' +
         '<div class="chips">' + [0, 3, 5, 8, 10, 15].map(function (n) { return '<button class="btn" data-act="lv-set" data-n="' + n + '">' + n + '段</button>'; }).join('') + '</div>' +
         '<button class="btn pri block huge" data-act="finish-stack" data-per="' + per + '" data-max="' + max + '" style="margin-top:14px">この段数で決定</button>';
     } else {
@@ -412,6 +415,7 @@
     var n = set != null ? set : Number(el.textContent) + d;
     n = Math.max(0, Math.min(Number(fb.dataset.max), n));
     el.textContent = n; card.querySelector('[data-pay]').textContent = yen(n * Number(fb.dataset.per));
+    S.lv[Number(card.dataset.play)] = n;
   }
   function playAction(a, b, card) {
     var id = Number(card.dataset.play), req;
@@ -459,13 +463,19 @@
     setBar(null);
     var h = '<button class="scan-btn" id="t-scan" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg>QRを読んで占いを始める</button>';
     h += '<div class="card tight"><form class="row" id="t-form"><input class="in grow" id="t-q" placeholder="番号か名前で探す" autocomplete="off"><button class="btn" type="submit">探す</button></form></div>';
-    h += '<h3>占いの途中</h3>' + (S.openReadings.length ? S.openReadings.map(function (r) {
-      return '<div class="card"><div class="play"><p class="nm">' + esc(r.nickname) + '</p><button class="btn gold" data-open="' + r.id + '">続ける</button><p class="s">賄賂 ' + yen(r.bribe) + '縁・ランク ' + RANK[rankOf(r.bribe)] + '・' + ago(r.startedAt) + '</p></div></div>';
-    }).join('') : '<div class="card"><p class="empty">いま、占いの途中のお客さんはいません</p></div>');
+    h += '<h3>占いの途中</h3><div id="t-list"></div>';
     el.innerHTML = h;
-    el.querySelectorAll('[data-open]').forEach(function (b) { b.addEventListener('click', function () { openReading(Number(b.dataset.open)); }); });
+    renderTellerList();
     $('t-form').addEventListener('submit', function (e) { e.preventDefault(); tellerLookup($('t-q').value.trim()); });
     $('t-scan').addEventListener('click', function () { S.cust = null; go('cust', true); startScan(function (text) { tellerLookup(text, true); }, '占うお客さんのQRを読んでください'); });
+  }
+  // 一覧だけを描き直す（検索欄に入力中の文字を消さないように）
+  function renderTellerList() {
+    var box = $('t-list'); if (!box) return;
+    box.innerHTML = S.openReadings.length ? S.openReadings.map(function (r) {
+      return '<div class="card"><div class="play"><p class="nm">' + esc(r.nickname) + '</p><button class="btn gold" data-open="' + r.id + '">続ける</button><p class="s">賄賂 ' + yen(r.bribe) + '縁・ランク ' + RANK[rankOf(r.bribe)] + '・' + ago(r.startedAt) + '</p></div></div>';
+    }).join('') : '<div class="card"><p class="empty">いま、占いの途中のお客さんはいません</p></div>';
+    box.querySelectorAll('[data-open]').forEach(function (b) { b.addEventListener('click', function () { openReading(Number(b.dataset.open)); }); });
   }
   function tellerLookup(q, fromScan) {
     if (!q) return;

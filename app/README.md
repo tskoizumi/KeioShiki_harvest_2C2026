@@ -64,12 +64,12 @@ npm run dev                            # http://127.0.0.1:8788
 
 | 動画 | 中身 | 向き |
 | --- | --- | --- |
-| [`docs/video/customer-howto.mp4`](../docs/video/customer-howto.mp4) | お客さん向けのあそびかた（1分）。受付の QR・マイページ・ゲーム・心付け・結果カード・番付 | 縦 1080×1920（SNS 用） |
-| [`docs/video/staff-training.mp4`](../docs/video/staff-training.mp4) | スタッフ研修（3分）。ログイン・客を探す・ゲーム・卓・取消・占い4段階・改竄・受付・責任者・管理 | 横 1920×1080 |
+| [`docs/video/customer-howto.mp4`](../docs/video/customer-howto.mp4) | お客さん向けのあそびかた（1分半）。受付の QR・マイページ・ゲームとルール・賄賂とランク・改竄・結果の画像・ランキング | 縦 1080×1920（SNS 用） |
+| [`docs/video/staff-training.mp4`](../docs/video/staff-training.mp4) | スタッフ研修（3分）。ログイン・? の使い方・お客さんを探す・ゲームと取り消し・ルール・ゲーム中・占いの4段階・もう一度占う・改竄・受付・責任者メニュー・管理・スタッフの招待 | 横 1920×1080 |
 
-どちらも音はない（BGM を後から重ねる前提）。字幕は画面に焼き込んである。
+どちらもナレーション（Open JTalk の合成音声）・オリジナルのBGM・効果音つき。字幕も画面に焼き込んである。
 
-画面を変えたら作り直せる：`tools/video/` の `customer.js` / `staff.js` が、研修モードのサーバー（`npm run dev:training`）を Playwright で実際に操作しながら録る。`node tools/video/customer.js`（`ffmpeg` が PATH にあること。別の場所なら `FFMPEG=/path/to/ffmpeg`）。
+画面を変えたら作り直せる：`tools/video/` の `customer.js` / `staff.js` が、研修モードのサーバー（`npm run dev:training`）を Playwright で実際に操作しながら録る。`node tools/video/customer.js`。必要なものと、BGM や声の差し替え方は [`tools/video/README.md`](tools/video/README.md)。
 
 ## 本番に出す（GitHub Actions）
 
