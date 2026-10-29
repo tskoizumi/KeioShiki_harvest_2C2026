@@ -16,3 +16,4 @@ Thumbs.db
 # 動画を作るときの途中のファイル
 app/tools/video/out/
 app/tools/video/voice/
+app/tools/video/voice-human/

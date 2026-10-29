@@ -22,7 +22,7 @@ async function open(mode) {
   const rec = await startRecorder(page, ctx, vp);
   const events = [];
   const now = () => (rec.wall0() ? (Date.now() - rec.wall0()) / 1000 : 0);
-  let sayEnd = 0;
+  let sayEnd = 0, sayN = 0;
 
   const frameOf = async (which) => (await page.$('#' + which)).contentFrame();
   const s = {
@@ -90,7 +90,8 @@ async function open(mode) {
     },
     // ナレーション。読み終わるまで待たずに次の操作に進める（waitSay で待つ）
     say: (text) => {
-      const dur = narration(text);
+      sayN++;
+      const dur = narration(text, (mode === 'phone' ? 'c' : 's') + String(sayN).padStart(2, '0'));
       events.push({ type: 'say', t: now() + 0.15, file: dur.file, text });
       sayEnd = Date.now() + 150 + dur.sec * 1000;
       return dur.sec;
@@ -141,10 +142,26 @@ async function startRecorder(page, ctx, vp) {
   };
 }
 
-// ナレーションを合成する（同じ文はキャッシュ）
-function narration(text) {
+// ナレーション。voice-human/<番号>.m4a など（自分で録音した声）があればそれを使い、なければ合成する
+//   番号は お客さん向けが c01, c02 …、スタッフ研修が s01, s02 …（台本の s.say() の順）
+function narration(text, id) {
   const { execFileSync } = require('child_process');
   const crypto = require('crypto');
+  const human = path.join(__dirname, 'voice-human');
+  const ext = ['m4a', 'mp3', 'wav', 'aac', 'caf', 'ogg', 'webm', 'mp4', 'mov'].find((e) => id && fs.existsSync(path.join(human, id + '.' + e)));
+  if (ext) {
+    const src = path.join(human, id + '.' + ext);
+    const out = path.join(__dirname, 'voice', 'human-' + id + '.wav');
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    if (!fs.existsSync(out) || fs.statSync(out).mtimeMs < fs.statSync(src).mtimeMs) {
+      // 前後の無音を切り、声の大きさをそろえ、低いノイズを落とす
+      const FF = process.env.FFMPEG || 'ffmpeg';
+      execFileSync(FF, ['-hide_banner', '-loglevel', 'error', '-y', '-i', src, '-ac', '1', '-ar', '48000',
+        '-af', 'highpass=f=80,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.15,areverse,loudnorm=I=-16:TP=-1.5:LRA=11',
+        out]);
+    }
+    return { file: out, sec: wavSeconds(out), human: true };
+  }
   const dir = path.join(__dirname, 'voice'); fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, crypto.createHash('md5').update(text).digest('hex').slice(0, 12) + '.wav');
   const meta = file + '.txt';
@@ -153,6 +170,14 @@ function narration(text) {
     fs.writeFileSync(meta, sec);
   }
   return { file, sec: Number(fs.readFileSync(meta, 'utf8')) };
+}
+
+function wavSeconds(file) {
+  const b = fs.readFileSync(file);
+  const rate = b.readUInt32LE(24), ch = b.readUInt16LE(22), bits = b.readUInt16LE(34);
+  let off = 12;
+  while (off < b.length - 8) { const id = b.toString('ascii', off, off + 4), size = b.readUInt32LE(off + 4); if (id === 'data') return size / (rate * ch * bits / 8); off += 8 + size; }
+  return 0;
 }
 
 // 映像に音を重ねる
