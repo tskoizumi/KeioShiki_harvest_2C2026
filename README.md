@@ -106,6 +106,7 @@ LPと `app/` のつなぎ目は `config.js` の `resultUrl` と `rankingUrl`。�
 | `docs/TECHNICAL.md` | 技術資料 |
 | `app/` | 受付・縁・占いのシステム（Cloudflare Workers ＋ D1）。客のマイページ、ミニゲーム、占い師の台本、番付、スタッフ画面。→ [app/README.md](app/README.md) |
 | `app/tools/video/` | 説明動画を作り直す道具（研修モードの画面を Playwright で操作しながら録る） |
+| `assets/poster/` | ポスター（`poster.html` が原本。`poster-a4.png` は300dpi、`poster-a4.pdf` は印刷用）。直したら `poster.html` を変えて作り直す |
 | `docs/video/` | お客さん向けのあそびかた動画（縦・1分）と、スタッフ研修の動画（横・3分） |
 | `.github/workflows/deploy-app.yml` | `app/` を Cloudflare に自動デプロイする |
 | `.github/` | 担当の自動レビュー依頼（`CODEOWNERS`）、プルリクエストとissueのテンプレート |
