@@ -17,3 +17,7 @@ Thumbs.db
 app/tools/video/out/
 app/tools/video/voice/
 app/tools/video/voice-human/
+
+# スマホがない人用のQRカード（中身がマイページの鍵なので公開しない）
+assets/print/private/
+__pycache__/

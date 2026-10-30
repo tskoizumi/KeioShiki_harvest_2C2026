@@ -31,6 +31,10 @@
     .fuda .how b { color: var(--red); }
     .fuda .meta { margin-top: 1.5mm; font-size: 6.5pt; color: var(--muted); letter-spacing: 0.1em; }
     @media print { body { background: #fff; } .bar { display: none; } .sheet { margin: 0; padding: 0; width: auto; } }
+    .imp { max-width: 210mm; margin: 12px auto 0; padding: 14px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: #fff6d8; border: 1px solid #e0b84a; border-radius: 10px; font-size: 14px; }
+    .imp[hidden] { display: none; }
+    .imp button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; }
+    @media print { .imp { display: none; } }
     .err { padding: 40px; text-align: center; color: var(--red); }
   </style>
 </head>
@@ -43,6 +47,7 @@
   <span class="n" id="count"></span>
   <span class="n">発行したカードは、受付で名前と紐づけるか、客が自分でQRを読んで名前を入れると使えるようになります。</span>
 </div>
+<div class="imp" id="imp" hidden><p id="imp-msg"></p><button class="pri" id="imp-go" type="button">登録する</button></div>
 <div class="sheet"><div class="grid" id="grid"></div></div>
 <p class="err" id="err" hidden></p>
 <script src="/vendor/qrcode.js"></script>
@@ -79,6 +84,22 @@
     api('/api/staff/cards', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ n: Number($('n').value) }) })
       .then(function (x) { $('make').disabled = false; if (!x.ok) { alert(x.d.message); return; } load(); });
   });
+  // 手元で作って印刷済みのカードを登録する（リンクの # のあとに「トークン.番号」がカンマ区切りで入っている）
+  var m = location.hash.match(/^#add=([A-Za-z0-9_.,-]+)$/);
+  if (m) {
+    var cards = m[1].split(',').map(function (x) { var p = x.split('.'); return { token: p[0], shortCode: p[1] }; });
+    $('imp').hidden = false;
+    $('imp-msg').textContent = '印刷済みのQRカード ' + cards.length + ' 枚を登録します。登録すると、そのカードのQRが使えるようになります。';
+    $('imp-go').addEventListener('click', function () {
+      $('imp-go').disabled = true;
+      api('/api/staff/cards/import', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cards: cards }) }).then(function (x) {
+        $('imp-go').disabled = false;
+        if (!x.ok) { $('imp-msg').textContent = x.d.message || '登録できませんでした'; return; }
+        $('imp-msg').textContent = '登録しました：新しく ' + x.d.added + ' 枚' + (x.d.already ? '（登録済み ' + x.d.already + ' 枚）' : '') + '。同じリンクをもう一度開いても、二重には登録されません。';
+        history.replaceState(null, '', location.pathname); $('imp-go').hidden = true; load();
+      });
+    });
+  }
   $('which').addEventListener('change', load);
   $('print').addEventListener('click', function () { window.print(); });
   api('/api/staff/me').then(function (x) { if (x.ok && x.d.site) site = x.d.site; load(); });

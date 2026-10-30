@@ -281,6 +281,23 @@ export async function handle(request, env, url, staff) {
     await audit(db, staff.id, 'QRカードを発行', 'cards', `${n}枚`);
     return json({ results: made }, 201);
   }
+  // 手元で作って印刷したQRカードを登録する（番号は公開リポジトリに置かず、管理画面のリンクから取り込む）
+  if (p === '/cards/import' && m === 'POST') {
+    needLevel(staff, LEVEL.manager);
+    const b = await body();
+    const list = Array.isArray(b.cards) ? b.cards.slice(0, 500) : [];
+    let added = 0, already = 0;
+    for (const c of list) {
+      const token = String(c.token || ''), code = normalizeCode(c.shortCode);
+      if (!/^[A-Za-z0-9_-]{20,40}$/.test(token) || !/^[A-Z0-9]{4,10}$/.test(code)) throw new ApiError('BAD_INPUT', 'カードの番号の形がおかしいです', 400);
+      const r = await db.prepare("INSERT OR IGNORE INTO users (token, short_code, source) VALUES (?, ?, 'card')").bind(token, code).run();
+      if (r.meta.changes) added++;
+      else if (await db.prepare('SELECT 1 FROM users WHERE token = ? AND short_code = ?').bind(token, code).first()) already++;
+      else throw new ApiError('CONFLICT', `番号 ${code} が別のカードとかぶっています`, 409);
+    }
+    if (added) await audit(db, staff.id, '印刷済みQRカードを登録', 'cards', `${added}枚`);
+    return json({ added, already });
+  }
   if (p === '/cards' && m === 'GET') {
     needLevel(staff, LEVEL.manager);
     const r = await db.prepare('SELECT token, short_code, nickname, created_at FROM users WHERE source = ? ORDER BY id').bind('card').all();

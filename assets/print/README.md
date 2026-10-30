@@ -12,8 +12,15 @@
 | `07-staff-qr.pdf` | スタッフ画面と研修モードのQR | 片面。スタッフ用 |
 | `../poster/poster-a4.pdf` | ポスター | |
 
-**QRカード（スマホがないお客さん用）はここにはない**。本番のデータベースに登録した番号が要るので、
-スタッフ画面の「受付 → 印刷のページを開く」（責任者以上）で発行して、そこから印刷する。
+**QRカード（スマホがないお客さん用のマイページ）はここにはない**。QRの中身がマイページの鍵なので、公開リポジトリに置かない。
+手元で作る：
+
+1. `python3 assets/print/qr-cards.py 30 && node assets/print/build.js private` → `assets/print/private/qr-cards.pdf`（名刺サイズ、A4に10枚。片面）
+2. 印刷したら、責任者以上でスタッフ画面にログインしてから `assets/print/private/import-link.txt` のリンクを開き「登録する」を押す（同じリンクを2回開いても二重にはならない）
+3. 登録するまで、そのカードのQRは使えない。もう一度 `qr-cards.py` を実行しても同じカードのまま（枚数を増やすと足りない分だけ足す）
+
+`private/qr-cards.json` を消すと番号が作り直しになるので、印刷したあとは消さない。
+スタッフ画面の「受付 → 印刷のページを開く」で、本番で発行して印刷することもできる。
 
 作り直すとき：`python3 assets/print/build.py && node assets/print/build.js`（カードの名前・質問は `app/src/oracle.js` から取る）。
 ゲームの倍率や改竄の額を変えたら、`build.py` の表も合わせて直す。
