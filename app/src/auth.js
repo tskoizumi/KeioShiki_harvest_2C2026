@@ -128,15 +128,16 @@ export function require(staff, level) {
 
 /* ---------- 客のマイページの鍵 ----------
    QRの中身はマイページのURL（token）。開くときに名前を入れると、この鍵を端末に渡す。
-   鍵 = HMAC(secret, "u:" + token)。以後はURLと鍵で本人とみなす。 */
+   鍵 = HMAC(secret, "u:" + token + "|" + 名前をつけた時刻)。以後はURLと鍵で本人とみなす。
+   名前をつけた時刻を混ぜるので、QRカードを名前なしに戻すと、前に開いた端末の鍵は使えなくなる。 */
 
-export async function userKey(env, token) {
+export async function userKey(env, token, claimedAt) {
   if (!env.SESSION_SECRET) throw new ApiError('NO_SECRET', 'SESSION_SECRET が設定されていません', 500);
-  return hmac(env.SESSION_SECRET, 'u:' + token);
+  return hmac(env.SESSION_SECRET, 'u:' + token + '|' + (claimedAt || ''));
 }
 
-export async function checkUserKey(env, token, key) {
+export async function checkUserKey(env, token, key, claimedAt) {
   if (!key) return false;
-  const want = await userKey(env, token);
+  const want = await userKey(env, token, claimedAt);
   return timingSafeEqual(want, String(key));
 }

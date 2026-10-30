@@ -278,7 +278,7 @@
   </section>
 
   <section id="v-error" hidden>
-    <div class="card glass"><h2 id="err-title">開けません</h2><p class="sub" id="err-text" style="margin-top:8px"></p><button class="btn solid" type="button" onclick="location.reload()" style="margin-top:14px">もう一度読み込む</button></div>
+    <div class="card glass"><h2 id="err-title">開けません</h2><p class="sub" id="err-text" style="margin-top:8px"></p><a class="btn solid" id="err-new" href="/?new" hidden style="margin-top:14px">登録し直す</a><button class="btn" type="button" onclick="location.reload()" style="margin-top:14px">もう一度読み込む</button></div>
   </section>
 </main>
 
@@ -402,6 +402,12 @@
   function load() {
     return api('/api/u/' + encodeURIComponent(token)).then(function (x) {
       if (x.status === 401) { showLogin(x.d.claimed); return; }
+      if (x.status === 404) {
+        // このQRはもうない（データを消したあと など）。この端末の記憶を消して、登録し直してもらう
+        try { localStorage.removeItem('mt:key:' + token); if (localStorage.getItem('mt:last') === token) localStorage.removeItem('mt:last'); } catch (e) {}
+        $('err-title').textContent = 'このページはもうありません'; $('err-text').textContent = 'もう一度、受付のQRを読んで登録してください。';
+        $('err-new').hidden = false; show('v-error'); return;
+      }
       if (!x.ok) { $('err-title').textContent = '開けません'; $('err-text').textContent = x.d.message || ''; show('v-error'); return; }
       var first = !me;
       me = x.d;

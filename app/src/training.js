@@ -13,7 +13,8 @@ import SCHEMA_6 from '../migrations/0006_lucky_fee.sql';
 import SCHEMA_7 from '../migrations/0007_two_levels.sql';
 import SCHEMA_8 from '../migrations/0008_staff_perms.sql';
 import SCHEMA_9 from '../migrations/0009_blackbox.sql';
-const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8, SCHEMA_9].join('\n;\n');
+import SCHEMA_10 from '../migrations/0010_strikeout.sql';
+const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8, SCHEMA_9, SCHEMA_10].join('\n;\n');
 import { trainingDb } from './training-do.js';
 import { json, fail, readJson, randomToken, shortCode, audit, cleanNickname } from './util.js';
 import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME, PERMS, permsOf } from './auth.js';
@@ -23,7 +24,7 @@ import { openReading, addBribe, updateReading, finishReading } from './readings.
 import { grantStart } from './routes/public.js';
 
 // 見本の作り方の版。変えると、研修モードを次に開いたときに見本データを作り直す
-const SEED_VERSION = '4';
+const SEED_VERSION = '5';
 
 // 見本のスタッフ（管理者・占いもできるスタッフ・ふつうのスタッフ）。研修用なので合言葉は公開
 export const DEMO_STAFF = [
@@ -95,7 +96,7 @@ async function state(env) {
   const db = env.DB;
   const [staff, users, cards, open, readings] = await Promise.all([
     db.prepare('SELECT id, name, level, perms, active FROM staff ORDER BY level DESC, id').all(),
-    db.prepare("SELECT id, nickname, token, short_code, balance, status, source FROM users WHERE nickname IS NOT NULL ORDER BY id").all(),
+    db.prepare("SELECT id, nickname, token, short_code, balance, status, source, claimed_at FROM users WHERE nickname IS NOT NULL ORDER BY id").all(),
     db.prepare("SELECT short_code, token FROM users WHERE nickname IS NULL ORDER BY id").all(),
     db.prepare("SELECT COUNT(*) AS n FROM plays WHERE status = 'playing'").first(),
     db.prepare("SELECT COUNT(*) AS n FROM readings WHERE status = 'open'").first(),
@@ -108,7 +109,7 @@ async function state(env) {
       db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(bribe), 0) AS total FROM readings WHERE user_id = ? AND status = 'done'").bind(u.id).first(),
     ]);
     customers.push({
-      id: u.id, nickname: u.nickname, token: u.token, url: `/u/${u.token}`, key: await userKey(env, u.token),
+      id: u.id, nickname: u.nickname, token: u.token, url: `/u/${u.token}`, key: await userKey(env, u.token, u.claimed_at),
       shortCode: u.short_code, balance: u.balance, status: u.status, source: u.source,
       playing: play ? play.name : null, reading: reading ? reading.bribe : null, readings: bribe.n, bribeTotal: bribe.total,
     });
@@ -166,7 +167,7 @@ export async function resetTraining(env) {
 
   // 1. ぽんず：ゲームを何回か遊び、占いを2回（小→大）。賄賂番付の上のほう
   const ponzu = await user('ぽんず');
-  await play(ponzu, 1, null, { outcome: 4 });        // ストラックアウト 中心 +50
+  await play(ponzu, 1, null, { points: [50, 10, 0, 30, -20] });   // ストラックアウト 5球 70点 − 25縁 = +45
   await play(ponzu, 2, null, { level: 1, points: [20, 20, -20, 30] });   // ラッキーパネル 難易度2 +50点
   await play(ponzu, 4, 60, { outcome: 3 });          // チンチロ ゾロ目 ×3
   await give(ponzu, 700, 'ゲームの景品（見本）');
@@ -181,7 +182,7 @@ export async function resetTraining(env) {
   // 3. たかし：いま「ブラックボックス」をプレイ中（卓の画面に出る）
   const takashi = await user('たかし', 'staff', staff);
   await give(takashi, 300, '両替（見本）');
-  await play(takashi, 1, null, { outcome: 0 });
+  await play(takashi, 1, null, { points: [0, 0, 10] });
   await startPlay(db, { userId: takashi, gameId: 3, stake: null, staffId: staff, requestId: `seed:play:${takashi}:open` });
 
   // 4. さくら：いま占いの最中（ふつうの占いを読み終えて、賄賂チャンスのところ。占い師の画面の続きから練習できる）

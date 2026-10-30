@@ -381,6 +381,67 @@ export async function handle(request, env, url, staff) {
     await audit(db, staff.id, 'スタッフ変更', `staff:${id}`, { level: b.level, active: b.active, perms: Array.isArray(b.perms) ? permNames(cleanPerms(b.perms)) : undefined, code: b.code != null ? '変更' : undefined });
     return json(shapeStaff(await db.prepare('SELECT id, name, level, perms, active, created_at, invite_id FROM staff WHERE id = ?').bind(id).first()));
   }
+  // お客さんの一覧（管理者）。消す人を選ぶのに使う
+  if (p === '/customers' && m === 'GET') {
+    needLevel(staff, LEVEL.admin);
+    const q = cleanNickname(url.searchParams.get('q') || '');
+    const r = await db
+      .prepare(
+        `SELECT u.id, u.nickname, u.short_code, u.balance, u.status, u.source, u.created_at, u.claimed_at,
+                (SELECT COUNT(*) FROM plays WHERE user_id = u.id) AS plays,
+                (SELECT COUNT(*) FROM readings WHERE user_id = u.id AND status = 'done') AS readings
+           FROM users u
+          WHERE (u.nickname IS NOT NULL OR u.balance <> 0 OR EXISTS (SELECT 1 FROM ledger WHERE user_id = u.id))
+            AND (? = '' OR u.nickname LIKE '%' || ? || '%' OR u.short_code = upper(?))
+          ORDER BY u.id DESC LIMIT 500`,
+      )
+      .bind(q, q, q)
+      .all();
+    return json({ results: r.results.map((u) => ({ id: u.id, nickname: u.nickname, shortCode: u.short_code, balance: u.balance, status: u.status, source: u.source, createdAt: u.created_at, plays: u.plays, readings: u.readings })) });
+  }
+  // お客さんを消す（管理者・まとめて選べる）。残高・ゲーム・占い・履歴ごと消す
+  // 印刷したQRカードの人は、カードは消さずに「名前なし・残高0」に戻す（カードはまた使える）
+  if (p === '/customers/delete' && m === 'POST') {
+    needLevel(staff, LEVEL.admin);
+    const b = await body();
+    const ids = [...new Set((Array.isArray(b.ids) ? b.ids : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 500);
+    if (!ids.length) throw new ApiError('BAD_INPUT', '消すお客さんを選んでください');
+    let deleted = 0, cards = 0;
+    for (const id of ids) {
+      const u = await db.prepare('SELECT id, nickname, source FROM users WHERE id = ?').bind(id).first();
+      if (!u) continue;
+      const stmts = [
+        db.prepare('DELETE FROM ledger WHERE user_id = ?').bind(id),
+        db.prepare('DELETE FROM plays WHERE user_id = ?').bind(id),
+        db.prepare('DELETE FROM readings WHERE user_id = ?').bind(id),
+      ];
+      if (u.source === 'card') { stmts.push(db.prepare("UPDATE users SET nickname = NULL, balance = 0, status = 'active', claimed_at = NULL WHERE id = ?").bind(id)); cards++; }
+      else { stmts.push(db.prepare('DELETE FROM users WHERE id = ?').bind(id)); deleted++; }
+      await db.batch(stmts);
+      await audit(db, staff.id, 'お客さんを消す', `user:${id}`, `${u.nickname || '（名前なし）'}${u.source === 'card' ? '（QRカードは名前なしに戻す）' : ''}`);
+    }
+    return json({ deleted, cards });
+  }
+  // スタッフをまとめて変える（管理者）：選んだ人の「できること」を足す・外す、止める・戻す
+  if (p === '/accounts/bulk' && m === 'POST') {
+    needLevel(staff, LEVEL.admin);
+    const b = await body();
+    const ids = [...new Set((Array.isArray(b.ids) ? b.ids : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (!ids.length) throw new ApiError('BAD_INPUT', 'スタッフを選んでください');
+    if (b.active === false && ids.includes(staff.id)) throw new ApiError('SELF', '自分は止められません');
+    const add = Array.isArray(b.add) ? b.add : [], remove = Array.isArray(b.remove) ? b.remove : [];
+    for (const id of ids) {
+      const t = await db.prepare('SELECT id, level, perms FROM staff WHERE id = ?').bind(id).first();
+      if (!t) continue;
+      if (add.length || remove.length) {
+        const now = permsOf({ level: LEVEL.staff, perms: t.perms }).filter((k) => !remove.includes(k));
+        await db.prepare('UPDATE staff SET perms = ? WHERE id = ?').bind(cleanPerms(now.concat(add)), id).run();
+      }
+      if (b.active != null) await db.prepare('UPDATE staff SET active = ? WHERE id = ?').bind(b.active ? 1 : 0, id).run();
+    }
+    await audit(db, staff.id, 'スタッフをまとめて変更', `staff:${ids.join(',')}`, { add: add.length ? permNames(cleanPerms(add)) : undefined, remove: remove.length ? permNames(cleanPerms(remove)) : undefined, active: b.active });
+    return json({ ok: true, n: ids.length });
+  }
   if (p === '/audit' && m === 'GET') {
     needLevel(staff, LEVEL.admin);
     const r = await db
@@ -415,6 +476,18 @@ function toInt(v, fallback) {
 }
 
 function validateGameConfig(kind, cfg) {
+  if (kind === 'score' && Array.isArray(cfg.keys)) {
+    // 1球ごとに色を入れるゲーム（ストラックアウト）
+    const keys = cfg.keys.slice(0, 10).map((k) => {
+      const label = String(k.label || '').trim(), pts = Number(k.pts);
+      if (!label || !Number.isInteger(pts) || Math.abs(pts) > 1000) throw new ApiError('CONFIG', '色の名前と点（−1000〜1000の整数）を入れてください');
+      return { label, pts, color: /^#[0-9a-fA-F]{6}$/.test(k.color || '') ? k.color : '#8a8385' };
+    });
+    const perBall = Number(cfg.perBall);
+    if (!keys.length) throw new ApiError('CONFIG', '色を1つ以上入れてください');
+    if (!Number.isInteger(perBall) || perBall < 0 || perBall > 1000) throw new ApiError('CONFIG', '1球の値段は0以上の整数で');
+    return { score: true, perBall, keys };
+  }
   if (kind === 'score') {
     if (!Array.isArray(cfg.levels) || cfg.levels.length < 1 || cfg.levels.length > 6) throw new ApiError('CONFIG', '難易度を1〜6個入れてください');
     const levels = cfg.levels.map((l) => {

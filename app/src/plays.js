@@ -79,8 +79,12 @@ export function computePayout(game, stake, result, div = 1) {
   if (game.kind === 'score') {
     const pts = Array.isArray(result.points) ? result.points.map(Number) : [];
     if (pts.length > 300 || pts.some((n) => !Number.isInteger(n) || Math.abs(n) > 1000)) throw new ApiError('RESULT', '点数が不正です');
-    const total = Math.max(-5000, Math.min(5000, pts.reduce((a, n) => a + n, 0)));
+    // 1球ごとに入れるゲーム（ストラックアウト）は、球の数 × perBall を引く
+    const balls = c.perBall ? pts.length : 0;
+    const sum = pts.reduce((a, n) => a + n, 0);
+    const total = Math.max(-5000, Math.min(5000, sum - balls * (c.perBall || 0)));
     const lv = (c.levels || [])[Number(result.level)];
+    if (c.perBall) return { payout: total, label: `${balls}球・${sum}点−${balls * c.perBall}縁` };
     return { payout: total, label: (lv ? lv.name + '・' : '') + (total > 0 ? '+' : '') + total + '点' };
   }
   if (game.kind === 'stack') {

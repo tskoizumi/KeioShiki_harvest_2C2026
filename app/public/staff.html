@@ -148,6 +148,20 @@
     .sc-keys .btn.win { color: var(--ok); }
     .sc-keys .btn.neg { grid-column: span 2; color: var(--red); font-size: 19px; }
     .sc-free { margin-top: 10px; }
+    .ball-keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .ball-keys .btn { width: 100%; min-width: 0; min-height: 78px; flex-direction: column; gap: 2px; border-radius: 16px; }
+    .ball-keys .btn i { width: 22px; height: 22px; border-radius: 50%; background: var(--c); border: 2px solid rgba(255, 255, 255, 0.5); }
+    .ball-keys .btn b { font-size: 18px; }
+    .ball-keys .btn small { font-size: 14px; font-weight: 800; color: var(--muted); }
+    /* まとめて選ぶ（お客さんを消す・スタッフをまとめて変える） */
+    .sel-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .pchk.mini { padding: 8px 10px; align-items: center; }
+    .pchk.mini span { font-size: 14px; color: var(--text); font-weight: 700; }
+    .sel-row { display: flex; align-items: center; gap: 10px; min-width: 0; cursor: pointer; }
+    .sel-row input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--gold); }
+    .bulk { margin-top: 14px; padding: 14px; border-radius: 16px; border: 1.5px solid var(--gold); background: #2e2618; }
+    .bulk h4 { font-size: 15px; margin-bottom: 8px; }
+    .bulk-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 5px 0; font-weight: 700; }
     /* スタッフごとの、できることのオン・オフ */
     .perm-pick { display: grid; gap: 8px; margin-top: 12px; }
     .pchk { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; }

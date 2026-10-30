@@ -80,6 +80,12 @@ test('払い戻し：ラッキーパネルは入れた点の合計（マイナ�
   assert.throws(() => computePayout(lp, 50, { points: [1.5] }));
 });
 
+test('払い戻し：ストラックアウトは点の合計 − 5縁 × 球の数', () => {
+  const so = { kind: 'score', config: { score: true, perBall: 5, keys: [{ label: '赤', pts: 50 }, { label: '黒', pts: -20 }] } };
+  assert.deepEqual(computePayout(so, 0, { points: [50, 10, 0, 30, -20] }), { payout: 45, label: '5球・70点−25縁' });
+  assert.equal(computePayout(so, 0, { points: [-20, 0] }).payout, -30);
+});
+
 test('払い戻し：ブラックボックスの時間切れはマイナス', () => {
   const bb = { kind: 'fixed', config: { timer: 60, outcomes: [{ label: 'S 正解', payout: 50 }, { label: 'S 時間切れ', payout: -50 }] } };
   assert.deepEqual(computePayout(bb, 0, { outcome: 1 }), { payout: -50, label: 'S 時間切れ' });

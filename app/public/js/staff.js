@@ -400,6 +400,7 @@
   }
   function saveScore(id) { try { localStorage.setItem('mt:sc:' + id, JSON.stringify(S.sc[id])); } catch (e) {} }
   function scoreBody(p, g) {
+    if (g.config.keys) return ballBody(p, g);
     var st = scoreState(p.id), c = g.config, lv = c.levels[st.level] || c.levels[0];
     var total = st.pts.reduce(function (a, n) { return a + n; }, 0);
     var h = '<div class="sc-lv" style="margin-top:14px">' + c.levels.map(function (l, i) { return '<button class="btn' + (i === st.level ? ' on' : '') + '" data-act="sc-lv" data-i="' + i + '"><b>' + esc(l.name) + '</b><small>覚える ' + l.memorize + '秒<br>ドラキー ' + l.miss + '</small></button>'; }).join('') + '</div>';
@@ -410,6 +411,18 @@
     h += '<div class="sc-log">' + (st.pts.length ? st.pts.map(function (n, k) { return '<button class="' + (n < 0 ? 'neg' : '') + '" data-act="sc-del" data-k="' + k + '" aria-label="この点を消す">' + (n > 0 ? '+' : '') + n + ' ×</button>'; }).join('') : '<span class="hint">まだ点はありません</span>') + '</div>';
     h += '<p class="sc-total ' + (total < 0 ? 'neg' : '') + '">合計 <b>' + (total > 0 ? '+' : '') + total + '</b>点<small>' + (total > 0 ? yen(total) + '縁が戻る' : total < 0 ? 'さらに ' + yen(-total) + '縁を払う' : '払い戻しなし') + '</small></p>';
     h += '<button class="btn pri block huge" data-act="finish-score" style="margin-top:12px">この点数で決定</button>';
+    return h;
+  }
+  // ストラックアウト：1球ごとに当たった色を押す。最後に 点の合計 − 1球の値段 × 球の数
+  function ballBody(p, g) {
+    var st = scoreState(p.id), c = g.config, n = st.pts.length;
+    var sum = st.pts.reduce(function (a, x) { return a + x; }, 0), total = sum - c.perBall * n;
+    var h = '<p class="hint" style="margin-top:14px">1球投げるたびに、当たった色を押します（1球 ' + c.perBall + '縁）。押しまちがえたら、下の記録の × で消せます。</p>';
+    h += '<div class="ball-keys">' + c.keys.map(function (k) { return '<button class="btn" data-act="sc-add" data-n="' + k.pts + '" style="--c:' + esc(k.color || '#8a8385') + '"><i></i><b>' + esc(k.label) + '</b><small>' + (k.pts > 0 ? '+' : '') + k.pts + '</small></button>'; }).join('') + '</div>';
+    var name = {}; c.keys.forEach(function (k) { name[k.pts] = k.label; });
+    h += '<div class="sc-log">' + (n ? st.pts.map(function (x, i) { return '<button class="' + (x < 0 ? 'neg' : '') + '" data-act="sc-del" data-k="' + i + '" aria-label="' + (i + 1) + '球目を消す">' + (i + 1) + '. ' + esc(name[x] || x) + ' ×</button>'; }).join('') : '<span class="hint">まだ投げていません</span>') + '</div>';
+    h += '<p class="sc-total ' + (total < 0 ? 'neg' : '') + '">' + n + '球　<b>' + (total > 0 ? '+' : '') + total + '</b>縁<small>点 ' + sum + ' − 球の代金 ' + c.perBall * n + '縁</small></p>';
+    h += '<button class="btn pri block huge" data-act="finish-score" style="margin-top:12px"' + (n ? '' : ' disabled') + '>' + n + '球で決定</button>';
     return h;
   }
   function scoreAct(a, b, card, root) {
@@ -760,13 +773,52 @@
      管理
   ============================================================ */
   function renderAdmin() {
-    var tabs = [['summary', '概要'], ['settings', '設定'], ['games', 'ゲーム'], ['staff', 'スタッフ']];
+    var tabs = [['summary', '概要'], ['settings', '設定'], ['games', 'ゲーム'], ['customers', 'お客さん'], ['staff', 'スタッフ']];
     tabs.push(['log', '記録']);
     if (!tabs.some(function (t) { return t[0] === S.adminTab; })) S.adminTab = 'summary';
     $('subtabs').innerHTML = tabs.map(function (t) { return '<button data-sub="' + t[0] + '" class="' + (S.adminTab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
     $('subtabs').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { S.adminTab = b.dataset.sub; renderAdmin(); }); });
     var el = $('admin'); el.innerHTML = '<p class="empty">読み込み中…</p>';
-    ({ summary: adminSummary, settings: adminSettings, games: adminGames, staff: adminStaff, log: adminLog })[S.adminTab](el);
+    ({ summary: adminSummary, settings: adminSettings, games: adminGames, customers: adminCustomers, staff: adminStaff, log: adminLog })[S.adminTab](el);
+  }
+  // お客さんを選んで消す（何人でもまとめて）。QRカードの人は、カードを名前なしに戻す
+  var custSel = {};
+  function adminCustomers(el, q) {
+    q = q || '';
+    api('/api/staff/customers?q=' + encodeURIComponent(q)).then(function (x) {
+      var list = x.ok ? x.d.results : [];
+      var ids = list.map(function (u) { return u.id; });
+      Object.keys(custSel).forEach(function (k) { if (ids.indexOf(Number(k)) < 0) delete custSel[k]; });
+      var h = '<div class="card"><h3>お客さんを消す</h3><p class="hint">消したい人にチェックを入れて「消す」。残高・ゲーム・占い・履歴ごと消え、ランキングからも消えます。元に戻せません。<br>印刷したQRカードの人は、カードは消さずに「名前なし・残高0」に戻します（カードはまた配れます）。</p>' +
+        '<div class="row" style="margin-top:12px"><input class="in grow" id="cu-q" placeholder="名前か番号で探す" value="' + esc(q) + '"><button class="btn" id="cu-find">探す</button></div></div>';
+      h += '<div class="card sel-list"><div class="sel-bar"><label class="pchk mini"><input type="checkbox" id="cu-all"><span>表示中の全員（' + list.length + '人）</span></label><button class="btn danger" id="cu-del" disabled>消す</button></div><ul class="list2">' +
+        (list.length ? list.map(function (u) {
+          return '<li><label class="sel-row"><input type="checkbox" data-cu="' + u.id + '"' + (custSel[u.id] ? ' checked' : '') + '><span class="t">' + esc(u.nickname || '（名前なしのQRカード）') + (u.source === 'card' ? '<span class="pill">QRカード</span>' : '') + (u.status !== 'active' ? '<span class="pill">使えない</span>' : '') + '</span></label>' +
+            '<span class="r"><b>' + yen(u.balance) + '縁</b></span><span class="s">番号 ' + esc(u.shortCode) + '・ゲーム ' + u.plays + '回・占い ' + u.readings + '回・' + timeOf(u.createdAt) + '</span></li>';
+        }).join('') : '<li class="empty">いません</li>') + '</ul></div>';
+      el.innerHTML = h;
+      var upd = function () {
+        var n = Object.keys(custSel).length, b = el.querySelector('#cu-del');
+        b.disabled = !n; b.textContent = n ? '選んだ ' + n + '人を消す' : '消す';
+        var boxes = el.querySelectorAll('[data-cu]'); el.querySelector('#cu-all').checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (c) { return c.checked; });
+      };
+      el.querySelectorAll('[data-cu]').forEach(function (c) { c.addEventListener('change', function () { if (c.checked) custSel[c.dataset.cu] = 1; else delete custSel[c.dataset.cu]; upd(); }); });
+      el.querySelector('#cu-all').addEventListener('change', function (e) { el.querySelectorAll('[data-cu]').forEach(function (c) { c.checked = e.target.checked; if (c.checked) custSel[c.dataset.cu] = 1; else delete custSel[c.dataset.cu]; }); upd(); });
+      var find = function () { adminCustomers(el, el.querySelector('#cu-q').value.trim()); };
+      el.querySelector('#cu-find').addEventListener('click', find);
+      el.querySelector('#cu-q').addEventListener('keydown', function (e) { if (e.key === 'Enter') find(); });
+      var del = el.querySelector('#cu-del');
+      del.addEventListener('click', function () {
+        var sel = Object.keys(custSel).map(Number);
+        armed(del, 'もう一度押すと ' + sel.length + '人を消します', function () {
+          api('/api/staff/customers/delete', 'POST', { ids: sel }).then(function (r) {
+            if (!r.ok) return err(r.d.message);
+            custSel = {}; toast(r.d.deleted + '人を消しました' + (r.d.cards ? '（QRカード ' + r.d.cards + '枚は名前なしに戻しました）' : '')); adminCustomers(el, q);
+          });
+        });
+      });
+      upd();
+    });
   }
   function adminSummary(el) {
     Promise.all([api('/api/staff/stats'), api('/api/staff/rankings')]).then(function (r) {
@@ -815,7 +867,9 @@
     h += '<div class="field"><label>ゲームの名前</label><input class="in" data-k="name" maxlength="20" value="' + esc(g.name) + '"></div>';
     if (g.kind === 'bet') h += '<div class="two"><div class="field"><label>賭け金の下限</label><input class="in" data-k="minBet" type="number" value="' + g.minBet + '"></div><div class="field"><label>賭け金の上限</label><input class="in" data-k="maxBet" type="number" value="' + g.maxBet + '"><p>0 = 残高まで</p></div></div>';
     else h += '<div class="field"><label>参加費（縁）</label><input class="in" data-k="fee" type="number" value="' + g.fee + '"></div>';
-    if (g.kind === 'score') h += '<div class="orow-h" style="grid-template-columns:1fr 1fr 1fr"><span>難易度の名前</span><span>覚える秒</span><span>ドラキーの点</span></div>' + cfg.levels.map(function (l) { return '<div class="orow" data-lvrow style="grid-template-columns:1fr 1fr 1fr"><input class="in" data-l="name" value="' + esc(l.name) + '"><input class="in" data-l="memorize" type="number" value="' + l.memorize + '"><input class="in" data-l="miss" type="number" value="' + l.miss + '"></div>'; }).join('') +
+    if (g.kind === 'score' && cfg.keys) h += '<div class="field"><label>1球の値段（縁）</label><input class="in" data-k="perBall" type="number" min="0" value="' + cfg.perBall + '"></div>' +
+      '<div class="orow-h" style="grid-template-columns:1fr 1fr"><span>色</span><span>点（マイナスも可）</span></div>' + cfg.keys.map(function (k) { return '<div class="orow" data-keyrow data-color="' + esc(k.color || '') + '" style="grid-template-columns:1fr 1fr"><input class="in" data-l="label" value="' + esc(k.label) + '"><input class="in" data-l="pts" type="number" value="' + k.pts + '"></div>'; }).join('');
+    else if (g.kind === 'score') h += '<div class="orow-h" style="grid-template-columns:1fr 1fr 1fr"><span>難易度の名前</span><span>覚える秒</span><span>ドラキーの点</span></div>' + cfg.levels.map(function (l) { return '<div class="orow" data-lvrow style="grid-template-columns:1fr 1fr 1fr"><input class="in" data-l="name" value="' + esc(l.name) + '"><input class="in" data-l="memorize" type="number" value="' + l.memorize + '"><input class="in" data-l="miss" type="number" value="' + l.miss + '"></div>'; }).join('') +
       '<div class="field"><label>足す点のボタン（カンマ区切り）</label><input class="in" data-k="plus" value="' + esc(cfg.plus.join(',')) + '"></div>';
     else if (g.kind === 'stack') h += '<div class="two"><div class="field"><label>1段で戻る縁</label><input class="in" data-k="per_level" type="number" value="' + cfg.per_level + '"></div><div class="field"><label>最大の段数</label><input class="in" data-k="max_level" type="number" value="' + cfg.max_level + '"></div></div>';
     else h += (g.kind === 'fixed' ? '<div class="field"><label>制限時間のタイマー（秒。0 = なし）</label><input class="in" data-k="timer" type="number" min="0" value="' + (cfg.timer || 0) + '"></div><p class="hint" style="margin-top:12px">戻る縁にはマイナスも入れられます（時間切れなど）。</p>' : '') + (g.kind === 'bet' ? '<p class="hint" style="margin-top:12px">倍率は マイナスも入れられます（−1 = 賭け金を失ったうえ、さらに同じ額を払う）。</p>' : '') + '<div class="orow-h"><span>結果の名前</span><span>' + (g.kind === 'bet' ? '倍率' : '戻る縁') + '</span><span></span></div><div data-outs>' + cfg.outcomes.map(function (o) { return outRow(g, o); }).join('') + '</div><button class="btn sm" data-add style="margin-top:10px">結果を足す</button>';
@@ -833,7 +887,10 @@
     card.querySelector('[data-save]').addEventListener('click', function () {
       var v = function (k) { var i = card.querySelector('[data-k="' + k + '"]'); return i ? (i.type === 'checkbox' ? i.checked : i.value) : undefined; };
       var body = { name: v('name'), enabled: v('enabled'), fee: v('fee'), minBet: v('minBet'), maxBet: v('maxBet'), rules: v('rules') };
-      if (g.kind === 'score') {
+      if (g.kind === 'score' && g.config.keys) {
+        body.config = { score: true, perBall: Number(v('perBall')), keys: [] };
+        card.querySelectorAll('[data-keyrow]').forEach(function (r) { body.config.keys.push({ label: r.querySelector('[data-l="label"]').value.trim(), pts: Number(r.querySelector('[data-l="pts"]').value), color: r.dataset.color }); });
+      } else if (g.kind === 'score') {
         body.config = { score: true, plus: String(v('plus')).split(/[,、\s]+/).filter(Boolean).map(Number), levels: [] };
         card.querySelectorAll('[data-lvrow]').forEach(function (r) { var q = function (k) { return r.querySelector('[data-l="' + k + '"]').value; }; body.config.levels.push({ name: q('name').trim(), memorize: Number(q('memorize')), miss: Number(q('miss')) }); });
       } else if (g.kind === 'stack') body.config = { per_level: Number(v('per_level')), max_level: Number(v('max_level')) };
@@ -850,6 +907,7 @@
       });
     });
   }
+  var staffSel = {};
   function adminStaff(el) {
     var ps = [api('/api/staff/invites')];
     if (can(LV.admin)) ps.push(api('/api/staff/accounts'));
@@ -867,11 +925,14 @@
           '<span class="s">' + i.uses + ' / ' + i.maxUses + '人が登録・' + timeOf(i.expiresAt) + 'まで' + (i.byName ? '・' + esc(i.byName) + 'が作成' : '') + '</span></li>';
       }).join('') : '<li class="empty">まだありません</li>') + '</ul></div>';
       if (accounts) {
-        h += '<div class="card"><h3>スタッフの一覧（' + accounts.length + '人）</h3><ul class="list2">' + accounts.map(function (a) {
-          return '<li><span class="t">' + esc(a.name) + (a.active ? '' : '<span class="pill">止めています</span>') + '</span><span class="r"><select class="in" data-acc-level="' + a.id + '" aria-label="' + esc(a.name) + 'の権限" style="min-height:40px;padding:6px 30px 6px 10px;font-size:14px;width:auto">' + [1, 4].map(function (l) { return '<option value="' + l + '"' + (a.level === l ? ' selected' : '') + '>' + S.me.levels[l] + '</option>'; }).join('') + '</select></span>' +
+        h += '<div class="card"><h3>スタッフの一覧（' + accounts.length + '人）</h3><p class="hint">1人ずつなら名前の下のボタンを押す。まとめて変えるときは、チェックを入れて下の「選んだ人をまとめて変える」から。</p>' +
+          '<div class="sel-bar" style="margin-top:10px"><label class="pchk mini"><input type="checkbox" id="st-all"><span>スタッフ全員を選ぶ</span></label><span class="hint" id="st-n">0人を選択中</span></div><ul class="list2">' + accounts.map(function (a) {
+          return '<li><label class="sel-row"><input type="checkbox" data-st="' + a.id + '"' + (a.level >= LV.admin ? ' data-admin="1"' : '') + (staffSel[a.id] ? ' checked' : '') + '><span class="t">' + esc(a.name) + (a.active ? '' : '<span class="pill">止めています</span>') + '</span></label><span class="r"><select class="in" data-acc-level="' + a.id + '" aria-label="' + esc(a.name) + 'の権限" style="min-height:40px;padding:6px 30px 6px 10px;font-size:14px;width:auto">' + [1, 4].map(function (l) { return '<option value="' + l + '"' + (a.level === l ? ' selected' : '') + '>' + S.me.levels[l] + '</option>'; }).join('') + '</select></span>' +
             '<span class="s perms-row">' + (a.level >= LV.admin ? '<span class="hint">管理者は全部できます</span>' : defs.map(function (d) { var on = a.perms.indexOf(d.key) >= 0; return '<button type="button" class="pchip' + (on ? ' on' : '') + (d.key === 'fortune' ? ' special' : '') + '" data-perm-acc="' + a.id + '" data-perm="' + d.key + '" aria-pressed="' + on + '">' + (on ? '✓ ' : '') + esc(d.name) + '</button>'; }).join('')) + '</span>' +
             '<span class="s">' + (a.viaInvite ? '招待から登録・' : '') + '<button class="link" data-acc-code="' + a.id + '" style="padding:0;font-size:13px">パスワードを変える</button>　<button class="link danger" data-acc-active="' + a.id + '" data-v="' + (a.active ? '0' : '1') + '" style="padding:0;font-size:13px">' + (a.active ? '止める' : '戻す') + '</button></span></li>';
         }).join('') + '</ul>' +
+          '<div class="bulk" id="st-bulk" hidden><h4>選んだ人をまとめて変える</h4>' + defs.map(function (d) { return '<div class="bulk-row"><span>' + esc(d.name) + '</span><button class="btn sm" data-bulk-add="' + d.key + '">オンにする</button><button class="btn sm" data-bulk-rm="' + d.key + '">オフにする</button></div>'; }).join('') +
+          '<div class="bulk-row"><span>ログイン</span><button class="btn sm" data-bulk-active="1">戻す</button><button class="btn sm danger" data-bulk-active="0">止める</button></div><p class="hint">管理者は、できることのオン・オフに関係なく全部できます。</p></div>' +
           '<details class="mgr" style="margin-top:14px"><summary>手で追加する</summary><div><div class="field"><input class="in" id="acc-name" placeholder="名前"></div><div class="field"><select class="in" id="acc-level" aria-label="権限">' + [1, 4].map(function (l) { return '<option value="' + l + '">' + S.me.levels[l] + '</option>'; }).join('') + '</select></div><div class="field"><input class="in" id="acc-code" placeholder="パスワード（6文字以上）" autocomplete="new-password"></div><button class="btn pri block" id="acc-add" style="margin-top:12px">追加</button></div></details></div>';
       }
       el.innerHTML = h;
@@ -885,6 +946,24 @@
       el.querySelectorAll('[data-inv-show]').forEach(function (b) { b.addEventListener('click', function () { showInv(invites.filter(function (i) { return i.id === Number(b.dataset.invShow); })[0]); }); });
       el.querySelectorAll('[data-inv-stop]').forEach(function (b) { b.addEventListener('click', function () { armed(b, 'もう一度押す', function () { api('/api/staff/invites/' + b.dataset.invStop + '/stop', 'POST', {}).then(function (x) { if (!x.ok) return err(x.d.message); toast('招待を止めました'); adminStaff(el); }); }); }); });
       var send = function (id, body) { api('/api/staff/accounts/' + id, 'PATCH', body).then(function (x) { if (!x.ok) return err(x.d.message); toast('変更しました'); adminStaff(el); }); };
+      // まとめて選ぶ
+      var stUpd = function () {
+        var n = Object.keys(staffSel).length; var nEl = el.querySelector('#st-n'); if (!nEl) return;
+        nEl.textContent = n + '人を選択中'; el.querySelector('#st-bulk').hidden = !n;
+        var boxes = el.querySelectorAll('[data-st]'); el.querySelector('#st-all').checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (c) { return c.checked || c.dataset.admin; });
+      };
+      el.querySelectorAll('[data-st]').forEach(function (c) { c.addEventListener('change', function () { if (c.checked) staffSel[c.dataset.st] = 1; else delete staffSel[c.dataset.st]; stUpd(); }); });
+      var stAll = el.querySelector('#st-all');
+      if (stAll) stAll.addEventListener('change', function () { el.querySelectorAll('[data-st]').forEach(function (c) { if (c.dataset.admin) return; c.checked = stAll.checked; if (c.checked) staffSel[c.dataset.st] = 1; else delete staffSel[c.dataset.st]; }); stUpd(); });
+      var bulk = function (body, b) {
+        body.ids = Object.keys(staffSel).map(Number);
+        var go2 = function () { api('/api/staff/accounts/bulk', 'POST', body).then(function (x) { if (!x.ok) return err(x.d.message); toast(x.d.n + '人を変更しました'); adminStaff(el); }); };
+        if (body.active === false) armed(b, 'もう一度押すと止めます', go2); else go2();
+      };
+      el.querySelectorAll('[data-bulk-add]').forEach(function (b) { b.addEventListener('click', function () { bulk({ add: [b.dataset.bulkAdd] }, b); }); });
+      el.querySelectorAll('[data-bulk-rm]').forEach(function (b) { b.addEventListener('click', function () { bulk({ remove: [b.dataset.bulkRm] }, b); }); });
+      el.querySelectorAll('[data-bulk-active]').forEach(function (b) { b.addEventListener('click', function () { bulk({ active: b.dataset.bulkActive === '1' }, b); }); });
+      stUpd();
       // できることのオン・オフ（押すとすぐ保存）
       el.querySelectorAll('[data-perm-acc]').forEach(function (c) {
         c.addEventListener('click', function () {

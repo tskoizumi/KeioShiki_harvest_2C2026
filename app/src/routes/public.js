@@ -36,7 +36,8 @@ export async function register(request, env) {
   if (!ins.meta.changes) throw new ApiError('FULL', '受付は満員です', 403);
   const userId = ins.meta.last_row_id;
   await grantStart(env.DB, userId, Number(s.starting_en));
-  return json({ token, key: await userKey(env, token), url: `/u/${token}`, shortCode: code }, 201);
+  const row = await env.DB.prepare('SELECT claimed_at FROM users WHERE id = ?').bind(userId).first();
+  return json({ token, key: await userKey(env, token, row.claimed_at), url: `/u/${token}`, shortCode: code }, 201);
 }
 
 export function validateNickname(n) {
@@ -84,7 +85,8 @@ export async function login(request, env, token) {
   } else if (!sameName(u.nickname, nickname)) {
     throw new ApiError('NAME', '名前が登録と違います。受付で登録した名前を入れてください', 403);
   }
-  return json({ key: await userKey(env, token), url: `/u/${token}` });
+  const row = await env.DB.prepare('SELECT claimed_at FROM users WHERE id = ?').bind(u.id).first();
+  return json({ key: await userKey(env, token, row.claimed_at), url: `/u/${token}` });
 }
 
 function sameName(a, b) {
@@ -93,12 +95,13 @@ function sameName(a, b) {
 
 export async function me(request, env, token) {
   const u = await env.DB
-    .prepare('SELECT id, token, short_code, nickname, balance, status, created_at FROM users WHERE token = ?')
+    .prepare('SELECT id, token, short_code, nickname, balance, status, created_at, claimed_at FROM users WHERE token = ?')
     .bind(token)
     .first();
   if (!u) throw new ApiError('NOT_FOUND', 'このQRは登録されていません', 404);
   const key = request.headers.get('X-User-Key') || new URL(request.url).searchParams.get('key');
-  if (!(await checkUserKey(env, token, key))) {
+  // 名前のないQRカードは、前に開いた端末があっても、まず名前をつけてもらう
+  if (u.nickname == null || !(await checkUserKey(env, token, key, u.claimed_at))) {
     return json({ error: 'LOGIN', claimed: u.nickname != null, message: u.nickname == null ? '名前を入れて登録してください' : '名前を入れてください' }, 401);
   }
   if (u.status !== 'active') throw new ApiError('DISABLED', 'このページは使えなくなっています', 403);
