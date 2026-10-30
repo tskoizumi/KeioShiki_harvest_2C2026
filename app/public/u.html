@@ -10,7 +10,9 @@
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap" rel="stylesheet">
+  <!-- フォントは後から読む（届かない回線やブラウザでも、画面が真っ白で止まらないように） -->
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap" rel="stylesheet"></noscript>
   <link rel="stylesheet" href="/app.css">
   <style>
     body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
@@ -177,12 +179,26 @@
     .login { text-align: center; padding-top: 36px; }
     .login img { width: 120px; height: 120px; margin: 0 auto 10px; }
     .login form { margin-top: 16px; display: grid; gap: 10px; }
+    .loading { text-align: center; padding-top: 80px; }
+    .loading img { width: 96px; height: 96px; margin: 0 auto 14px; animation: pulse 1.6s ease-in-out infinite; }
+    .loading .slow { margin-top: 16px; }
+    .loading .why { margin-top: 10px; font-size: 11px; color: var(--faint); word-break: break-all; }
   </style>
 </head>
 <body>
 <div id="bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
 
 <main class="page" id="app">
+  <!-- 読み込み中（最初に見えているもの。止まったら、もう一度読み込むボタンを出す） -->
+  <section class="loading" id="v-loading">
+    <img src="/assets/mark-alpha.webp" alt="">
+    <p class="sub">読み込み中…</p>
+    <div class="slow" id="slow" hidden>
+      <p class="sub">時間がかかっています。電波のいい所で、もう一度読み込んでください。</p>
+      <button class="btn solid" id="reload" type="button" style="margin-top:12px">もう一度読み込む</button>
+      <p class="why" id="why"></p>
+    </div>
+  </section>
   <!-- ログイン（名前で本人確認） -->
   <section class="login" id="v-login" hidden>
     <img src="/assets/mark-alpha.webp" alt="">
@@ -262,7 +278,7 @@
   </section>
 
   <section id="v-error" hidden>
-    <div class="card glass"><h2 id="err-title">開けません</h2><p class="sub" id="err-text" style="margin-top:8px"></p></div>
+    <div class="card glass"><h2 id="err-title">開けません</h2><p class="sub" id="err-text" style="margin-top:8px"></p><button class="btn solid" type="button" onclick="location.reload()" style="margin-top:14px">もう一度読み込む</button></div>
   </section>
 </main>
 
@@ -320,11 +336,14 @@
 
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function yen(n) { return Number(n).toLocaleString('ja-JP'); }
-  function show(id) { ['v-login', 'v-main', 'v-error'].forEach(function (v) { $(v).hidden = v !== id; }); $('ctab').hidden = id !== 'v-main'; }
+  function show(id) { ['v-loading', 'v-login', 'v-main', 'v-error'].forEach(function (v) { $(v).hidden = v !== id; }); $('ctab').hidden = id !== 'v-main'; }
   function api(path, opts) {
     opts = opts || {};
     opts.headers = Object.assign({}, opts.headers || {}, key ? { 'X-User-Key': key } : {});
-    return fetch(path, opts).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
+    // 返事が来ないまま止まらないように、15秒で打ち切る
+    var ctl = window.AbortController ? new AbortController() : null, t = ctl ? setTimeout(function () { ctl.abort(); }, 15000) : null;
+    if (ctl) opts.signal = ctl.signal;
+    return fetch(path, opts).then(function (r) { clearTimeout(t); return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); }, function (e) { clearTimeout(t); throw e; });
   }
   var RANK_ORDER = ['mu', 'sho', 'dai', 'kaizan'];
   var RANK_NAME = { mu: '無', sho: '小', dai: '大', kaizan: '改竄' };
@@ -348,11 +367,11 @@
   });
   function rankTable() {
     var r = me ? me.ranks : { sho: 100, dai: 500, kaizan: 2000 };
-    return '占い師に渡す<b>賄賂の額</b>で、占いのランクが決まります。額が大きいほど、占い師は親切になります。' +
-      '<table><tr><td>無</td><td>0〜' + yen(r.sho - 1) + '縁<br>事実だけを短く。</td></tr>' +
-      '<tr><td>小</td><td>' + yen(r.sho) + '〜' + yen(r.dai - 1) + '縁<br>少しだけアドバイスがつく。</td></tr>' +
-      '<tr><td>大</td><td>' + yen(r.dai) + '〜' + yen(r.kaizan - 1) + '縁<br>とても丁寧に、ほめてくれる。</td></tr>' +
-      '<tr><td>改竄</td><td>' + yen(r.kaizan) + '縁以上<br>鈴が鳴り、結果を最高のものに書き換える。</td></tr></table>' +
+    return 'まずは賄賂なしで占ってもらいます。気に入らなければ「賄賂チャンス」。渡した<b>賄賂の額</b>で、書き直せる運命が変わります。' +
+      '<table><tr><td>無</td><td>0〜' + yen(r.sho - 1) + '縁<br>運命はそのまま。</td></tr>' +
+      '<tr><td>小</td><td>' + yen(r.sho) + '〜' + yen(r.dai - 1) + '縁<br>人生の転機をひとつ書き直す。</td></tr>' +
+      '<tr><td>大</td><td>' + yen(r.dai) + '〜' + yen(r.kaizan - 1) + '縁<br>人生の出来事を全部書き直す。べた褒めつき。</td></tr>' +
+      '<tr><td>改竄</td><td>' + yen(r.kaizan) + '縁以上<br>鈴が鳴り、運命ごと書き換わる。</td></tr></table>' +
       '\n占いは何回でも受けられます。';
   }
 
@@ -387,11 +406,12 @@
       var first = !me;
       me = x.d;
       try { localStorage.setItem('mt:last', token); } catch (e) {}
-      render(first);
       show('v-main');
+      render(first);
+      if (!games.length) loadConfig();
       schedule();
-    }).catch(function () {
-      if (!me) { $('err-title').textContent = '通信できません'; $('err-text').textContent = '電波のいいところで、もう一度開いてください。'; show('v-error'); }
+    }).catch(function (e) {
+      if (!me) { $('err-title').textContent = '通信できません'; $('err-text').textContent = '電波のいいところで、もう一度開いてください。' + (e && e.message ? '（' + e.message + '）' : ''); show('v-error'); }
       schedule();
     });
   }
@@ -401,7 +421,15 @@
     timer = setTimeout(function () { if (!document.hidden) load(); else schedule(); }, busy ? 3000 : 6000);
   }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
-  fetch('/api/config').then(function (r) { return r.json(); }).then(function (c) { games = c.games || []; if (me) renderGames(); }).catch(function () {});
+  // ゲームの一覧。失敗したら、次の読み込みでもう一度取りに行く
+  function loadConfig() { fetch('/api/config').then(function (r) { return r.json(); }).then(function (c) { games = c.games || []; if (me) safe(renderGames); }).catch(function () {}); }
+  loadConfig();
+  // 一部の描画に失敗しても、ページ全体は止めない
+  function safe(fn, arg) { try { fn(arg); } catch (e) { report(e); } }
+  function report(e) { try { console.error(e); $('why').textContent = String(e && e.message || e); } catch (e2) {} }
+  window.addEventListener('error', function (e) { report(e.error || e.message); });
+  setTimeout(function () { if (!$('v-loading').hidden) $('slow').hidden = false; }, 10000);
+  $('reload').addEventListener('click', function () { location.reload(); });
 
   /* ---------- 描画 ---------- */
   function render(first) {
@@ -409,7 +437,7 @@
     $('nick').innerHTML = ''; $('nick').appendChild(document.createTextNode(me.nickname)); $('nick').appendChild(el('small', null, 'さん'));
     $('code').textContent = me.shortCode;
     $('bal').textContent = yen(me.balance);
-    if (first) drawQr();
+    if (first) safe(drawQr);
 
     // 増えた・減った
     var top = me.history[0];
@@ -423,11 +451,11 @@
     else if (me.openReading) { st.classList.add('live'); t.innerHTML = ''; t.appendChild(document.createTextNode('占いの最中')); t.appendChild(el('small', null, me.openReading.bribe ? '賄賂 ' + yen(me.openReading.bribe) + '縁（ランク ' + me.openReading.rankName + '）' : '占い師に賄賂を渡してください')); }
     else { t.innerHTML = ''; t.appendChild(document.createTextNode(nextStep())); }
 
-    renderMeter();
-    renderGames();
-    renderHistory();
-    renderReadings(first);
-    if (!$('pg-rank').hidden) loadBoards();
+    safe(renderMeter);
+    safe(renderGames);
+    safe(renderHistory);
+    safe(renderReadings, first);
+    if (!$('pg-rank').hidden) safe(loadBoards);
     $('updated').textContent = '　' + new Date().toTimeString().slice(0, 5) + ' 更新';
   }
   function nextStep() {
