@@ -1,7 +1,7 @@
 // ミニゲームの1回分：開始（参加費・賭け金を引く）→ 結果（払い戻す）／取消（返す）
 
 import { applyDelta } from './ledger.js';
-import { ApiError, nowIso } from './util.js';
+import { ApiError, nowIso, allSettings, taxDiv, taxedMult } from './util.js';
 
 export function shapeGame(g) {
   return {
@@ -49,7 +49,10 @@ export async function startPlay(db, { userId, gameId, stake, staffId, requestId 
     amount = game.fee;
   }
 
-  const ins = await db.prepare('INSERT INTO plays (user_id, game_id, staff_id, stake) VALUES (?, ?, ?, ?)').bind(userId, gameId, staffId, amount).run();
+  // 始めたときの残高で資産区分を決める（賭け金を引く前）
+  const u = await db.prepare('SELECT balance FROM users WHERE id = ?').bind(userId).first();
+  const div = game.kind === 'bet' ? taxDiv(u ? u.balance : 0, await allSettings(db)) : 1;
+  const ins = await db.prepare('INSERT INTO plays (user_id, game_id, staff_id, stake, tax_div) VALUES (?, ?, ?, ?, ?)').bind(userId, gameId, staffId, amount, div).run();
   const playId = ins.meta.last_row_id;
   try {
     if (amount > 0) {
@@ -62,7 +65,8 @@ export async function startPlay(db, { userId, gameId, stake, staffId, requestId 
   return getPlay(db, playId);
 }
 
-export function computePayout(game, stake, result) {
+// 払い戻し。bet は 賭け金 × 倍率（資産区分で割ったもの）。マイナスもある
+export function computePayout(game, stake, result, div = 1) {
   const c = game.config;
   if (game.kind === 'fixed') {
     const o = c.outcomes[Number(result.outcome)];
@@ -78,7 +82,8 @@ export function computePayout(game, stake, result) {
   if (game.kind === 'bet') {
     const o = c.outcomes[Number(result.outcome)];
     if (!o) throw new ApiError('RESULT', '結果の選び方が不正です');
-    return { payout: Math.round(stake * o.mult), label: o.label };
+    const mult = taxedMult(o.mult, div);
+    return { payout: Math.round(stake * mult), label: o.label, mult, baseMult: Number(o.mult) };
   }
   throw new ApiError('KIND', 'ゲームの種類が不正です');
 }
@@ -88,13 +93,20 @@ export async function finishPlay(db, playId, result, staffId) {
   if (!p) throw new ApiError('NOT_FOUND', 'そのプレイは見つかりません', 404);
   if (p.status !== 'playing') return getPlay(db, playId);   // もう入っている（二度押し）
   const game = shapeGame({ ...p, id: p.game_id });
-  const { payout, label } = computePayout(game, p.stake, result || {});
+  const out = computePayout(game, p.stake, result || {}, p.tax_div || 1);
+  const label = out.label;
+  let payout = out.payout;
+  // マイナス（ションベン・ヒフミ）は残高から追加で引く。残高より多くは引かない
+  if (payout < 0) {
+    const u = await db.prepare('SELECT balance FROM users WHERE id = ?').bind(p.user_id).first();
+    payout = -Math.min(-payout, u ? u.balance : 0);
+  }
 
   const upd = await db
     .prepare("UPDATE plays SET status = 'done', result = ?, payout = ?, finished_at = ? WHERE id = ? AND status = 'playing'")
-    .bind(JSON.stringify({ ...result, label }), payout, nowIso(), playId)
+    .bind(JSON.stringify({ ...result, label, mult: out.mult, baseMult: out.baseMult, taxDiv: p.tax_div || 1 }), payout, nowIso(), playId)
     .run();
-  if (upd.meta.changes === 1 && payout > 0) {
+  if (upd.meta.changes === 1 && payout !== 0) {
     await applyDelta(db, { userId: p.user_id, delta: payout, type: 'payout', refType: 'play', refId: playId, staffId, note: `${p.name}：${label}`, requestId: `payout:${playId}` });
   }
   return getPlay(db, playId);
@@ -138,6 +150,7 @@ export function shapePlay(p) {
     staffId: p.staff_id,
     staffName: p.staff_name,
     stake: p.stake,
+    taxDiv: p.tax_div || 1,
     status: p.status,
     result: p.result ? JSON.parse(p.result) : null,
     payout: p.payout,

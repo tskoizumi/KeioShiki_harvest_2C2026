@@ -86,6 +86,17 @@ export function rankOf(amount, s) {
   if (amount >= Number(s.rank_sho)) return 'sho';
   return 'mu';
 }
+// 資産区分。残高が境目をいくつ超えたか ＋1（1 = いちばん下）
+export function taxDiv(balance, s) {
+  const marks = String((s && s.tax_brackets) || '').split(',').map((x) => Number(x.trim())).filter((x) => Number.isFinite(x) && x > 0).sort((a, b) => a - b);
+  return 1 + marks.filter((m) => balance >= m).length;
+}
+// 倍率に資産区分をかける。1倍より大きい倍率だけを割り、1倍より下にはしない。マイナスと1倍以下はそのまま
+export function taxedMult(mult, div) {
+  const m = Number(mult);
+  if (!(m > 1) || !(div > 1)) return m;
+  return Math.max(1, Math.round((m / div) * 100) / 100);
+}
 export const RANK_NAME = { mu: '無', sho: '小', dai: '大', kaizan: '改竄' };
 
 export async function audit(db, staffId, action, target, detail) {

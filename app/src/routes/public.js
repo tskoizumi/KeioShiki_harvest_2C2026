@@ -6,7 +6,7 @@
 //   GET  /api/ranking               LP用の番付
 //   GET  /api/config                ゲーム・位・出し物名
 
-import { ApiError, json, readJson, randomToken, shortCode, cleanNickname, allSettings, settingInt, RANK_NAME } from '../util.js';
+import { ApiError, json, readJson, randomToken, shortCode, cleanNickname, allSettings, settingInt, RANK_NAME, taxDiv } from '../util.js';
 import { applyDelta, history } from '../ledger.js';
 import { userKey, checkUserKey } from '../auth.js';
 import { listGames, shapePlay } from '../plays.js';
@@ -143,6 +143,7 @@ export async function me(request, env, token) {
     })),
     position: pos,
     ranks: { sho: Number(s.rank_sho), dai: Number(s.rank_dai), kaizan: Number(s.rank_kaizan) },
+    taxDiv: taxDiv(u.balance, s),
     site: SITE,
   });
 }

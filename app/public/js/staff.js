@@ -27,6 +27,9 @@
   function err(t) { toast(t, { err: true }); }
   function can(level) { return S.me && S.me.level >= level; }
   function rankOf(amount) { var s = S.settings; if (amount >= Number(s.rank_kaizan)) return 'kaizan'; if (amount >= Number(s.rank_dai)) return 'dai'; if (amount >= Number(s.rank_sho)) return 'sho'; return 'mu'; }
+  function taxDiv(balance) { var marks = String(S.settings.tax_brackets || '').split(',').map(Number).filter(function (x) { return x > 0; }); return 1 + marks.filter(function (m) { return balance >= m; }).length; }
+  function taxedMult(m, div) { m = Number(m); if (!(m > 1) || !(div > 1)) return m; return Math.max(1, Math.round(m / div * 100) / 100); }
+  function signed(n) { return n > 0 ? '+' + yen(n) : n < 0 ? '−' + yen(-n) : '0'; }
   function toDate(s) { return new Date(String(s).replace(' ', 'T') + (/Z|\+/.test(s) ? '' : 'Z')); }
   function timeOf(s) { if (!s) return ''; var d = toDate(s); return isNaN(d) ? s : d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
   function clock(s) { if (!s) return ''; var d = toDate(s); return isNaN(d) ? s : d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', hour: 'numeric', minute: '2-digit' }); }
@@ -334,7 +337,7 @@
   function labelOf(r) {
     if (r.type === 'grant') return '最初の縁';
     if (r.type === 'fee') return (r.game_name || 'ゲーム') + 'の参加費';
-    if (r.type === 'payout') return (r.note || 'ゲームの払い戻し').replace('：', ' ');
+    if (r.type === 'payout') return (r.note || 'ゲームの払い戻し').replace('：', ' ') + (r.delta < 0 ? '（追加で払う）' : '');
     if (r.type === 'bribe') return '占いの賄賂';
     if (r.type === 'refund') return '返金' + (r.note ? '（' + r.note + '）' : '');
     if (r.type === 'adjust') return '残高の修正' + (r.note ? '（' + r.note + '）' : '');
@@ -355,9 +358,13 @@
         '<div class="chips">' + [0, 3, 5, 8, 10, 15].map(function (n) { return '<button class="btn" data-act="lv-set" data-n="' + n + '">' + n + '段</button>'; }).join('') + '</div>' +
         '<button class="btn pri block huge" data-act="finish-stack" data-per="' + per + '" data-max="' + max + '" style="margin-top:14px">この段数で決定</button>';
     } else {
+      var div = g.kind === 'bet' ? (p.taxDiv || 1) : 1;
+      if (div > 1) h += '<p class="hint" style="margin-top:10px;color:var(--gold)">資産区分 ' + div + '：勝ちの倍率が 1/' + div + ' になります（1倍より下にはなりません）</p>';
       h += '<div class="outcomes" style="margin-top:14px">' + g.config.outcomes.map(function (o, i) {
-        var pay = g.kind === 'bet' ? Math.round(p.stake * o.mult) : o.payout;
-        return '<button class="btn ' + (pay > p.stake ? 'win' : pay === 0 ? 'lose' : '') + '" data-act="finish" data-outcome="' + i + '">' + esc(o.label) + '<small>' + (pay ? '+' + yen(pay) + '縁' : '0縁') + (g.kind === 'bet' ? '（×' + o.mult + '）' : '') + '</small></button>';
+        var m = g.kind === 'bet' ? taxedMult(o.mult, div) : null;
+        var pay = g.kind === 'bet' ? Math.round(p.stake * m) : o.payout;
+        var multTxt = g.kind === 'bet' ? '（×' + (m !== Number(o.mult) ? o.mult + '→' + m : m) + '）' : '';
+        return '<button class="btn ' + (pay > p.stake ? 'win' : pay < 0 ? 'neg' : pay === 0 ? 'lose' : '') + '" data-act="finish" data-outcome="' + i + '">' + esc(o.label) + '<small>' + signed(pay) + '縁' + multTxt + '</small></button>';
       }).join('') + '</div>';
     }
     h += '<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn danger sm" data-act="void">取り消して ' + yen(p.stake) + '縁を返す</button></div></div>';
@@ -368,7 +375,8 @@
     return '<div class="card focus"><h3 style="color:var(--gold)">' + esc(g.name) + 'の賭け金</h3>' +
       '<div class="amount"><input class="in big" id="bet-amt" type="number" inputmode="numeric" min="' + g.minBet + '" max="' + max + '" value="' + Math.min(max, Math.max(g.minBet, 50)) + '"><span>縁</span></div>' +
       '<div class="chips">' + [10, 50, 100, 500].map(function (n) { return '<button class="btn" data-act="bet-n" data-n="' + n + '">' + n + '</button>'; }).join('') + '<button class="btn" data-act="bet-n" data-n="all">全部（' + yen(max) + '）</button></div>' +
-      '<p class="hint" style="margin-top:8px">' + g.minBet + '縁から ' + yen(max) + '縁まで。勝てば賭け金 × 倍率が戻ります。</p>' +
+      '<p class="hint" style="margin-top:8px">' + g.minBet + '縁から ' + yen(max) + '縁まで。勝てば賭け金 × 倍率が戻ります。ヒフミやションベンは、さらに払います。</p>' +
+      (taxDiv(u.balance) > 1 ? '<p class="hint" style="margin-top:6px;color:var(--gold)">このお客さんは資産区分 ' + taxDiv(u.balance) + '：勝ちの倍率が 1/' + taxDiv(u.balance) + ' になります</p>' : '') +
       '<button class="btn pri block huge" data-act="bet-go" data-game="' + g.id + '" style="margin-top:12px">この額で始める</button></div>';
   }
 
@@ -425,7 +433,7 @@
       armed(b, 'もう一度押すと取り消し', function () { busy(api('/api/staff/plays/' + id + '/void', 'POST', {}), function () { toast('取り消して返金しました'); }); });
       return;
     }
-    busy(req, function (p) { toast(p.nickname + 'さん：' + p.result.label + '　' + (p.payout ? '+' + yen(p.payout) + '縁' : '払い戻しなし')); });
+    busy(req, function (p) { toast(p.nickname + 'さん：' + p.result.label + '　' + (p.payout > 0 ? '+' + yen(p.payout) + '縁' : p.payout < 0 ? 'さらに ' + yen(-p.payout) + '縁を払う' : '払い戻しなし')); });
   }
   function startPlay(gameId, stake) {
     busy(api('/api/staff/plays', 'POST', { userId: S.cust.id, gameId: gameId, stake: stake, requestId: newId() }), function (p) {
@@ -695,11 +703,22 @@
     el.innerHTML =
       '<div class="card"><h3>占いのランクの境目</h3><p class="hint">賄賂がこの額以上なら、そのランクになります。</p><div class="two">' + num('rank_sho', '小') + num('rank_dai', '大') + '</div>' + num('rank_kaizan', '改竄', '変えたら、公式サイトの config.js の kaizanThreshold も同じ値にしてください。') + '</div>' +
       '<div class="card"><h3>受付</h3><label class="toggle">受付中（オフにすると新しい登録を止めます）<input type="checkbox" id="set-registration_open"' + (s.registration_open === '1' ? ' checked' : '') + '></label>' + '<div class="two">' + num('starting_en', '最初に配る縁') + num('max_users', '登録できる人数') + '</div></div>' +
+      '<div class="card"><h3>資産区分（チンチロの倍率を下げる）</h3><p class="hint">残高がこの額以上のお客さんは、勝ったときの倍率が 1/2、1/3 … になります。お金持ちが増えすぎないようにするしくみです。マイナスの倍率と、1倍以下の倍率は変わりません。</p>' +
+        '<div class="field"><label for="set-tax_brackets">境目の残高（縁・カンマ区切り）</label><input class="in" id="set-tax_brackets" inputmode="numeric" value="' + esc(s.tax_brackets || '') + '"><p id="tax-preview"></p></div></div>' +
       '<div class="card"><h3>ランキング</h3>' + txt('first_title', '賄賂1位の称号') + txt('rich_title', 'お金持ち1位の称号') + num('ranking_size', '表示する人数') + '</div>' +
       '<button class="btn pri block huge" id="save-settings" style="margin-top:14px">設定を保存</button>';
+    var tb = el.querySelector('#set-tax_brackets');
+    var tp = function () {
+      var marks = tb.value.split(/[,、\s]+/).map(Number).filter(function (x) { return x > 0; }).sort(function (a, b) { return a - b; });
+      var lo = 0, parts = [];
+      marks.forEach(function (m, i) { parts.push('区分' + (i + 1) + '：' + yen(lo) + '〜' + yen(m - 1) + '縁' + (i ? '（÷' + (i + 1) + '）' : '（そのまま）')); lo = m; });
+      parts.push('区分' + (marks.length + 1) + '：' + yen(lo) + '縁〜' + (marks.length ? '（÷' + (marks.length + 1) + '）' : '（そのまま）'));
+      el.querySelector('#tax-preview').textContent = parts.join('　') + (marks.length ? '　例：10倍の当たりは、区分' + (marks.length + 1) + 'だと ' + taxedMult(10, marks.length + 1) + '倍' : '');
+    };
+    tb.addEventListener('input', tp); tp();
     el.querySelector('#save-settings').addEventListener('click', function () {
       var body = {};
-      ['rank_kaizan', 'rank_dai', 'rank_sho', 'starting_en', 'max_users', 'first_title', 'rich_title', 'ranking_size'].forEach(function (k) { body[k] = el.querySelector('#set-' + k).value; });
+      ['rank_kaizan', 'rank_dai', 'rank_sho', 'starting_en', 'max_users', 'first_title', 'rich_title', 'ranking_size', 'tax_brackets'].forEach(function (k) { body[k] = el.querySelector('#set-' + k).value; });
       body.registration_open = el.querySelector('#set-registration_open').checked;
       api('/api/staff/settings', 'PUT', body).then(function (x) { if (!x.ok) return err(x.d.message); S.settings = x.d.settings; toast('設定を保存しました'); });
     });
@@ -716,7 +735,7 @@
     if (g.kind === 'bet') h += '<div class="two"><div class="field"><label>賭け金の下限</label><input class="in" data-k="minBet" type="number" value="' + g.minBet + '"></div><div class="field"><label>賭け金の上限</label><input class="in" data-k="maxBet" type="number" value="' + g.maxBet + '"><p>0 = 残高まで</p></div></div>';
     else h += '<div class="field"><label>参加費（縁）</label><input class="in" data-k="fee" type="number" value="' + g.fee + '"></div>';
     if (g.kind === 'stack') h += '<div class="two"><div class="field"><label>1段で戻る縁</label><input class="in" data-k="per_level" type="number" value="' + cfg.per_level + '"></div><div class="field"><label>最大の段数</label><input class="in" data-k="max_level" type="number" value="' + cfg.max_level + '"></div></div>';
-    else h += '<div class="orow-h"><span>結果の名前</span><span>' + (g.kind === 'bet' ? '倍率' : '戻る縁') + '</span><span></span></div><div data-outs>' + cfg.outcomes.map(function (o) { return outRow(g, o); }).join('') + '</div><button class="btn sm" data-add style="margin-top:10px">結果を足す</button>';
+    else h += (g.kind === 'bet' ? '<p class="hint" style="margin-top:12px">倍率は マイナスも入れられます（−1 = 賭け金を失ったうえ、さらに同じ額を払う）。</p>' : '') + '<div class="orow-h"><span>結果の名前</span><span>' + (g.kind === 'bet' ? '倍率' : '戻る縁') + '</span><span></span></div><div data-outs>' + cfg.outcomes.map(function (o) { return outRow(g, o); }).join('') + '</div><button class="btn sm" data-add style="margin-top:10px">結果を足す</button>';
     h += '<div class="field"><label>ルール（お客さんとスタッフの画面に出ます）</label><textarea class="in" data-k="rules">' + esc(g.rules || '') + '</textarea></div>';
     h += '<button class="btn pri block" data-save style="margin-top:14px">' + esc(g.name) + 'を保存</button></div>';
     return h;

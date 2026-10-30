@@ -466,7 +466,7 @@
       var btn = el('button', 'btn small', 'ルール'); btn.type = 'button';
       btn.addEventListener('click', function () { openInfo(g.name + ' のルール', esc(g.rules || 'ルールは会場でスタッフが説明します。')); });
       row.appendChild(btn);
-      row.appendChild(el('span', 's', g.kind === 'bet' ? '賭け金は自由（' + g.minBet + '縁から）' : '参加費 ' + g.fee + '縁'));
+      row.appendChild(el('span', 's', g.kind === 'bet' ? '賭け金は自由（' + g.minBet + '縁から）' + (me && me.taxDiv > 1 ? '・いまは勝ちの倍率が 1/' + me.taxDiv : '') : '参加費 ' + g.fee + '縁'));
       box.appendChild(row);
     });
   }
@@ -492,7 +492,7 @@
   function labelOf(r) {
     if (r.type === 'grant') return 'はじめにもらった縁';
     if (r.type === 'fee') return (r.game_name || 'ゲーム') + 'の参加費';
-    if (r.type === 'payout') return (r.note || (r.game_name || 'ゲーム')).replace('：', ' ');
+    if (r.type === 'payout') return (r.note || (r.game_name || 'ゲーム')).replace('：', ' ') + (r.delta < 0 ? '（追加で払った）' : '');
     if (r.type === 'bribe') return '占い師への賄賂';
     if (r.type === 'refund') return '返金' + (r.note ? '（' + r.note + '）' : '');
     if (r.type === 'adjust') return 'スタッフによる調整' + (r.note ? '（' + r.note + '）' : '');

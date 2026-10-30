@@ -13,7 +13,7 @@ import { rankings, positions } from '../rankings.js';
 import { validateNickname, uniqueShortCode, grantStart } from './public.js';
 import { SITE } from '../site.js';
 
-const SETTING_KEYS = ['starting_en', 'registration_open', 'max_users', 'rank_sho', 'rank_dai', 'rank_kaizan', 'first_title', 'rich_title', 'ranking_size'];
+const SETTING_KEYS = ['starting_en', 'registration_open', 'max_users', 'rank_sho', 'rank_dai', 'rank_kaizan', 'first_title', 'rich_title', 'ranking_size', 'tax_brackets'];
 
 /* ============================================================
    ログイン・初期設定
@@ -227,7 +227,11 @@ export async function handle(request, env, url, staff) {
       if (!(k in b)) continue;
       let v = String(b[k]).trim();
       if (k === 'registration_open') v = b[k] === true || v === '1' ? '1' : '0';
-      else if (!/title/.test(k)) {
+      else if (k === 'tax_brackets') {
+        const nums = v.replace(/[、，\s]+/g, ',').split(',').filter(Boolean).map(Number);
+        if (nums.some((n) => !Number.isInteger(n) || n <= 0)) throw new ApiError('SETTING', '資産区分の境目は、1以上の数字をカンマで区切って入れてください（例：1000,3000,6000）');
+        v = [...new Set(nums)].sort((a, b) => a - b).join(',');
+      } else if (!/title/.test(k)) {
         if (!/^\d+$/.test(v)) throw new ApiError('SETTING', `${k} は数字で入れてください`);
       }
       await db.prepare('UPDATE settings SET value = ? WHERE key = ?').bind(v, k).run();
@@ -406,7 +410,7 @@ function validateGameConfig(kind, cfg) {
     if (!label) throw new ApiError('CONFIG', '結果の名前が空です');
     if (kind === 'bet') {
       const mult = Number(o.mult);
-      if (!Number.isFinite(mult) || mult < 0) throw new ApiError('CONFIG', '倍率が不正です');
+      if (!Number.isFinite(mult) || mult < -10 || mult > 100) throw new ApiError('CONFIG', '倍率は −10 から 100 までで入れてください');
       return { label, mult };
     }
     const payout = Number(o.payout);

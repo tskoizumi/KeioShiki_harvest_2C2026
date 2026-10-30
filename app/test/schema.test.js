@@ -18,11 +18,16 @@ test('スキーマを文ごとに分けて、そのまま SQLite に入る', () 
 
 test('2つ目のマイグレーション（招待・ルール）も入り、4つのゲームにルールが入る', () => {
   const db = new DatabaseSync(':memory:');
-  for (const f of ['0001_init.sql', '0002_invites_rules.sql']) {
+  for (const f of ['0001_init.sql', '0002_invites_rules.sql', '0003_tax_negative.sql']) {
     for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
   }
   const g = db.prepare("SELECT COUNT(*) AS n FROM games WHERE rules <> ''").get();
   assert.equal(g.n, 4);
   db.exec("INSERT INTO staff_invites (code, level, expires_at) VALUES ('abc', 2, '2099-01-01')");
   assert.equal(db.prepare('SELECT level FROM staff_invites').get().level, 2);
+  // 0003：チンチロにマイナスの倍率、資産区分の設定
+  const cfg = JSON.parse(db.prepare("SELECT config FROM games WHERE slug = 'chinchiro'").get().config);
+  assert.ok(cfg.outcomes.some((o) => o.mult < 0), 'マイナスの倍率がある');
+  assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'tax_brackets'").get().value, '1000,3000,6000,10000');
+  assert.ok(db.prepare("SELECT rules FROM games WHERE slug = 'chinchiro'").get().rules.includes('資産区分'));
 });

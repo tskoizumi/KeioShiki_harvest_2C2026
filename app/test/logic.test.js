@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ORACLE } from '../src/oracle.js';
 import { computePayout } from '../src/plays.js';
-import { rankOf, normalizeCode, cleanNickname, shortCode } from '../src/util.js';
+import { rankOf, normalizeCode, cleanNickname, shortCode, taxDiv, taxedMult } from '../src/util.js';
 
 test('占い：8相 × 10兆 × 4位 の全部で台本が組める', () => {
   let n = 0;
@@ -43,7 +43,7 @@ test('占い：全部3なら「種」、全部5なら「焚き火」', () => {
 
 test('払い戻し：固定・段数・倍率', () => {
   const fixed = { kind: 'fixed', config: { outcomes: [{ label: 'はずれ', payout: 0 }, { label: '中心', payout: 50 }] } };
-  assert.deepEqual(computePayout(fixed, 10, { outcome: 1 }), { payout: 50, label: '中心' });
+  assert.equal(computePayout(fixed, 10, { outcome: 1 }).payout, 50);
   assert.throws(() => computePayout(fixed, 10, { outcome: 9 }));
   const stack = { kind: 'stack', config: { per_level: 50, max_level: 20 } };
   assert.equal(computePayout(stack, 100, { level: 7 }).payout, 350);
@@ -51,6 +51,33 @@ test('払い戻し：固定・段数・倍率', () => {
   const bet = { kind: 'bet', config: { outcomes: [{ label: '負け', mult: 0 }, { label: 'ピンゾロ', mult: 5 }] } };
   assert.equal(computePayout(bet, 120, { outcome: 1 }).payout, 600);
   assert.equal(computePayout(bet, 120, { outcome: 0 }).payout, 0);
+});
+
+test('資産区分：残高で区分が決まり、倍率はその数で割る（1倍より下にはしない）', () => {
+  const s = { tax_brackets: '1000,3000,6000,10000' };
+  assert.equal(taxDiv(0, s), 1);
+  assert.equal(taxDiv(999, s), 1);
+  assert.equal(taxDiv(1000, s), 2);
+  assert.equal(taxDiv(5999, s), 3);
+  assert.equal(taxDiv(10000, s), 5);
+  assert.equal(taxDiv(99999, { tax_brackets: '' }), 1, '境目がなければ区分1');
+  assert.equal(taxedMult(10, 5), 2, '10倍は区分5で2倍');
+  assert.equal(taxedMult(2, 2), 1);
+  assert.equal(taxedMult(3, 5), 1, '1倍より下にはしない');
+  assert.equal(taxedMult(5, 2), 2.5);
+  assert.equal(taxedMult(1, 5), 1, '目なしはそのまま');
+  assert.equal(taxedMult(0, 5), 0);
+  assert.equal(taxedMult(-2, 5), -2, 'マイナスは割らない');
+});
+
+test('チンチロ：マイナスの倍率と資産区分の払い戻し', () => {
+  const bet = { kind: 'bet', config: { outcomes: [{ label: 'ヒフミ', mult: -2 }, { label: 'ションベン', mult: -1 }, { label: '勝ち', mult: 2 }, { label: '大当たり', mult: 10 }] } };
+  assert.equal(computePayout(bet, 100, { outcome: 0 }).payout, -200, 'ヒフミは賭け金の2倍を追加で払う');
+  assert.equal(computePayout(bet, 100, { outcome: 1 }).payout, -100);
+  assert.equal(computePayout(bet, 100, { outcome: 2 }, 1).payout, 200);
+  assert.equal(computePayout(bet, 100, { outcome: 2 }, 3).payout, 100, '区分3なら勝ちでも賭け金が戻るだけ');
+  assert.equal(computePayout(bet, 100, { outcome: 3 }, 5).payout, 200, '10倍が区分5で2倍');
+  assert.equal(computePayout(bet, 100, { outcome: 0 }, 5).payout, -200, 'マイナスは区分で軽くならない');
 });
 
 test('心付けの位は閾値で決まる', () => {
