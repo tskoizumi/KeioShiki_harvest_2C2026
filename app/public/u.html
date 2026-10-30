@@ -405,7 +405,7 @@
       if (x.status === 404) {
         // このQRはもうない（データを消したあと など）。この端末の記憶を消して、登録し直してもらう
         try { localStorage.removeItem('mt:key:' + token); if (localStorage.getItem('mt:last') === token) localStorage.removeItem('mt:last'); } catch (e) {}
-        $('err-title').textContent = 'このページはもうありません'; $('err-text').textContent = 'もう一度、受付のQRを読んで登録してください。';
+        $('err-title').textContent = 'このQRは使えません'; $('err-text').textContent = 'まだ使えるようになっていないQRカードか、消されたページです。受付に声をかけるか、受付のQRを読んで登録し直してください。';
         $('err-new').hidden = false; show('v-error'); return;
       }
       if (!x.ok) { $('err-title').textContent = '開けません'; $('err-text').textContent = x.d.message || ''; show('v-error'); return; }
