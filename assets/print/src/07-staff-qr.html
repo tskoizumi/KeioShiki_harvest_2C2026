@@ -1,0 +1,35 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>スタッフ用QR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --paper: #fefefc; --ink: #1c1a1b; --muted: #6b6466; --line: #d9d3d5; --red: #9f1111; --hot: #e0352b; --plum: #663661; --lilac: #d9b8dc; --sky: #bcdce8;
+    --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", serif; --gothic: "Noto Sans JP", "Hiragino Sans", sans-serif; }
+  html, body { background: #fff; color: var(--ink); font-family: var(--gothic); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { position: relative; width: 210mm; height: 297mm; overflow: hidden; page-break-after: always; break-after: page; background: var(--paper); }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  .mincho { font-family: var(--mincho); font-weight: 800; }
+  .qr svg { width: 100%; height: auto; display: block; }
+  .foot { position: absolute; left: 0; right: 0; bottom: 9mm; text-align: center; font-size: 8.5pt; color: var(--muted); letter-spacing: 0.2em; }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 3mm; font-family: var(--mincho); font-weight: 800; font-size: 11pt; letter-spacing: 0.06em; }
+  .brand img { width: 10mm; height: 10mm; }
+
+  .wrap { position: absolute; inset: 0; padding: 20mm; }
+  h1 { font-family: var(--mincho); font-weight: 800; font-size: 26pt; margin-top: 8mm; text-align: center; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12mm; margin-top: 14mm; }
+  .box { text-align: center; }
+  .box .qr { width: 72mm; margin: 0 auto; padding: 4mm; border: 0.5mm solid var(--ink); border-radius: 4mm; background: #fff; }
+  .box h2 { font-family: var(--mincho); font-weight: 800; font-size: 18pt; margin-top: 5mm; }
+  .box p { font-size: 10.5pt; line-height: 1.7; margin-top: 2mm; color: var(--muted); }
+  .box code { font-size: 8.5pt; color: var(--ink); }
+  .note { margin-top: 16mm; padding: 6mm; border-radius: 4mm; background: #f3eef0; font-size: 11pt; line-height: 1.9; }
+
+</style></head><body>
+<section class="page"><div class="wrap"><div class="brand"><img src="../../mark-alpha.webp" alt="">運命、賄賂で買いませんか？</div><h1>スタッフ用</h1><div class="two"><div class="box"><div class="qr" data-qr="https://app.moneytalks-uranai.com/staff"></div><h2>スタッフ画面（本番）</h2><p>当日はこちら。名前とパスワードでログイン。<br><code>app.moneytalks-uranai.com/staff</code></p></div><div class="box"><div class="qr" data-qr="https://training.moneytalks-uranai.com/training"></div><h2>研修モード（練習）</h2><p>何をしても本番に影響しません。<br><code>training.moneytalks-uranai.com/training</code></p></div></div><div class="note"><b>はじめての人</b>：管理する人から「招待のQR」をもらって読み、自分で名前とパスワードを決めて登録します。<br><b>困ったら</b>：画面を閉じずに責任者を呼ぶ。ゲームの取り消しはいつでもできます。<br><b>縁の増減は必ず画面を通す</b>。口約束で足さない。</div></div></section>
+<script src="../../../app/public/vendor/qrcode.js"></script>
+<script>
+  document.querySelectorAll('[data-qr]').forEach(function (el) { var q = qrcode(0, el.dataset.ec || 'M'); q.addData(el.dataset.qr); q.make(); el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); });
+  Promise.all([document.fonts.ready].concat(Array.from(document.images).map(function (i) { return i.complete ? 1 : new Promise(function (r) { i.onload = i.onerror = r; }); }))).then(function () { document.body.dataset.ready = '1'; });
+</script>
+</body></html>

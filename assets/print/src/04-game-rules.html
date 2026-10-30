@@ -1,0 +1,60 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ゲームのルール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --paper: #fefefc; --ink: #1c1a1b; --muted: #6b6466; --line: #d9d3d5; --red: #9f1111; --hot: #e0352b; --plum: #663661; --lilac: #d9b8dc; --sky: #bcdce8;
+    --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", serif; --gothic: "Noto Sans JP", "Hiragino Sans", sans-serif; }
+  html, body { background: #fff; color: var(--ink); font-family: var(--gothic); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { position: relative; width: 210mm; height: 297mm; overflow: hidden; page-break-after: always; break-after: page; background: var(--paper); }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  .mincho { font-family: var(--mincho); font-weight: 800; }
+  .qr svg { width: 100%; height: auto; display: block; }
+  .foot { position: absolute; left: 0; right: 0; bottom: 9mm; text-align: center; font-size: 8.5pt; color: var(--muted); letter-spacing: 0.2em; }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 3mm; font-family: var(--mincho); font-weight: 800; font-size: 11pt; letter-spacing: 0.06em; }
+  .brand img { width: 10mm; height: 10mm; }
+
+  .wrap { position: absolute; inset: 0; padding: 18mm 20mm; }
+  .k { margin-top: 12mm; font-size: 11pt; font-weight: 900; letter-spacing: 0.4em; color: var(--red); }
+  h1 { font-family: var(--mincho); font-weight: 800; font-size: 60pt; line-height: 1.1; margin-top: 2mm; }
+  .yomi { font-size: 11pt; letter-spacing: 0.3em; color: var(--muted); }
+  .fee { display: inline-block; margin-top: 6mm; padding: 2.5mm 7mm; border-radius: 99mm; background: var(--ink); color: var(--paper); font-weight: 900; font-size: 17pt; }
+  .how { margin-top: 7mm; font-size: 14pt; font-weight: 700; line-height: 1.7; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6mm; }
+  th, td { padding: 3.2mm 2mm; border-bottom: 0.3mm solid var(--line); font-size: 14pt; text-align: left; }
+  td:last-child { text-align: right; font-family: var(--mincho); font-weight: 800; font-size: 16pt; }
+  td.neg { color: var(--red); }
+  th { font-size: 9.5pt; color: var(--muted); font-weight: 700; letter-spacing: 0.1em; border-bottom: 0.5mm solid var(--ink); }
+  .notes { margin-top: 6mm; font-size: 11.5pt; line-height: 1.8; }
+  .notes li { margin-left: 5mm; }
+  .tax { margin-top: 6mm; padding: 4mm 5mm; border-radius: 4mm; background: #f3eef0; }
+  .tax h2 { font-size: 11pt; font-weight: 900; }
+  .tax p { font-size: 9.5pt; color: var(--muted); margin-top: 1mm; line-height: 1.6; }
+  .tax table { margin-top: 2mm; }
+  .tax td, .tax th { font-size: 10.5pt; padding: 1.6mm 2mm; }
+  .tax td:last-child { font-size: 12pt; }
+  .qrbox { position: absolute; right: 20mm; top: 30mm; width: 32mm; text-align: center; font-size: 7pt; color: var(--muted); }
+  /* 結果が多いページ（チンチロ）は詰める */
+  .compact .k { margin-top: 6mm; }
+  .compact h1 { font-size: 44pt; }
+  .compact .fee { margin-top: 3mm; font-size: 14pt; }
+  .compact .how { margin-top: 4mm; font-size: 12pt; }
+  .compact table { margin-top: 3mm; }
+  .compact th, .compact td { padding: 1.9mm 2mm; font-size: 12pt; }
+  .compact td:last-child { font-size: 13pt; }
+  .compact .tax { margin-top: 4mm; padding: 3mm 4mm; }
+  .tg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; margin-top: 2.5mm; }
+  .tg div { display: grid; gap: 1mm; text-align: center; padding: 2.5mm 1mm; background: #fff; border-radius: 2mm; }
+  .tg span { font-size: 9pt; }
+  .tg b { font-family: var(--mincho); font-weight: 800; font-size: 15pt; color: var(--red); }
+  .compact .notes { margin-top: 4mm; font-size: 10.5pt; line-height: 1.7; }
+
+</style></head><body>
+<section class="page"><div class="wrap"><div class="brand"><img src="../../mark-alpha.webp" alt="">運命、賄賂で買いませんか？</div><p class="k">ミニゲーム</p><h1>的当て</h1><p class="yomi">まとあて</p><span class="fee">参加費 10縁</span><p class="how">的にボールを投げて、当たった場所で戻る縁が決まります。</p><table><tr><th>結果</th><th>戻る縁</th></tr><tr><td>はずれ</td><td class="">0縁</td></tr><tr><td>外側</td><td class="">20縁</td></tr><tr><td>中</td><td class="">30縁</td></tr><tr><td>内側</td><td class="">40縁</td></tr><tr><td>中心</td><td class="">50縁</td></tr></table><ul class="notes"><li>投げる位置はスタッフが案内します</li><li>何回でも遊べます</li><li>はじめる前に、マイページのQRをスタッフに見せてください</li></ul></div></section><section class="page"><div class="wrap"><div class="brand"><img src="../../mark-alpha.webp" alt="">運命、賄賂で買いませんか？</div><p class="k">ミニゲーム</p><h1>神経衰弱</h1><p class="yomi">しんけいすいじゃく</p><span class="fee">参加費 50縁</span><p class="how">裏返したカードを2枚ずつめくって、同じ絵をそろえます。</p><table><tr><th>結果</th><th>戻る縁</th></tr><tr><td>0組</td><td class="">0縁</td></tr><tr><td>1組</td><td class="">50縁</td></tr><tr><td>2組</td><td class="">100縁</td></tr><tr><td>3組</td><td class="">150縁</td></tr><tr><td>4組以上</td><td class="">200縁</td></tr></table><ul class="notes"><li>制限時間はスタッフが伝えます</li><li>何回でも遊べます</li><li>はじめる前に、マイページのQRをスタッフに見せてください</li></ul></div></section><section class="page"><div class="wrap"><div class="brand"><img src="../../mark-alpha.webp" alt="">運命、賄賂で買いませんか？</div><p class="k">ミニゲーム</p><h1>積み</h1><p class="yomi">つみ</p><span class="fee">参加費 100縁</span><p class="how">ブロックを1つずつ積んでいき、崩れたところで終わりです。</p><table><tr><th>結果</th><th>戻る縁</th></tr><tr><td>崩れる前に積めた段数</td><td class="">1段 × 50縁</td></tr><tr><td>いちばん多いとき</td><td class="">20段 ＝ 1,000縁</td></tr></table><ul class="notes"><li>友達と交代で積んでもかまいません</li><li>何回でも遊べます</li><li>はじめる前に、マイページのQRをスタッフに見せてください</li></ul></div></section><section class="page"><div class="wrap compact"><div class="brand"><img src="../../mark-alpha.webp" alt="">運命、賄賂で買いませんか？</div><p class="k">ミニゲーム</p><h1>チンチロ</h1><p class="yomi">ちんちろ</p><span class="fee">賭け金は自由（10縁から）</span><p class="how">サイコロを3つ振って、出た目で勝負します。戻る縁 ＝ 賭け金 × 倍率。</p><table><tr><th>結果</th><th>倍率</th></tr><tr><td>ピンゾロ（1が3つ）</td><td class="">×5</td></tr><tr><td>4-5-6</td><td class="">×4</td></tr><tr><td>ゾロ目</td><td class="">×3</td></tr><tr><td>勝ち</td><td class="">×2</td></tr><tr><td>目なし（引き分け）</td><td class="">×1</td></tr><tr><td>負け</td><td class="">×0</td></tr><tr><td>ションベン（器から出た）</td><td class="neg">×−1　さらに払う</td></tr><tr><td>ヒフミ（1-2-3）</td><td class="neg">×−2　さらに払う</td></tr></table><div class="tax"><h2>お金持ちほど、勝ちの倍率が下がります</h2><p>始めたときの残高で決まります。×1 より大きい倍率だけを割り、×1 より下にはなりません。</p><div class="tg"><div><span>〜999縁</span><b>そのまま</b></div><div><span>1,000〜2,999縁</span><b>÷2</b></div><div><span>3,000〜5,999縁</span><b>÷3</b></div><div><span>6,000〜9,999縁</span><b>÷4</b></div><div><span>10,000縁〜</span><b>÷5</b></div></div></div><ul class="notes"><li>マイナスは、賭け金を失ったうえ、さらに払います（残高より多くは取りません）</li><li>はじめる前に、マイページのQRをスタッフに見せてください</li></ul></div></section>
+<script src="../../../app/public/vendor/qrcode.js"></script>
+<script>
+  document.querySelectorAll('[data-qr]').forEach(function (el) { var q = qrcode(0, el.dataset.ec || 'M'); q.addData(el.dataset.qr); q.make(); el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); });
+  Promise.all([document.fonts.ready].concat(Array.from(document.images).map(function (i) { return i.complete ? 1 : new Promise(function (r) { i.onload = i.onerror = r; }); }))).then(function () { document.body.dataset.ready = '1'; });
+</script>
+</body></html>

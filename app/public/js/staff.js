@@ -537,8 +537,8 @@
       var auto = judgeSou(), shown = S.souOverride ? O.sou.filter(function (s) { return s.id === S.souOverride; })[0] : auto;
       var answered = S.answers.judge.filter(function (v) { return v; }).length;
       h += '<div class="type-now"><div><p class="hint">いまのタイプ' + (S.souOverride ? '（手で選んだ）' : '') + '</p><b id="sou-live">' + esc(shown.name) + '</b></div><p class="hint" id="judge-n">9問中 ' + answered + '問</p></div>';
-      h += '<div class="card"><h3>タイプを決める質問（9問）</h3><p class="hint">質問票の答えを押します。答えていない質問は 3 として数えます。</p>' + O.judge.map(function (q, i) { return qRow('judge', i, q); }).join('') + '</div>';
-      h += '<div class="card"><h3>台本で使う質問（10問）</h3><p class="hint">1 か 5 の答えほど、台本で取り上げられます。</p>' + O.mention.map(function (q, i) { return qRow('mention', i, q); }).join('') + '</div>';
+      h += '<div class="card"><h3>質問 A（9問）：タイプを決める</h3><p class="hint">質問票の A1〜A9 の答えを押します。答えていない質問は 3 として数えます。</p>' + O.judge.map(function (q, i) { return qRow('judge', i, q); }).join('') + '</div>';
+      h += '<div class="card"><h3>質問 B（10問）：台本で使う</h3><p class="hint">質問票の B1〜B10。1 か 5 の答えほど、台本で取り上げられます。</p>' + O.mention.map(function (q, i) { return qRow('mention', i, q); }).join('') + '</div>';
       h += '<details class="mgr"><summary>タイプを手で選ぶ（ふつうは不要）</summary><div><div class="grid-cards">' + O.sou.map(function (s) { return '<button data-sou="' + s.id + '" class="' + (S.souOverride === s.id ? 'on' : !S.souOverride && s.id === auto.id ? 'auto' : '') + '"><b>' + esc(s.name) + '</b></button>'; }).join('') + '</div></div></details>';
       barBtns.push(mkBtn('', '← 賄賂', function () { saveReading().then(function () { S.step = 1; renderReading(); }); }));
       barBtns.push(mkBtn('pri grow', 'カードを選ぶ →', function () { saveReading().then(function (ok) { if (ok) { S.step = 3; renderReading(); window.scrollTo(0, 0); } }); }, false, 'to-step3'));
@@ -570,7 +570,7 @@
   }
   function qRow(kind, i, text) {
     var v = S.answers[kind][i];
-    return '<div class="qa"><p><i>' + (i + 1) + '</i>' + esc(text) + '</p><div class="scale">' + [1, 2, 3, 4, 5].map(function (n) { return '<button data-q="' + kind + '" data-i="' + i + '" data-v="' + n + '" class="' + (v === n ? 'on' : '') + '">' + n + '</button>'; }).join('') + '</div><div class="scale-l"><span>ちがう</span><span>そう</span></div></div>';
+    return '<div class="qa"><p><i>' + (kind === 'judge' ? 'A' : 'B') + (i + 1) + '</i>' + esc(text) + '</p><div class="scale">' + [1, 2, 3, 4, 5].map(function (n) { return '<button data-q="' + kind + '" data-i="' + i + '" data-v="' + n + '" class="' + (v === n ? 'on' : '') + '">' + n + '</button>'; }).join('') + '</div><div class="scale-l"><span>ちがう</span><span>そう</span></div></div>';
   }
   function bindReading(el) {
     var r = S.reading;

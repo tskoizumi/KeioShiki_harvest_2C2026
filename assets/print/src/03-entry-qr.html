@@ -1,0 +1,35 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>受付のQR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --paper: #fefefc; --ink: #1c1a1b; --muted: #6b6466; --line: #d9d3d5; --red: #9f1111; --hot: #e0352b; --plum: #663661; --lilac: #d9b8dc; --sky: #bcdce8;
+    --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", serif; --gothic: "Noto Sans JP", "Hiragino Sans", sans-serif; }
+  html, body { background: #fff; color: var(--ink); font-family: var(--gothic); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { position: relative; width: 210mm; height: 297mm; overflow: hidden; page-break-after: always; break-after: page; background: var(--paper); }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  .mincho { font-family: var(--mincho); font-weight: 800; }
+  .qr svg { width: 100%; height: auto; display: block; }
+  .foot { position: absolute; left: 0; right: 0; bottom: 9mm; text-align: center; font-size: 8.5pt; color: var(--muted); letter-spacing: 0.2em; }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 3mm; font-family: var(--mincho); font-weight: 800; font-size: 11pt; letter-spacing: 0.06em; }
+  .brand img { width: 10mm; height: 10mm; }
+
+  .wrap { position: absolute; inset: 0; padding: 22mm 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .k { font-size: 12pt; font-weight: 900; letter-spacing: 0.4em; color: var(--red); margin-top: 10mm; }
+  h1 { font-family: var(--mincho); font-weight: 800; font-size: 34pt; line-height: 1.3; margin-top: 3mm; }
+  .qr { width: 118mm; margin-top: 10mm; padding: 6mm; border: 0.6mm solid var(--ink); border-radius: 6mm; background: #fff; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; margin-top: 11mm; width: 100%; }
+  .st { padding: 4mm 3mm; border-radius: 4mm; background: #f3eef0; }
+  .st b { display: grid; place-items: center; width: 9mm; height: 9mm; margin: 0 auto 2mm; border-radius: 50%; background: var(--ink); color: var(--paper); font-family: var(--mincho); font-size: 13pt; }
+  .st p { font-size: 11pt; font-weight: 700; line-height: 1.5; }
+  .note { margin-top: 8mm; font-size: 10.5pt; color: var(--muted); line-height: 1.7; }
+
+</style></head><body>
+<section class="page"><div class="wrap"><div class="brand"><img src="../../mark-alpha.webp" alt="">運命、賄賂で買いませんか？</div><p class="k">受付</p><h1>スマホのカメラで<br>読んでください</h1><div class="qr" data-qr="https://app.moneytalks-uranai.com/" data-ec="H"></div><div class="steps"><div class="st"><b>1</b><p>QRを読む</p></div><div class="st"><b>2</b><p>ニックネームを<br>入れる</p></div><div class="st"><b>3</b><p>100縁<br>もらえる</p></div></div><p class="note">縁（えん）は、この出し物の中だけで使えるお金です。<br>スマホがない人は、受付のスタッフに声をかけてください（QRカードを渡します）。</p></div><p class="foot">app.moneytalks-uranai.com</p></section>
+<script src="../../../app/public/vendor/qrcode.js"></script>
+<script>
+  document.querySelectorAll('[data-qr]').forEach(function (el) { var q = qrcode(0, el.dataset.ec || 'M'); q.addData(el.dataset.qr); q.make(); el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); });
+  Promise.all([document.fonts.ready].concat(Array.from(document.images).map(function (i) { return i.complete ? 1 : new Promise(function (r) { i.onload = i.onerror = r; }); }))).then(function () { document.body.dataset.ready = '1'; });
+</script>
+</body></html>

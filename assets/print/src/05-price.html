@@ -1,0 +1,39 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>占いの料金表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --paper: #fefefc; --ink: #1c1a1b; --muted: #6b6466; --line: #d9d3d5; --red: #9f1111; --hot: #e0352b; --plum: #663661; --lilac: #d9b8dc; --sky: #bcdce8;
+    --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", serif; --gothic: "Noto Sans JP", "Hiragino Sans", sans-serif; }
+  html, body { background: #fff; color: var(--ink); font-family: var(--gothic); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { position: relative; width: 210mm; height: 297mm; overflow: hidden; page-break-after: always; break-after: page; background: var(--paper); }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  .mincho { font-family: var(--mincho); font-weight: 800; }
+  .qr svg { width: 100%; height: auto; display: block; }
+  .foot { position: absolute; left: 0; right: 0; bottom: 9mm; text-align: center; font-size: 8.5pt; color: var(--muted); letter-spacing: 0.2em; }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 3mm; font-family: var(--mincho); font-weight: 800; font-size: 11pt; letter-spacing: 0.06em; }
+  .brand img { width: 10mm; height: 10mm; }
+
+  .wrap { position: absolute; inset: 0; padding: 18mm 18mm; display: flex; flex-direction: column; }
+  .k { margin-top: 12mm; text-align: center; font-size: 11pt; font-weight: 900; letter-spacing: 0.4em; color: var(--red); }
+  h1 { text-align: center; font-family: var(--mincho); font-weight: 800; font-size: 31pt; line-height: 1.35; margin-top: 3mm; }
+  .lead { text-align: center; margin-top: 5mm; font-size: 12.5pt; line-height: 1.8; }
+  .ranks { display: grid; gap: 4mm; margin-top: 9mm; }
+  .r { display: grid; grid-template-columns: 30mm 46mm 1fr; gap: 5mm; align-items: center; padding: 5mm 6mm; border-radius: 4mm; border: 0.4mm solid var(--line); }
+  .r .seal { display: grid; place-items: center; width: 22mm; height: 22mm; border: 0.9mm solid var(--red); border-radius: 2mm; color: var(--red); font-family: var(--mincho); font-weight: 800; font-size: 26pt; transform: rotate(-5deg); }
+  .r .amt { font-family: var(--mincho); font-weight: 800; font-size: 17pt; }
+  .r .txt { font-size: 12pt; line-height: 1.6; }
+  .r.mu .seal { border-color: #a29b9e; color: #a29b9e; }
+  .r.kz { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .r.kz .seal { background: var(--hot); border-color: var(--hot); color: #fff; font-size: 16pt; }
+  .end { margin-top: auto; text-align: center; font-size: 11pt; color: var(--muted); line-height: 1.8; }
+
+</style></head><body>
+<section class="page"><div class="wrap"><div class="brand"><img src="../../mark-alpha.webp" alt="">運命、賄賂で買いませんか？</div><p class="k">占いの部屋</p><h1>占いの中身は、<br>賄賂（わいろ）で決まる。</h1><p class="lead">占い師に渡す縁の額で、ランクが変わります。<br>額はあなたが決めてください。</p><div class="ranks"><div class="r mu"><span class="seal">無</span><span class="amt">0〜99縁</span><span class="txt">事実だけを、短く。そっけない。</span></div><div class="r"><span class="seal">小</span><span class="amt">100〜499縁</span><span class="txt">普通に、丁寧に占う。少しアドバイスつき。</span></div><div class="r"><span class="seal">大</span><span class="amt">500〜1,999縁</span><span class="txt">とても丁寧に。とにかく、ほめてくれる。</span></div><div class="r kz"><span class="seal">改竄</span><span class="amt">2,000縁〜</span><span class="txt">鈴が鳴り、占い師が結果を<b>最高のものに書き換える</b>。</span></div></div><p class="end">占いは何回でも受けられます。結果の画像はマイページに届きます。<br>※ 改竄の額は、混み具合で変わることがあります</p></div></section>
+<script src="../../../app/public/vendor/qrcode.js"></script>
+<script>
+  document.querySelectorAll('[data-qr]').forEach(function (el) { var q = qrcode(0, el.dataset.ec || 'M'); q.addData(el.dataset.qr); q.make(); el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); });
+  Promise.all([document.fonts.ready].concat(Array.from(document.images).map(function (i) { return i.complete ? 1 : new Promise(function (r) { i.onload = i.onerror = r; }); }))).then(function () { document.body.dataset.ready = '1'; });
+</script>
+</body></html>
