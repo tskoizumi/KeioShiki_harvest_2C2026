@@ -74,7 +74,7 @@ export function computePayout(game, stake, result, div = 1) {
   if (game.kind === 'fixed') {
     const o = c.outcomes[Number(result.outcome)];
     if (!o) throw new ApiError('RESULT', '結果の選び方が不正です');
-    return { payout: Math.max(0, Math.round(o.payout)), label: o.label };
+    return { payout: Math.round(o.payout), label: o.label };   // マイナスもある（ブラックボックスの時間切れ）
   }
   if (game.kind === 'score') {
     const pts = Array.isArray(result.points) ? result.points.map(Number) : [];

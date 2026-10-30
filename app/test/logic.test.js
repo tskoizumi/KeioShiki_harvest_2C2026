@@ -80,6 +80,11 @@ test('払い戻し：ラッキーパネルは入れた点の合計（マイナ�
   assert.throws(() => computePayout(lp, 50, { points: [1.5] }));
 });
 
+test('払い戻し：ブラックボックスの時間切れはマイナス', () => {
+  const bb = { kind: 'fixed', config: { timer: 60, outcomes: [{ label: 'S 正解', payout: 50 }, { label: 'S 時間切れ', payout: -50 }] } };
+  assert.deepEqual(computePayout(bb, 0, { outcome: 1 }), { payout: -50, label: 'S 時間切れ' });
+});
+
 test('払い戻し：固定・段数・倍率', () => {
   const fixed = { kind: 'fixed', config: { outcomes: [{ label: 'はずれ', payout: 0 }, { label: '中心', payout: 50 }] } };
   assert.equal(computePayout(fixed, 10, { outcome: 1 }).payout, 50);

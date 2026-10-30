@@ -442,10 +442,11 @@ function validateGameConfig(kind, cfg) {
       return { label, mult };
     }
     const payout = Number(o.payout);
-    if (!Number.isInteger(payout) || payout < 0) throw new ApiError('CONFIG', '払い戻しが不正です');
+    if (!Number.isInteger(payout) || Math.abs(payout) > 10000) throw new ApiError('CONFIG', '払い戻しは −10000 から 10000 までの整数で入れてください');
     return { label, payout };
   });
-  return { outcomes };
+  const timer = Number(cfg.timer);
+  return Number.isInteger(timer) && timer > 0 && timer <= 3600 ? { timer, outcomes } : { outcomes };
 }
 
 /* ---------- 招待 ---------- */

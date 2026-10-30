@@ -362,6 +362,7 @@
         '<div class="chips">' + [0, 3, 5, 8, 10, 15].map(function (n) { return '<button class="btn" data-act="lv-set" data-n="' + n + '">' + n + '段</button>'; }).join('') + '</div>' +
         '<button class="btn pri block huge" data-act="finish-stack" data-per="' + per + '" data-max="' + max + '" style="margin-top:14px">この段数で決定</button>';
     } else {
+      if (g.config.timer) h += timerBox(p.id, g.config.timer);
       var div = g.kind === 'bet' ? (p.taxDiv || 1) : 1;
       if (div > 1) h += '<p class="hint" style="margin-top:10px;color:var(--gold)">資産区分 ' + div + '：勝ちの倍率が 1/' + div + ' になります（1倍より下にはなりません）</p>';
       h += '<div class="outcomes" style="margin-top:14px">' + g.config.outcomes.map(function (o, i) {
@@ -374,6 +375,24 @@
     h += '<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn danger sm" data-act="void">取り消して ' + yen(p.stake) + '縁を返す</button></div></div>';
     return h;
   }
+  // 制限時間のあるゲーム（ブラックボックス）のタイマー。始めた時刻は端末に残すので、画面を描き直しても続く
+  function timerBox(id, sec) {
+    var end = null; try { end = Number(localStorage.getItem('mt:tm:' + id)) || null; } catch (e) {}
+    return '<div class="tm" data-tm-box="' + id + '" data-sec="' + sec + '"><p class="tm-t" data-tm-left>' + (end ? '' : fmtSec(sec)) + '</p>' +
+      '<button class="btn" data-act="tm-start">' + (end ? 'やり直す' : '制限時間 ' + fmtSec(sec) + ' をスタート') + '</button></div>';
+  }
+  function fmtSec(n) { n = Math.max(0, Math.ceil(n)); return Math.floor(n / 60) + ':' + ('0' + (n % 60)).slice(-2); }
+  function tickTimers() {
+    document.querySelectorAll('[data-tm-box]').forEach(function (b) {
+      var end = null; try { end = Number(localStorage.getItem('mt:tm:' + b.dataset.tmBox)) || null; } catch (e) {}
+      var t = b.querySelector('[data-tm-left]'); if (!end) return;
+      var left = (end - Date.now()) / 1000;
+      t.textContent = left > 0 ? fmtSec(left) : '時間切れ';
+      b.classList.toggle('over', left <= 0); b.classList.toggle('hurry', left > 0 && left <= 10);
+      if (left <= 0 && !b.dataset.buzzed) { b.dataset.buzzed = '1'; if (navigator.vibrate) navigator.vibrate([300, 120, 300]); }
+    });
+  }
+  setInterval(tickTimers, 250);
   // ラッキーパネル：取った点・引かれた点を、その場で1つずつ足していく
   function scoreState(id) {
     if (!S.sc[id]) { var v = null; try { v = JSON.parse(localStorage.getItem('mt:sc:' + id)); } catch (e) {} S.sc[id] = v || { level: 0, pts: [] }; }
@@ -429,6 +448,11 @@
     if (a === 'to-reading') { openReading(Number(b.dataset.id)); return; }
     var card = b.closest('[data-play]');
     if (a === 'sc-lv' || a === 'sc-add' || a === 'sc-del' || a === 'sc-free') { scoreAct(a, b, card, root); return; }
+    if (a === 'tm-start') {
+      var box = b.closest('[data-tm-box]');
+      try { localStorage.setItem('mt:tm:' + box.dataset.tmBox, String(Date.now() + Number(box.dataset.sec) * 1000)); } catch (e) {}
+      delete box.dataset.buzzed; b.textContent = 'やり直す'; tickTimers(); return;
+    }
     if (a === 'lv' || a === 'lv-set') { stepLv(card, a === 'lv' ? Number(b.dataset.d) : null, a === 'lv-set' ? Number(b.dataset.n) : null); return; }
     if (a === 'bet-n') { var m = root.querySelector('#bet-amt'); m.value = b.dataset.n === 'all' ? m.max : b.dataset.n; return; }
     if (pending) return;
@@ -794,7 +818,7 @@
     if (g.kind === 'score') h += '<div class="orow-h" style="grid-template-columns:1fr 1fr 1fr"><span>難易度の名前</span><span>覚える秒</span><span>ドラキーの点</span></div>' + cfg.levels.map(function (l) { return '<div class="orow" data-lvrow style="grid-template-columns:1fr 1fr 1fr"><input class="in" data-l="name" value="' + esc(l.name) + '"><input class="in" data-l="memorize" type="number" value="' + l.memorize + '"><input class="in" data-l="miss" type="number" value="' + l.miss + '"></div>'; }).join('') +
       '<div class="field"><label>足す点のボタン（カンマ区切り）</label><input class="in" data-k="plus" value="' + esc(cfg.plus.join(',')) + '"></div>';
     else if (g.kind === 'stack') h += '<div class="two"><div class="field"><label>1段で戻る縁</label><input class="in" data-k="per_level" type="number" value="' + cfg.per_level + '"></div><div class="field"><label>最大の段数</label><input class="in" data-k="max_level" type="number" value="' + cfg.max_level + '"></div></div>';
-    else h += (g.kind === 'bet' ? '<p class="hint" style="margin-top:12px">倍率は マイナスも入れられます（−1 = 賭け金を失ったうえ、さらに同じ額を払う）。</p>' : '') + '<div class="orow-h"><span>結果の名前</span><span>' + (g.kind === 'bet' ? '倍率' : '戻る縁') + '</span><span></span></div><div data-outs>' + cfg.outcomes.map(function (o) { return outRow(g, o); }).join('') + '</div><button class="btn sm" data-add style="margin-top:10px">結果を足す</button>';
+    else h += (g.kind === 'fixed' ? '<div class="field"><label>制限時間のタイマー（秒。0 = なし）</label><input class="in" data-k="timer" type="number" min="0" value="' + (cfg.timer || 0) + '"></div><p class="hint" style="margin-top:12px">戻る縁にはマイナスも入れられます（時間切れなど）。</p>' : '') + (g.kind === 'bet' ? '<p class="hint" style="margin-top:12px">倍率は マイナスも入れられます（−1 = 賭け金を失ったうえ、さらに同じ額を払う）。</p>' : '') + '<div class="orow-h"><span>結果の名前</span><span>' + (g.kind === 'bet' ? '倍率' : '戻る縁') + '</span><span></span></div><div data-outs>' + cfg.outcomes.map(function (o) { return outRow(g, o); }).join('') + '</div><button class="btn sm" data-add style="margin-top:10px">結果を足す</button>';
     h += '<div class="field"><label>ルール（お客さんとスタッフの画面に出ます）</label><textarea class="in" data-k="rules">' + esc(g.rules || '') + '</textarea></div>';
     h += '<button class="btn pri block" data-save style="margin-top:14px">' + esc(g.name) + 'を保存</button></div>';
     return h;
@@ -817,6 +841,7 @@
         var list = [];
         card.querySelectorAll('.orow').forEach(function (r) { var l = r.querySelector('[data-o=label]').value.trim(), n = Number(r.querySelector('[data-o=num]').value); if (l) list.push(g.kind === 'bet' ? { label: l, mult: n } : { label: l, payout: n }); });
         body.config = { outcomes: list };
+        if (g.kind === 'fixed' && Number(v('timer')) > 0) body.config.timer = Number(v('timer'));
       }
       api('/api/staff/games/' + g.id, 'PUT', body).then(function (x) {
         if (!x.ok) return err(x.d.message);

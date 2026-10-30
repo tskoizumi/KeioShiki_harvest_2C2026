@@ -132,6 +132,11 @@
     .tile .q { position: absolute; top: 10px; right: 10px; }
     .tile.on { border-color: var(--gold); background: #33291b; }
     .outcomes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* 制限時間のタイマー（ブラックボックス） */
+    .tm { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 16px; border: 1.5px solid var(--line2); }
+    .tm-t { font-family: var(--mincho); font-weight: 800; font-size: 40px; font-variant-numeric: tabular-nums; line-height: 1; }
+    .tm.hurry { border-color: var(--gold); } .tm.hurry .tm-t { color: var(--gold); }
+    .tm.over { border-color: var(--red); background: rgba(255, 84, 70, 0.12); } .tm.over .tm-t { color: var(--red); font-size: 28px; }
     /* ラッキーパネル：点を足し引きする */
     .sc-lv { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
     .sc-lv .btn { width: 100%; min-width: 0; flex-direction: column; gap: 2px; padding: 10px 6px; border-radius: 14px; white-space: normal; line-height: 1.35; }

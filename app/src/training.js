@@ -12,7 +12,8 @@ import SCHEMA_5 from '../migrations/0005_game_names.sql';
 import SCHEMA_6 from '../migrations/0006_lucky_fee.sql';
 import SCHEMA_7 from '../migrations/0007_two_levels.sql';
 import SCHEMA_8 from '../migrations/0008_staff_perms.sql';
-const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8].join('\n;\n');
+import SCHEMA_9 from '../migrations/0009_blackbox.sql';
+const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8, SCHEMA_9].join('\n;\n');
 import { trainingDb } from './training-do.js';
 import { json, fail, readJson, randomToken, shortCode, audit, cleanNickname } from './util.js';
 import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME, PERMS, permsOf } from './auth.js';
@@ -22,7 +23,7 @@ import { openReading, addBribe, updateReading, finishReading } from './readings.
 import { grantStart } from './routes/public.js';
 
 // 見本の作り方の版。変えると、研修モードを次に開いたときに見本データを作り直す
-const SEED_VERSION = '3';
+const SEED_VERSION = '4';
 
 // 見本のスタッフ（管理者・占いもできるスタッフ・ふつうのスタッフ）。研修用なので合言葉は公開
 export const DEMO_STAFF = [
@@ -199,7 +200,7 @@ export async function resetTraining(env) {
 
   // 7. うさぎ：印刷した札で登録した客（source = card）
   const usagi = await user('うさぎ', 'card', staff);
-  await play(usagi, 3, null, { level: 6 });          // ブラックボックス 6 +300
+  await play(usagi, 3, null, { outcome: 4 });        // ブラックボックス A 正解 +30
   await reading(usagi, 0, 'chinmoku', [3, 3, 3, 3, 3, 3, 3, 3, 3], [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);   // 無（賄賂なし。全部3でも、年表は「どちらでもない」の出来事で埋まる）
 
   // 8. 番付を埋める客たち

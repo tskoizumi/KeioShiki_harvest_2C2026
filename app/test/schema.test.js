@@ -84,6 +84,17 @@ test('8つ目のマイグレーション：スタッフごとの権限。前に�
   assert.deepEqual(rows.map((r) => [r.name, r.level, r.perms && JSON.parse(r.perms).includes('fortune')]), [['teller', 1, true], ['staff', 1, null], ['joined', 1, true]]);
 });
 
+test('9つ目のマイグレーション：ブラックボックスは難易度×正解・時間切れの8つ、参加費0、1分のタイマー', () => {
+  const db = new DatabaseSync(':memory:');
+  for (const f of ['0001_init.sql', '0002_invites_rules.sql', '0003_tax_negative.sql', '0004_photos.sql', '0005_game_names.sql', '0006_lucky_fee.sql', '0007_two_levels.sql', '0008_staff_perms.sql', '0009_blackbox.sql']) {
+    for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  }
+  const g = db.prepare("SELECT name, kind, fee, config FROM games WHERE slug = 'tsumi'").get();
+  const c = JSON.parse(g.config);
+  assert.equal(g.name, 'ブラックボックス'); assert.equal(g.kind, 'fixed'); assert.equal(g.fee, 0); assert.equal(c.timer, 60);
+  assert.deepEqual(c.outcomes.map((o) => o.payout), [10, -10, 20, -20, 30, -30, 50, -50]);
+});
+
 test('マイグレーションはどれも ; で終わる（本番では後ろに記録用の文がつながるため）', () => {
   for (const f of readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql'))) {
     const body = readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8').replace(/--.*$/gm, '').trim();
