@@ -28,6 +28,8 @@
     button:disabled { opacity: 0.5; }
     .msg { min-height: 22px; margin-top: 12px; font-size: 14px; color: #ffb3aa; text-align: center; }
     .bad { text-align: center; color: var(--muted); }
+      /* 2回続けて押しても画面が拡大されないように */
+    html, body, a, button, input, label { touch-action: manipulation; }
   </style>
 </head>
 <body>

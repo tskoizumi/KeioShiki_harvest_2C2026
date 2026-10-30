@@ -53,4 +53,9 @@ test('5つ目のマイグレーション：ゲームの名前と並び、ラッ�
   const lp = JSON.parse(db.prepare("SELECT config FROM games WHERE slug = 'shinkei'").get().config);
   assert.equal(lp.score, true);
   assert.deepEqual(lp.levels.map((l) => l.miss), [-10, -20, -30]);
+  // 0006：ラッキーパネルの参加費は10縁
+  for (const s of splitSql(readFileSync(new URL('../migrations/0006_lucky_fee.sql', import.meta.url), 'utf8'))) db.exec(s);
+  const g = db.prepare("SELECT fee, rules FROM games WHERE slug = 'shinkei'").get();
+  assert.equal(g.fee, 10);
+  assert.ok(g.rules.includes('参加費 10縁') && !g.rules.includes('50縁'));
 });

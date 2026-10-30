@@ -52,6 +52,8 @@
     details { margin-top: 12px; }
     summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--muted); }
     .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; }
+      /* 2回続けて押しても画面が拡大されないように（ピンチでの拡大はできる） */
+    html, body, a, button, input, select, textarea, label, summary, [role="button"], [role="tab"] { touch-action: manipulation; }
   </style>
 </head>
 <body>

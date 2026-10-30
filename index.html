@@ -596,6 +596,8 @@
       *, *::before, *::after { animation: none !important; transition: none !important; }
       .js .reveal { opacity: 1; transform: none; }
     }
+      /* 2回続けて押しても画面が拡大されないように（ピンチでの拡大はできる） */
+    html, body, a, button, input, select, textarea, label, summary, [role="button"], [role="tab"] { touch-action: manipulation; }
   </style>
   <script>
     document.documentElement.classList.add("js");

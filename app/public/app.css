@@ -25,6 +25,8 @@
 }
 
 html { height: 100%; }
+/* 2回続けて押しても画面が拡大されないように（ピンチでの拡大はできる） */
+html, body, a, button, input, select, textarea, label, summary, [role="button"], [role="tab"] { touch-action: manipulation; }
 body {
   min-height: 100%;
   font-family: var(--gothic);
