@@ -18,11 +18,11 @@ export class TrainingDb extends DurableObject {
     );
   }
 
-  // 見本データまで入っているか
-  ready() {
+  // 見本データまで入っているか（見本の作り方が変わったら version を上げると、次に開いたときに作り直す）
+  ready(version) {
     const t = this.ctx.storage.sql.exec("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'settings'").one();
     if (!t.n) return false;
-    const r = this.ctx.storage.sql.exec("SELECT COUNT(*) AS n FROM settings WHERE key = 'training_seeded'").one();
+    const r = this.ctx.storage.sql.exec("SELECT COUNT(*) AS n FROM settings WHERE key = 'training_seeded' AND value = ?", String(version)).one();
     return r.n > 0;
   }
 

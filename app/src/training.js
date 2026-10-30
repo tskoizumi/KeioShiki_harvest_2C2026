@@ -10,7 +10,8 @@ import SCHEMA_3 from '../migrations/0003_tax_negative.sql';
 import SCHEMA_4 from '../migrations/0004_photos.sql';
 import SCHEMA_5 from '../migrations/0005_game_names.sql';
 import SCHEMA_6 from '../migrations/0006_lucky_fee.sql';
-const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6].join('\n;\n');
+import SCHEMA_7 from '../migrations/0007_two_levels.sql';
+const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7].join('\n;\n');
 import { trainingDb } from './training-do.js';
 import { json, fail, readJson, randomToken, shortCode, audit, cleanNickname } from './util.js';
 import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME } from './auth.js';
@@ -19,11 +20,12 @@ import { startPlay, finishPlay } from './plays.js';
 import { openReading, addBribe, updateReading, finishReading } from './readings.js';
 import { grantStart } from './routes/public.js';
 
-// 見本のスタッフ（4つの権限がひとつずつ）。研修用なので合言葉は公開
+// 見本の作り方の版。変えると、研修モードを次に開いたときに見本データを作り直す
+const SEED_VERSION = '2';
+
+// 見本のスタッフ（管理者とスタッフ）。研修用なので合言葉は公開
 export const DEMO_STAFF = [
   { name: '見本管理者', level: 4, code: 'kenshu-admin' },
-  { name: '見本責任者', level: 3, code: 'kenshu-manager' },
-  { name: '見本占い師', level: 2, code: 'kenshu-teller' },
   { name: '見本スタッフ', level: 1, code: 'kenshu-staff' },
 ];
 
@@ -45,7 +47,7 @@ export async function trainingFetch(request, env, ctx, handle) {
 
   try {
     if (!seededInThisIsolate) {
-      if (!(await db.stub.ready())) await resetTraining(tenv);
+      if (!(await db.stub.ready(SEED_VERSION))) await resetTraining(tenv);
       seededInThisIsolate = true;
     }
 
@@ -132,7 +134,7 @@ export async function resetTraining(env) {
     const ins = await db.prepare('INSERT INTO staff (name, level, code_hash, code_salt) VALUES (?, ?, ?, ?)').bind(s.name, s.level, hash, salt).run();
     staffId[s.level] = ins.meta.last_row_id;
   }
-  const admin = staffId[4], manager = staffId[3], teller = staffId[2], staff = staffId[1];
+  const admin = staffId[4], staff = staffId[1], manager = admin, teller = staff;
   await audit(db, admin, '初期設定', `staff:${admin}`, '研修用の見本データを作成');
 
   const user = async (nickname, source = 'self', by = null) => {
@@ -188,7 +190,7 @@ export async function resetTraining(env) {
   // 5. ねこ：登録したばかり（100縁だけ）
   await user('ねこ', 'staff', staff);
 
-  // 6. いぬ：無効にした客（責任者が「無効」にするとこうなる）
+  // 6. いぬ：使えなくした客（スタッフが「使えなくする」とこうなる）
   const inu = await user('いぬ');
   await db.prepare("UPDATE users SET status = 'disabled' WHERE id = ?").bind(inu).run();
   await audit(db, manager, '客を無効化', `user:${inu}`, 'なりすましの疑い（見本）');
@@ -219,6 +221,6 @@ export async function resetTraining(env) {
   await audit(db, manager, 'QRカードを発行', 'cards', '10枚');
 
   // ここまで来たら完成。途中で失敗したら、次に開いたときにもう一度作り直す
-  await db.prepare("INSERT INTO settings (key, value) VALUES ('training_seeded', '1')").run();
+  await db.prepare("INSERT INTO settings (key, value) VALUES ('training_seeded', ?)").bind(SEED_VERSION).run();
   return true;
 }

@@ -1,12 +1,14 @@
 // スタッフの認証（合言葉 → 署名付きクッキー）と、客のマイページの鍵
 //  - 合言葉は PBKDF2 で保存する。平文は残さない
 //  - セッションは HMAC で署名したクッキー。SESSION_SECRET がなければ誰も入れない
-//  - 権限はピラミッド型。level 以上なら OK
+//  - 権限は スタッフ（1）と 管理者（4）。level 以上なら OK
 
 import { ApiError, b64url } from './util.js';
 
-export const LEVEL = { staff: 1, teller: 2, manager: 3, admin: 4 };
-export const LEVEL_NAME = { 1: 'スタッフ', 2: '占い師', 3: '責任者', 4: '管理者' };
+// 権限は2つだけ：スタッフ（現場の作業は全部）と管理者（設定・ゲーム・スタッフの管理・記録）
+// 数字は前の4段階の名残り（1 と 4 だけを使う）
+export const LEVEL = { staff: 1, admin: 4 };
+export const LEVEL_NAME = { 1: 'スタッフ', 4: '管理者' };
 const COOKIE = 'mt_staff';
 const SESSION_HOURS = 20;
 

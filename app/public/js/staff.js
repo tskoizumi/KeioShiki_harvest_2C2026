@@ -2,7 +2,7 @@
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var S = { me: null, games: [], settings: {}, oracle: null, site: null, view: 'cust', cust: null, reading: null, step: 1, answers: { judge: [], mention: [] }, souOverride: null, kizashiId: null, openPlays: [], openReadings: [], adminTab: 'summary', betFor: null, histAll: false, lv: {}, sc: {}, mgrOpen: false };
-  var LV = { staff: 1, teller: 2, manager: 3, admin: 4 };
+  var LV = { staff: 1, admin: 4 };   // 権限はスタッフと管理者の2つ
   var RANK = { mu: '無', sho: '小', dai: '大', kaizan: '改竄' };
   var TITLES = { login: 'スタッフ', cust: 'お客さん', games: 'ゲーム中', teller: '占い', reception: '受付', admin: '管理' };
 
@@ -48,7 +48,7 @@
      使い方（? ボタン）
   ============================================================ */
   var HELP = {
-    cust: ['お客さんの画面', '<b>1. お客さんを探す</b>\n「QRを読む」でお客さんのスマホかQRカードを読みます。読めないときは、番号（6文字）か名前で探します。\n\n<b>2. ゲームを始める</b>\nゲームを押すと、参加費がお客さんの残高から引かれます。間違えたら、すぐ出る「取り消す」で戻せます。ゲームの右上の ? でルールが見られます。\n\n<b>3. 結果を入れる</b>\nゲームが終わったら、結果のボタンを押します。払い戻しは自動でお客さんに入ります。\n\n占い師は、ここから「占いを始める」もできます。'],
+    cust: ['お客さんの画面', '<b>1. お客さんを探す</b>\n「QRを読む」でお客さんのスマホかQRカードを読みます。読めないときは、番号（6文字）か名前で探します。\n\n<b>2. ゲームを始める</b>\nゲームを押すと、参加費がお客さんの残高から引かれます。間違えたら、すぐ出る「取り消す」で戻せます。ゲームの右上の ? でルールが見られます。\n\n<b>3. 結果を入れる</b>\nゲームが終わったら、結果のボタンを押します。払い戻しは自動でお客さんに入ります。\n\nここから「占いを始める」もできます。'],
     games: ['ゲーム中の画面', 'ゲームを始めて、まだ結果を入れていないお客さんの一覧です。別のスタッフが始めた分も出ます。\n\n「結果を入れる」を押すと、そのお客さんの画面が開きます。'],
     teller: ['占いの画面', '<b>1. 質問</b>　質問票の答え（1〜5）を押します。A でお客さんのタイプが決まり、B の答えから人生の大事件が2つ選ばれます。\n<b>2. カード</b>　お客さんが引いたカードを選びます。カードは人生の「転機」になります。\n<b>3. 占う</b>　まずは賄賂なしの、ふつうの占い。台本を真顔で読みます。最後に「この運命、書き換えることもできますが」。\n<b>4. 賄賂</b>　お客さんが払った額を入れて「受け取る」。払わないなら「賄賂なしで終える」。\n<b>5. 言い直し</b>　ランクに合わせて、書き直した運命を読みます。「終える」で、お客さんのスマホに年表が届きます（書き直した所は赤）。\n\n<b>ランクで変わること</b>\n無 = そのまま\n小 = 人生の転機（カードの出来事）だけ書き直す\n大 = 年表を全部書き直して、べた褒め\n改竄 = 鈴を鳴らして運命ごと書き換え。最後に伝説がひとつ増える\n\n言い直しを聞いてから、さらに賄賂を足して上のランクにすることもできます。同じお客さんを何回でも占えます。'],
     reception: ['受付の画面', '<b>スマホがある人</b>　受付用のQRを見せて、自分で登録してもらいます。\n<b>スマホがない人</b>　印刷したQRカードを渡して、カードの番号と名前を入れます。\n<b>自分で登録できない人</b>　名前を入れて代わりに登録し、出てきたQRを読んでもらいます。\n\n登録すると、最初の縁（ふつうは100縁）が入ります。'],
@@ -103,9 +103,9 @@
     S.me = me; S.games = me.games; S.settings = me.settings; S.oracle = me.oracle; S.site = me.site;
     $('me-chip').hidden = false; $('help').hidden = false;
     $('me-av').textContent = me.name.slice(0, 1); $('me-name').textContent = me.name;
-    $('tab-teller').hidden = !can(LV.teller);
-    $('tab-admin').hidden = !can(LV.manager);
-    $('mgr-cards').hidden = !can(LV.manager);
+    $('tab-teller').hidden = false;
+    $('tab-admin').hidden = !can(LV.admin);
+    $('mgr-cards').hidden = false;
     $('tabbar').hidden = false;
     var v = 'cust';
     try { v = sessionStorage.getItem('mt:staff:view') || 'cust'; } catch (e) {}
@@ -118,8 +118,7 @@
   ============================================================ */
   function show(v) { ['login', 'cust', 'games', 'teller', 'reception', 'admin'].forEach(function (k) { $('v-' + k).hidden = k !== v; }); $('title').textContent = TITLES[v]; }
   function go(v, keepScan) {
-    if (v === 'teller' && !can(LV.teller)) v = 'cust';
-    if (v === 'admin' && !can(LV.manager)) v = 'cust';
+    if (v === 'admin' && !can(LV.admin)) v = 'cust';
     S.view = v; show(v);
     document.querySelectorAll('#tabbar button').forEach(function (b) { b.classList.toggle('on', b.dataset.view === v); });
     try { sessionStorage.setItem('mt:staff:view', v); } catch (e) {}
@@ -151,7 +150,7 @@
     clearTimeout(pollT);
     if (!S.me || document.hidden) { pollT = setTimeout(poll, 5000); return; }
     var ps = [api('/api/staff/plays/open')];
-    if (can(LV.teller)) ps.push(api('/api/staff/readings/open'));
+    ps.push(api('/api/staff/readings/open'));
     Promise.all(ps).then(function (r) {
       if (r[0].ok) { S.openPlays = r[0].d.results; badge('n-plays', S.openPlays.length); if (S.view === 'games') renderOpenPlays(); }
       if (r[1] && r[1].ok) { S.openReadings = r[1].d.results; badge('n-readings', S.openReadings.length); if (S.view === 'teller' && !S.reading) renderTellerList(); }
@@ -297,12 +296,12 @@
     if (!u.claimed) {
       h += '<div class="card"><p>このQRカードには、まだ名前がありません。受付で名前をつけてください。</p><button class="btn gold block" data-act="to-reception" style="margin-top:12px">受付で名前をつける</button></div>';
     } else if (u.status !== 'active') {
-      h += '<div class="card"><p>このお客さんは使えなくしてあります。' + (can(LV.manager) ? '戻すときは、下の「責任者メニュー」から。' : '責任者に声をかけてください。') + '</p></div>';
+      h += '<div class="card"><p>このお客さんは使えなくしてあります。' + '戻すときは、下の「残高を直す・使えなくする」から。' + '</p></div>';
     } else if (u.openPlay) {
       h += resultCard(u.openPlay);
     } else if (u.openReading) {
       h += '<div class="card focus"><h3 style="color:var(--gold)">占いの最中です</h3><p>賄賂 ' + yen(u.openReading.bribe) + '縁（ランク ' + RANK[rankOf(u.openReading.bribe)] + '）。終わるまで、ゲームは始められません。</p>' +
-        (can(LV.teller) ? '<button class="btn gold block huge" data-act="to-reading" data-id="' + u.openReading.id + '" style="margin-top:14px">占いの画面を開く</button>' : '<p class="hint" style="margin-top:8px">占い師の端末で進めています。</p>') + '</div>';
+        '<button class="btn gold block huge" data-act="to-reading" data-id="' + u.openReading.id + '" style="margin-top:14px">占いの画面を開く</button></div>';
     } else {
       h += '<h3>ゲームを始める</h3><div class="tiles">' + S.games.map(function (g) {
         var short = g.kind !== 'bet' && u.balance < g.fee;
@@ -310,7 +309,7 @@
         return '<button class="tile' + (S.betFor === g.id ? ' on' : '') + '" data-act="start" data-game="' + g.id + '"' + (short ? ' disabled' : '') + '><b>' + esc(g.name) + '</b><span>' + (short ? '残高が足りません' : sub) + '</span>' + rulesBtn(g) + '</button>';
       }).join('') + '</div>';
       if (S.betFor) h += betCard(gameOf(S.betFor), u);
-      if (can(LV.teller)) h += '<h3>占い</h3><button class="btn gold block huge" data-act="reading">占いを始める</button><p class="hint" style="margin-top:6px">同じお客さんを何回でも占えます。</p>';
+      h += '<h3>占い</h3><button class="btn gold block huge" data-act="reading">占いを始める</button><p class="hint" style="margin-top:6px">同じお客さんを何回でも占えます。</p>';
     }
 
     h += '<h3>履歴</h3><div class="card tight"><ul class="hist">' + (u.history.length ? u.history.slice(0, S.histAll ? 99 : 5).map(function (r) {
@@ -320,8 +319,8 @@
       return '<li><span class="t">' + esc(r.sou) + ' × ' + esc(r.kizashi) + '（' + esc(r.rankName) + '）</span><span class="a bribe">' + yen(r.bribe) + '</span><span class="s">' + esc(r.oracle) + '</span></li>';
     }).join('') + '</ul></div>';
 
-    if (can(LV.manager) && u.claimed) {
-      h += '<details class="mgr" id="mgr"' + (S.mgrOpen ? ' open' : '') + '><summary>責任者メニュー（残高を直す・使えなくする）</summary><div>' +
+    if (u.claimed) {
+      h += '<details class="mgr" id="mgr"' + (S.mgrOpen ? ' open' : '') + '><summary>残高を直す・使えなくする</summary><div>' +
         '<p class="hint">ゲームの景品は、必ずゲームの結果で入れてください。ここは間違いを直すときだけ使います。記録に残ります。</p>' +
         '<div class="sw" style="margin-top:12px"><button type="button" class="on plus" data-sign="1">増やす</button><button type="button" data-sign="-1">減らす</button></div>' +
         '<div class="row" style="margin-top:10px"><input class="in" id="adj-amt" type="number" inputmode="numeric" min="1" placeholder="何縁" style="width:130px"><input class="in grow" id="adj-note" placeholder="理由（必ず書く）"></div>' +
@@ -735,7 +734,7 @@
   ============================================================ */
   function renderAdmin() {
     var tabs = [['summary', '概要'], ['settings', '設定'], ['games', 'ゲーム'], ['staff', 'スタッフ']];
-    if (can(LV.admin)) tabs.push(['log', '記録']);
+    tabs.push(['log', '記録']);
     if (!tabs.some(function (t) { return t[0] === S.adminTab; })) S.adminTab = 'summary';
     $('subtabs').innerHTML = tabs.map(function (t) { return '<button data-sub="' + t[0] + '" class="' + (S.adminTab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
     $('subtabs').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { S.adminTab = b.dataset.sub; renderAdmin(); }); });
@@ -828,9 +827,7 @@
     if (can(LV.admin)) ps.push(api('/api/staff/accounts'));
     Promise.all(ps).then(function (r) {
       var invites = r[0].ok ? r[0].d.results : [], accounts = r[1] && r[1].ok ? r[1].d.results : null;
-      var maxLv = can(LV.admin) ? 3 : S.me.level - 1;
-      var h = '<div class="card"><h3>招待のQRを作る</h3><p class="hint">クラスの人にこのQRを読んでもらうと、自分で名前とパスワードを決めて登録できます。ここで選んだ権限になります。</p>' +
-        '<div class="field"><label for="inv-level">権限</label><select class="in" id="inv-level">' + [1, 2, 3].filter(function (l) { return l <= maxLv; }).map(function (l) { return '<option value="' + l + '">' + S.me.levels[l] + '</option>'; }).join('') + '</select></div>' +
+      var h = '<div class="card"><h3>招待のQRを作る</h3><p class="hint">クラスの人にこのQRを読んでもらうと、自分で名前とパスワードを決めて、スタッフとして登録できます。管理者にしたい人は、登録したあとに下の一覧で権限を変えてください。</p>' +
         '<div class="two"><div class="field"><label for="inv-hours">使える期間</label><select class="in" id="inv-hours"><option value="24">1日</option><option value="72" selected>3日</option><option value="168">7日</option></select></div>' +
         '<div class="field"><label for="inv-max">登録できる人数</label><select class="in" id="inv-max"><option value="10">10人</option><option value="50" selected>50人</option><option value="100">100人</option></select></div></div>' +
         '<button class="btn gold block huge" id="inv-make" style="margin-top:14px">招待のQRを作る</button></div>';
@@ -841,15 +838,15 @@
       }).join('') : '<li class="empty">まだありません</li>') + '</ul></div>';
       if (accounts) {
         h += '<div class="card"><h3>スタッフの一覧（' + accounts.length + '人）</h3><ul class="list2">' + accounts.map(function (a) {
-          return '<li><span class="t">' + esc(a.name) + (a.active ? '' : '<span class="pill">止めています</span>') + '</span><span class="r"><select class="in" data-acc-level="' + a.id + '" aria-label="' + esc(a.name) + 'の権限" style="min-height:40px;padding:6px 30px 6px 10px;font-size:14px;width:auto">' + [1, 2, 3, 4].map(function (l) { return '<option value="' + l + '"' + (a.level === l ? ' selected' : '') + '>' + S.me.levels[l] + '</option>'; }).join('') + '</select></span>' +
+          return '<li><span class="t">' + esc(a.name) + (a.active ? '' : '<span class="pill">止めています</span>') + '</span><span class="r"><select class="in" data-acc-level="' + a.id + '" aria-label="' + esc(a.name) + 'の権限" style="min-height:40px;padding:6px 30px 6px 10px;font-size:14px;width:auto">' + [1, 4].map(function (l) { return '<option value="' + l + '"' + (a.level === l ? ' selected' : '') + '>' + S.me.levels[l] + '</option>'; }).join('') + '</select></span>' +
             '<span class="s">' + (a.viaInvite ? '招待から登録・' : '') + '<button class="link" data-acc-code="' + a.id + '" style="padding:0;font-size:13px">パスワードを変える</button>　<button class="link danger" data-acc-active="' + a.id + '" data-v="' + (a.active ? '0' : '1') + '" style="padding:0;font-size:13px">' + (a.active ? '止める' : '戻す') + '</button></span></li>';
         }).join('') + '</ul>' +
-          '<details class="mgr" style="margin-top:14px"><summary>手で追加する</summary><div><div class="field"><input class="in" id="acc-name" placeholder="名前"></div><div class="field"><select class="in" id="acc-level" aria-label="権限">' + [1, 2, 3, 4].map(function (l) { return '<option value="' + l + '">' + S.me.levels[l] + '</option>'; }).join('') + '</select></div><div class="field"><input class="in" id="acc-code" placeholder="パスワード（6文字以上）" autocomplete="new-password"></div><button class="btn pri block" id="acc-add" style="margin-top:12px">追加</button></div></details></div>';
+          '<details class="mgr" style="margin-top:14px"><summary>手で追加する</summary><div><div class="field"><input class="in" id="acc-name" placeholder="名前"></div><div class="field"><select class="in" id="acc-level" aria-label="権限">' + [1, 4].map(function (l) { return '<option value="' + l + '">' + S.me.levels[l] + '</option>'; }).join('') + '</select></div><div class="field"><input class="in" id="acc-code" placeholder="パスワード（6文字以上）" autocomplete="new-password"></div><button class="btn pri block" id="acc-add" style="margin-top:12px">追加</button></div></details></div>';
       }
       el.innerHTML = h;
       var showInv = function (i) { sheet({ k: 'スタッフの招待（' + i.levelName + '）', t: 'スマホのカメラで読んでください', url: location.origin + i.url, s: '名前とパスワードを決めると、' + i.levelName + 'として登録されます。' + timeOf(i.expiresAt) + 'まで・あと' + (i.maxUses - i.uses) + '人', copy: true }); };
       el.querySelector('#inv-make').addEventListener('click', function () {
-        api('/api/staff/invites', 'POST', { level: Number(el.querySelector('#inv-level').value), hours: Number(el.querySelector('#inv-hours').value), maxUses: Number(el.querySelector('#inv-max').value) }).then(function (x) {
+        api('/api/staff/invites', 'POST', { level: 1, hours: Number(el.querySelector('#inv-hours').value), maxUses: Number(el.querySelector('#inv-max').value) }).then(function (x) {
           if (!x.ok) return err(x.d.message);
           showInv(x.d); adminStaff(el);
         });

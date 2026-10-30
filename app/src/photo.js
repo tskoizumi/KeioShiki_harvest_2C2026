@@ -234,7 +234,7 @@ async function staffApi(request, env, staff, p, m) {
     return json({ ok: true });
   }
   if ((mm = p.match(/^\/guests\/(\d+)$/)) && m === 'DELETE') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.staff);
     const id = Number(mm[1]);
     const ids = (await db.prepare('SELECT id FROM photos WHERE guest_id = ?').bind(id).all()).results.map((x) => x.id);
     await deletePhotos(env, ids);
@@ -243,7 +243,7 @@ async function staffApi(request, env, staff, p, m) {
     return json({ ok: true });
   }
   if (p === '/settings' && m === 'PUT') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.admin);
     const b = await readJson(request);
     const title = cleanNickname(b.title).slice(0, 40);
     if (!title) throw new ApiError('BAD_INPUT', '名前を入れてください');

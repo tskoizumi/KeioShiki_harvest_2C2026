@@ -90,7 +90,7 @@
       <ul class="list" id="list"></ul>
     </div>
     <details class="card" id="admin" hidden>
-      <summary>設定（責任者以上）</summary>
+      <summary>設定（管理者）</summary>
       <label for="s-title">写真展の名前（お客さんのページの見出し）</label>
       <div class="row" style="margin-top:5px"><input class="in" id="s-title" maxlength="40"><button class="btn" id="s-save" type="button">保存</button></div>
       <div id="purge-box" hidden>
@@ -154,7 +154,7 @@
     api('/api/photo/staff/me').then(function (x) {
       if (!x.ok) { show('login'); return; }
       me = x.d; $('title').textContent = me.title + '・撮影係';
-      $('admin').hidden = me.level < 3; $('purge-box').hidden = me.level < 4; $('s-title').value = me.title;
+      $('admin').hidden = me.level < 4; $('purge-box').hidden = me.level < 4; $('s-title').value = me.title;
       show('list'); loadList();
     });
   }
@@ -213,7 +213,7 @@
     api('/api/photo/staff/guests/' + id).then(function (x) {
       if (!x.ok) return toast(x.d.message || '開けませんでした');
       guest = x.d; $('queue').textContent = ''; renderGuest(); show('guest');
-      $('del-box').hidden = me.level < 3;
+      $('del-box').hidden = false;
     });
   }
   function renderGuest() {

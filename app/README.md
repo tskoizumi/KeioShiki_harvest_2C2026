@@ -13,7 +13,7 @@ Cloudflare Workers ＋ D1 で動く。ビルドなし（wrangler がそのまま
 | `/` | 客 | ニックネームを入れて登録。マイページのQRがもらえる。登録済みの端末ならマイページへ飛ぶ |
 | `/u/<token>` | 客 | マイページ。残高・QR・履歴・占いの結果とシェア用カード・番付。初めて開く端末では名前を入れて本人確認 |
 | `/staff` | スタッフ | ログイン → 客を探す（カメラでQR読取）・ゲームの開始と結果・占い・受付・管理 |
-| `/staff/cards` | 責任者以上 | スマホを持っていない客に渡す札（QR＋番号）を発行して印刷 |
+| `/staff/cards` | スタッフ | スマホを持っていない客に渡す札（QR＋番号）を発行して印刷 |
 | `/training`（研修ホストだけ） | スタッフ | 研修の手引き。見本のスタッフ・客で全画面を試す。「最初に戻す」で見本データに戻る |
 
 ## 客の流れ
@@ -23,16 +23,15 @@ Cloudflare Workers ＋ D1 で動く。ビルドなし（wrangler がそのまま
 3. **占い**。占い師がQRを読み取り、心付けを受け取る（額で位が決まる）→ 質問の答えと引いた兆を入れる → 台本が出るので読み上げる → 「占い終了」でマイページに結果とカードが出る。何回でも占える
 4. **番付**。賄賂（心付けの合計）と所持金。マイページと LP に出る
 
-## スタッフの権限（ピラミッド型）
+## スタッフの権限（2つ）
 
 | level | 名前 | できること |
 | --- | --- | --- |
-| 1 | スタッフ | 客を探す、受付（登録・札の紐づけ）、ゲームの開始・結果・取消 |
-| 2 | 占い師 | ＋ 占い（心付け・質問・兆・台本・終了・取りやめ） |
-| 3 | 責任者 | ＋ 残高の調整、客の無効化、ゲームと設定の変更、札の発行 |
-| 4 | 管理者 | ＋ スタッフの管理、操作ログ、CSV書き出し |
+| 1 | スタッフ | 現場の作業は全部：客を探す、受付、ゲーム、占い、残高の修正、客を使えなくする、QRカードの発行・印刷、写真展の撮影係 |
+| 4 | 管理者 | ＋ 設定とゲームの変更、スタッフの招待・権限・パスワード、概要、操作ログ、CSV書き出し、写真展の名前と全削除 |
 
-上の権限は下の権限を全部含む。スタッフは管理画面から追加する（名前と合言葉）。
+招待のQRで登録した人はスタッフになる。管理者にするときは「管理 → スタッフ」の一覧で権限を変える。
+（数字の 1 と 4 は、前の4段階の名残り。占い師だった人はスタッフに、責任者だった人は管理者になった：`migrations/0007_two_levels.sql`）
 
 ## 手元で動かす
 
@@ -77,7 +76,7 @@ npm run dev                            # http://127.0.0.1:8788
 
 - お客さん：`/` で名前とパスワードを決めて登録（撮影係の端末でも登録できる）→ 写真が届くと自動で表示 → 1枚ずつ保存
 - 撮影係：`/staff`。占いのスタッフと同じアカウントでログイン → お客さんを選んで写真を上げる（端末で長い辺2560pxのJPEGに縮めてから送る）
-- 責任者以上：お客さんの削除、写真展の名前の変更。管理者：展示のあとに全部消す
+- スタッフ：お客さんの削除。管理者：写真展の名前の変更、展示のあとに全部消す
 - 写真の中身は Durable Object（`PhotoStore`、SQLite に1MBずつ）、目録は D1 の `photo_guests` / `photos`（`migrations/0004_photos.sql`）
 - お客さんのログインは8回続けて間違えると5分ロック。名前は大文字小文字を区別せず1人だけ
 - 手元では `npm run dev:photo`（http://127.0.0.1:8790/）
@@ -117,11 +116,11 @@ npm run deploy
 
 ## 当日の運用
 
-- **改竄の閾値**などの設定は `/staff` の「管理」で変えられる（責任者以上）。LP の表示とは別なので、LP 側の `config.js` の `kaizanThreshold` も合わせる
+- **改竄の閾値**などの設定は `/staff` の「管理」で変えられる（管理者）。LP の表示とは別なので、LP 側の `config.js` の `kaizanThreshold` も合わせる
 - **受付を止める**：管理 → 受付のチェックを外す
 - **ゲームの点数**：管理 → ゲーム。結果ボタンの名前と払い戻し、チンチロの倍率、ブラックボックスの1つあたり、ラッキーパネルの難易度と点のボタン、ゲームの名前を変えられる
-- **客が縁を使い切った**：責任者が「客」の画面で調整（理由を残す）
-- **間違えて結果を入れた**：取消はできない（履歴は消さない）。責任者が調整で直す
+- **客が縁を使い切った**：スタッフが「客」の画面の「残高を直す・使えなくする」で調整（理由を残す）
+- **間違えて結果を入れた**：取消はできない（履歴は消さない）。「残高を直す」で直す
 - **札をなくした客**：受付で名前を探し、QRを出し直す（マイページのURLは変わらない）
 - **バックアップ**：管理 → 書き出し（CSV）。または `npx wrangler d1 export moneytalks-db --remote --output backup.sql`
 
@@ -138,8 +137,8 @@ npm run deploy
 - `GET /api/staff/lookup?q=`、`GET /api/staff/users/:id`、`POST /api/staff/register`
 - `POST /api/staff/plays`、`GET /api/staff/plays/open`、`POST /api/staff/plays/:id/finish|void`
 - `POST /api/staff/readings`、`GET /api/staff/readings/open`、`POST .../:id/bribe`、`PUT .../:id`、`POST .../:id/finish|void`
-- 責任者：`POST /api/staff/adjust`、`PUT /api/staff/settings`、`PUT /api/staff/games/:id`、`POST|GET /api/staff/cards`、`GET /api/staff/stats`
-- 管理者：`GET|POST /api/staff/accounts`、`PATCH /api/staff/accounts/:id`、`GET /api/staff/audit`、`GET /api/staff/export?what=users|ledger|readings`
+- `POST /api/staff/adjust`、`POST /api/staff/users/:id/status`、`POST|GET /api/staff/cards`、`POST /api/staff/cards/import`
+- 管理者：`PUT /api/staff/settings`、`GET|PUT /api/staff/games(/:id)`、`GET|POST /api/staff/invites`、`GET /api/staff/stats`、`GET|POST /api/staff/accounts`、`PATCH /api/staff/accounts/:id`、`GET /api/staff/audit`、`GET /api/staff/export?what=users|ledger|readings`
 
 ## 設計のメモ
 

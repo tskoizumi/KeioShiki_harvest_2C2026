@@ -1,8 +1,6 @@
-// スタッフが使うAPI。権限はピラミッド型（level 以上なら使える）
-//   1 staff   : ログイン、客を探す、受付（登録・札の紐づけ）、ゲームの開始・結果・取消
-//   2 teller  : ＋ 占い（開始・心付け・質問と兆・台本・終了・取りやめ）
-//   3 manager : ＋ 残高の調整、ゲームと設定の変更、印刷用の札の発行、客の無効化
-//   4 admin   : ＋ スタッフの管理、監査ログ、書き出し
+// スタッフが使うAPI。権限は2つ
+//   1 スタッフ : 現場の作業は全部（客を探す、受付、ゲーム、占い、残高の修正、客を使えなくする、QRカードの発行）
+//   4 管理者   : ＋ 設定とゲームの変更、スタッフの招待と管理、概要、記録、書き出し
 
 import { ApiError, json, readJson, randomToken, cleanNickname, normalizeCode, allSettings, audit, RANK_NAME } from '../util.js';
 import { LEVEL, LEVEL_NAME, hashCode, validCode, makeSession, sessionCookie, require as needLevel } from '../auth.js';
@@ -160,48 +158,48 @@ export async function handle(request, env, url, staff) {
 
   /* ---------- 占い ---------- */
   if (p === '/readings' && m === 'POST') {
-    needLevel(staff, LEVEL.teller);
+    needLevel(staff, LEVEL.staff);
     const b = await body();
     return json(await openReading(db, Number(b.userId), staff.id), 201);
   }
   if (p === '/readings/open' && m === 'GET') {
-    needLevel(staff, LEVEL.teller);
+    needLevel(staff, LEVEL.staff);
     const r = await db
       .prepare("SELECT r.id, r.user_id, r.bribe, r.rank, r.started_at, r.staff_id, u.nickname, u.short_code FROM readings r JOIN users u ON u.id = r.user_id WHERE r.status = 'open' ORDER BY r.id DESC LIMIT 30")
       .all();
     return json({ results: r.results.map((x) => ({ id: x.id, userId: x.user_id, nickname: x.nickname, shortCode: x.short_code, bribe: x.bribe, rank: x.rank, rankName: x.rank ? RANK_NAME[x.rank] : null, staffId: x.staff_id, startedAt: x.started_at })) });
   }
   if ((mm = p.match(/^\/readings\/(\d+)$/)) && m === 'GET') {
-    needLevel(staff, LEVEL.teller);
+    needLevel(staff, LEVEL.staff);
     return json(await getReading(db, Number(mm[1])));
   }
   if ((mm = p.match(/^\/readings\/(\d+)\/bribe$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.teller);
+    needLevel(staff, LEVEL.staff);
     const b = await body();
     if (!b.requestId) throw new ApiError('REQUEST_ID', 'requestId が必要です');
     return json(await addBribe(db, Number(mm[1]), Number(b.amount), staff.id, String(b.requestId)));
   }
   if ((mm = p.match(/^\/readings\/(\d+)$/)) && m === 'PUT') {
-    needLevel(staff, LEVEL.teller);
+    needLevel(staff, LEVEL.staff);
     const b = await body();
     return json(await updateReading(db, Number(mm[1]), { judge: b.judge, mention: b.mention, kizashiId: b.kizashiId, souId: b.souId }));
   }
   if ((mm = p.match(/^\/readings\/(\d+)\/finish$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.teller);
+    needLevel(staff, LEVEL.staff);
     const r = await finishReading(db, Number(mm[1]));
     await audit(db, staff.id, '占い終了', `reading:${r.id}`, `${r.nickname} ${r.bribe}縁 ${r.rankName}`);
     return json(r);
   }
   if ((mm = p.match(/^\/readings\/(\d+)\/void$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.teller);
+    needLevel(staff, LEVEL.staff);
     const r = await voidReading(db, Number(mm[1]), staff.id);
     await audit(db, staff.id, '占い取りやめ', `reading:${r.id}`, `${r.bribe}縁を返金`);
     return json(r);
   }
 
-  /* ---------- 責任者 ---------- */
+  /* ---------- 残高の修正・使えなくする・設定 ---------- */
   if (p === '/adjust' && m === 'POST') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.staff);
     const b = await body();
     const note = cleanNickname(b.note);
     if (!note) throw new ApiError('NOTE', '理由を入れてください');
@@ -212,7 +210,7 @@ export async function handle(request, env, url, staff) {
     return json(r);
   }
   if ((mm = p.match(/^\/users\/(\d+)\/status$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.staff);
     const b = await body();
     const st = b.status === 'disabled' ? 'disabled' : 'active';
     await db.prepare('UPDATE users SET status = ? WHERE id = ?').bind(st, Number(mm[1])).run();
@@ -220,7 +218,7 @@ export async function handle(request, env, url, staff) {
     return json(await userDetail(db, Number(mm[1])));
   }
   if (p === '/settings' && m === 'PUT') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.admin);
     const b = await body();
     const changed = {};
     for (const k of SETTING_KEYS) {
@@ -241,11 +239,11 @@ export async function handle(request, env, url, staff) {
     return json({ settings: await allSettings(db) });
   }
   if (p === '/games' && m === 'GET') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.admin);
     return json({ results: await listGames(db, false) });
   }
   if ((mm = p.match(/^\/games\/(\d+)$/)) && m === 'PUT') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.admin);
     const b = await body();
     const g = await db.prepare('SELECT * FROM games WHERE id = ?').bind(Number(mm[1])).first();
     if (!g) throw new ApiError('NOT_FOUND', 'そのゲームはありません', 404);
@@ -268,7 +266,7 @@ export async function handle(request, env, url, staff) {
     return json(shapeGame(await db.prepare('SELECT * FROM games WHERE id = ?').bind(g.id).first()));
   }
   if (p === '/cards' && m === 'POST') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.staff);
     const b = await body();
     const n = Math.min(500, Math.max(1, Number(b.n) || 0));
     const made = [];
@@ -283,7 +281,7 @@ export async function handle(request, env, url, staff) {
   }
   // 手元で作って印刷したQRカードを登録する（番号は公開リポジトリに置かず、管理画面のリンクから取り込む）
   if (p === '/cards/import' && m === 'POST') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.staff);
     const b = await body();
     const list = Array.isArray(b.cards) ? b.cards.slice(0, 500) : [];
     let added = 0, already = 0;
@@ -299,13 +297,13 @@ export async function handle(request, env, url, staff) {
     return json({ added, already });
   }
   if (p === '/cards' && m === 'GET') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.staff);
     const r = await db.prepare('SELECT token, short_code, nickname, created_at FROM users WHERE source = ? ORDER BY id').bind('card').all();
     return json({ results: r.results.map((x) => ({ token: x.token, shortCode: x.short_code, nickname: x.nickname, createdAt: x.created_at })) });
   }
-  /* ---------- スタッフの招待（責任者以上。自分より下の権限だけ作れる） ---------- */
+  /* ---------- スタッフの招待（管理者だけ。招待で作れるのはスタッフ） ---------- */
   if (p === '/invites' && m === 'GET') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.admin);
     const r = await db
       .prepare('SELECT i.*, s.name AS by_name FROM staff_invites i LEFT JOIN staff s ON s.id = i.created_by ORDER BY i.id DESC LIMIT 50')
       .all();
@@ -314,11 +312,9 @@ export async function handle(request, env, url, staff) {
     return json({ results: r.results.map((i) => shapeInvite(i, n[i.id] || 0)) });
   }
   if (p === '/invites' && m === 'POST') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.admin);
     const b = await body();
-    const level = Number(b.level);
-    const maxLevel = Math.min(3, staff.level === LEVEL.admin ? 3 : staff.level - 1);
-    if (!(level >= 1 && level <= maxLevel)) throw new ApiError('LEVEL', `作れる招待は「${LEVEL_NAME[maxLevel]}」までです`, 403);
+    const level = LEVEL.staff;   // 管理者は招待では作らない（一覧で権限を変える）
     const hours = Math.min(24 * 14, Math.max(1, Number(b.hours) || 72));
     const maxUses = Math.min(200, Math.max(1, Number(b.maxUses) || 50));
     const code = inviteCode();
@@ -329,7 +325,7 @@ export async function handle(request, env, url, staff) {
     return json(shapeInvite(i, 0), 201);
   }
   if ((mm = p.match(/^\/invites\/(\d+)\/stop$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.admin);
     await db.prepare('UPDATE staff_invites SET active = 0 WHERE id = ?').bind(Number(mm[1])).run();
     await audit(db, staff.id, '招待を止める', `invite:${mm[1]}`, null);
     return json({ ok: true });
@@ -352,7 +348,7 @@ export async function handle(request, env, url, staff) {
     const name = cleanNickname(b.name);
     const level = Number(b.level);
     if (!name) throw new ApiError('NAME', '名前を入れてください');
-    if (!(level >= 1 && level <= 4)) throw new ApiError('LEVEL', '権限が不正です');
+    if (!LEVEL_NAME[level]) throw new ApiError('LEVEL', '権限が不正です');
     if (!validCode(b.code)) throw new ApiError('CODE', 'パスワードは6文字以上にしてください');
     const dup = await db.prepare('SELECT 1 FROM staff WHERE name = ?').bind(name).first();
     if (dup) throw new ApiError('DUP', 'その名前のスタッフはもういます', 409);
@@ -370,7 +366,7 @@ export async function handle(request, env, url, staff) {
     if (id === staff.id && (b.active === false || (b.level != null && Number(b.level) < 4))) throw new ApiError('SELF', '自分の管理者権限は外せません');
     if (b.level != null) {
       const level = Number(b.level);
-      if (!(level >= 1 && level <= 4)) throw new ApiError('LEVEL', '権限が不正です');
+      if (!LEVEL_NAME[level]) throw new ApiError('LEVEL', '権限が不正です');
       await db.prepare('UPDATE staff SET level = ? WHERE id = ?').bind(level, id).run();
     }
     if (b.active != null) await db.prepare('UPDATE staff SET active = ? WHERE id = ?').bind(b.active ? 1 : 0, id).run();
@@ -390,7 +386,7 @@ export async function handle(request, env, url, staff) {
     return json({ results: r.results });
   }
   if (p === '/stats' && m === 'GET') {
-    needLevel(staff, LEVEL.manager);
+    needLevel(staff, LEVEL.admin);
     const [users, bal, plays, readings, bribe] = await Promise.all([
       db.prepare("SELECT COUNT(*) AS n FROM users WHERE nickname IS NOT NULL AND status = 'active'").first(),
       db.prepare("SELECT COALESCE(SUM(balance), 0) AS n FROM users WHERE status = 'active'").first(),

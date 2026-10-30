@@ -76,7 +76,7 @@
 
   function load() {
     api('/api/staff/cards').then(function (x) {
-      if (!x.ok) { $('err').hidden = false; $('err').textContent = x.d.message || '責任者以上でログインしてください（/staff）'; return; }
+      if (!x.ok) { $('err').hidden = false; $('err').textContent = x.d.message || 'スタッフとしてログインしてください（/staff）'; return; }
       var all = x.d.results;
       render($('which').value === 'all' ? all : all.filter(function (c) { return !c.nickname; }));
     });
