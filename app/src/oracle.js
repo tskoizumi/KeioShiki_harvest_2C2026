@@ -1,6 +1,7 @@
 /* ============================================================
    占いの中身
-   相（8）・兆（10）・質問（判定9問＋言及10問）・台本の組み立て方。
+   相（8）・兆（10）・質問（判定9問＋言及10問）・人生の年表・台本の組み立て方。
+   流れ：賄賂なしでふつうに占う → 賄賂チャンス → 賄賂があれば、ランクに応じて年表を書き直して言い直す。
    文章を直すときはここだけ触ればいい。サーバー（readings.js）が読む。
 ============================================================ */
 export const ORACLE = (function () {
@@ -61,8 +62,8 @@ export const ORACLE = (function () {
      兆（きざし）— ブースで10枚から1枚引く
      base   : 兆の基本の読み（どの相でも読む）
      omen   : "good" / "bad" / "mixed"
-     ending : 結論。心付けの位で変わる（無・小・大）。シェア画像の一行にもなる
-     by     : 相ごとの一文（兆の解釈の中で、base の後に読む）
+     ending : 言い直したあとの結論（sho＝小、dai＝大）。お客さんに届く一言にもなる。mu は今は使わない
+     by     : タイプごとの一文（カードを読むときに、base の後に読む）
   ---------------------------------------------------------- */
   var KIZASHI = [
     {
@@ -274,58 +275,154 @@ export const ORACLE = (function () {
   ];
 
   /* ----------------------------------------------------------
-     言及用10問 — 1〜5。極端な答えを拾って、相の描写の途中で刺す
-     high: 4〜5 と答えた人へ / low: 1〜2 と答えた人へ
+     言及用10問 — 1〜5。答えから「人生の大事件」を年表に入れる
+     high: 4〜5 と答えた人 / mid: 3 / low: 1〜2
+     age: 何歳の出来事か。base: ふつうの占い（賄賂なし）。fix: 賄賂で書き直したあと
   ---------------------------------------------------------- */
   var MENTION = [
     { text: "ラーメンのスープは、最後まで飲み干す。",
-      high: "縁も、そうやって飲み干してきましたね。",
-      low:  "残す人です。人のことも、途中で残す。" },
+      high: { age: 38, base: "健康診断で、全部の項目に赤い印がつく。医者に『スープを残す練習から始めましょう』と言われ、その帰りに替え玉を頼む。",
+              fix:  "全国のラーメンのスープを飲み干した記録が本になり、ベストセラーになる。健康診断は、なぜか全部正常。" },
+      mid:  { age: 33, base: "ラーメン屋で『スープ、半分だけ飲む人生でいいのか』と急に思い、会社を辞める。次の仕事は、まだ決まっていない。",
+              fix:  "半分だけ飲む美学が認められ、高級ラーメン店の『スープ審査員』に選ばれる。年収が倍になる。" },
+      low:  { age: 41, base: "昔、あなたが残したスープを捨てた店主が、結婚相手の父親になる。結婚式のスピーチで、そのことを三十分話される。",
+              fix:  "結婚式で、相手の父親がスピーチを始めようとして、感動で泣いて一言も話せない。会場の全員が、あなたの人柄を褒める。" } },
     { text: "傘を、人生で3本以上なくしている。",
-      high: "物だけではない。あなたは、置いていく側の人間です。",
-      low:  "物をなくさない。代わりに、なくしたことに気づかない。" },
+      high: { age: 29, base: "電車に忘れた傘を取りに戻ったせいで、人生最大のチャンスの面接に遅れる。傘は見つかる。ビニール傘。",
+              fix:  "忘れた傘を届けてくれた人が、のちの共同創業者になる。会社は三年で上場する。" },
+      mid:  { age: 35, base: "なくしたかどうかも覚えていない傘が、昔の恋人の家から段ボールで送られてくる。手紙は入っていない。",
+              fix:  "昔の恋人から届いた段ボールに、傘と一緒に宝くじが入っている。一等が当たっている。" },
+      low:  { age: 47, base: "一度も傘をなくさない律儀さを買われて、町内会長に選ばれる。断れない。任期は、終わらない。",
+              fix:  "傘をなくさない人として地元のテレビに出て、そのまま市長選に担ぎ出され、当選する。" } },
     { text: "テストの前日に、なぜか部屋を片づけてしまう。",
-      high: "逃げ方が上手い。才能です。使い道を間違えているだけで。",
-      low:  "逃げない。逃げないので、逃げ遅れる。" },
+      high: { age: 26, base: "資格試験の前日に片づけを始め、勢いで引っ越しまで済ませてしまう。試験は落ちる。新しい部屋は、気に入る。",
+              fix:  "試験前日の片づけを撮った動画が百万回再生される。資格は、もう要らなくなる。" },
+      mid:  { age: 31, base: "大事な決断の前の夜、片づけるかどうか迷っているうちに朝になる。決断は、別の人がする。",
+              fix:  "迷っているうちに朝になるが、その間にライバルが全員辞退していて、あなたに決まる。" },
+      low:  { age: 44, base: "逃げずに正面から挑み続けた結果、会社でいちばん面倒な仕事が全部あなたに回ってくる。",
+              fix:  "面倒な仕事を全部やり切った功績で、会社の最年少の社長に指名される。" } },
     { text: "自分は、運がいい方だ。",
-      high: "運がいいと言う人は、だいたい今日ここで使い切ります。",
-      low:  "運が悪い。だから、賄賂を持ってきた。正しい。" },
+      high: { age: 24, base: "商店街の福引で、一等の温泉旅行を当てる。ただし、一緒に行く相手はくじで決まり、いちばん気まずい人になる。",
+              fix:  "福引で一等を当て、旅先の温泉で運命の相手と出会う。" },
+      mid:  { age: 37, base: "宝くじの番号が、一等と一けただけ違う。その一枚を、一生財布に入れて持ち歩く。",
+              fix:  "一けた違いだと思っていた宝くじを見直すと、見間違いで一等。財布ごと金庫に入れる。" },
+      low:  { age: 50, base: "乗った飛行機が、三回続けて空港に引き返す。三回目に隣に座った人と、なぜか親友になる。",
+              fix:  "引き返した飛行機で隣に座った人が大富豪で、財産を継ぐ人に指名される。" } },
     { text: "推しがいる。",
-      high: "その人は、あなたの名前を知りません。知っているのは、この本だけです。",
-      low:  "推しがいない。あなたは、誰かの推しになる側かもしれない。本には、書いてありませんが。" },
+      high: { age: 34, base: "推しの結婚発表を、自分の結婚式の当日に知る。誓いの言葉で、少し声が震える。",
+              fix:  "推しが、あなたの結婚式にサプライズで歌いに来る。誰が呼んだのかは、最後まで分からない。" },
+      mid:  { age: 28, base: "推しかどうか分からない人を、十年追いかけていたと気づく。相手は、あなたを知らない。",
+              fix:  "十年追いかけた人から『実は、ずっと見ていました』と連絡が来る。" },
+      low:  { age: 39, base: "誰も推さずに生きてきたあなたに、知らない間にファンクラブができている。会員は三人。全員、親戚。",
+              fix:  "あなたのファンクラブの会員が十万人を超える。会報の表紙は、毎月あなた。" } },
     { text: "既読をつけずに読む技を、持っている。",
-      high: "見ているのに、見ていないふりをする。本も、あなたをそう見ています。",
-      low:  "正直に既読をつける。正直者は、兆に殴られやすい。" },
+      high: { age: 30, base: "既読をつけずに読んでいたグループで、自分の送別会の計画を見てしまう。あなたは、まだ辞めるつもりがなかった。",
+              fix:  "こっそり読んでいたグループで、自分の昇進祝いのサプライズ計画を見つける。驚く練習をしておくこと。" },
+      mid:  { age: 36, base: "既読をつけるか迷った一通が、プロポーズだったと三年後に知る。",
+              fix:  "迷った末に開いた一通がプロポーズで、返事をする前に指輪が届く。" },
+      low:  { age: 43, base: "すぐ既読をつけ続けた結果、上司の夜中の連絡が全部あなたに集まる。",
+              fix:  "すぐ返事をする誠実さが評判になり、十社から引き抜きの連絡が来る。" } },
     { text: "写真写りには、自信がある。",
-      high: "鏡と写真と本物。三つの顔がある。本が見ているのは、四つ目です。",
-      low:  "写真写りが悪い。実物の方がいいということです。本も、実物の方を見ています。" },
+      high: { age: 27, base: "自信を持って撮った写真が、十年使う免許証に、人生最悪の顔で印刷される。",
+              fix:  "何気なく撮られた一枚が広告に使われ、駅の看板があなたの顔で埋まる。" },
+      mid:  { age: 32, base: "集合写真で、毎回半分だけ目を閉じる。結婚式の写真も、半分閉じている。",
+              fix:  "半分目を閉じた写真が『神秘的すぎる』と話題になり、写真集が出る。" },
+      low:  { age: 46, base: "写真を避け続けた結果、家族写真にあなただけがいない。",
+              fix:  "写真嫌いを克服して撮った一枚が、写真コンテストで大賞を取る。" } },
     { text: "カラオケで、自分の番が待ちきれない。",
-      high: "人の歌を、聴いていませんね。兆も、聴いていない。",
-      low:  "待てる人です。待ちすぎて、順番が来ないこともある。" },
+      high: { age: 25, base: "カラオケの十八番を、通りかかった音楽プロデューサーに聴かれる。『二度と歌わないでください』と言われる。",
+              fix:  "カラオケの十八番を音楽プロデューサーが聴いていて、その場でデビューが決まる。" },
+      mid:  { age: 40, base: "会社の宴会で何を歌うか決められず、校歌を歌う。それが、あなたのあだ名になる。",
+              fix:  "宴会で歌った校歌に社長が泣き、あなたの部署だけ給料が上がる。" },
+      low:  { age: 55, base: "人の歌を待ち続け、やっと自分の番が来た瞬間に、店が閉店時間になる。",
+              fix:  "やっと回ってきた一曲で、店じゅうが総立ちになる。店長が、一生タダで歌える券をくれる。" } },
     { text: "財布の中身を、今、正確に言える。",
-      high: "数えている。減ることを、恐れている。今日は、減ります。",
-      low:  "数えていない。今日ここで減っても気づかない。都合がいい。" },
+      high: { age: 33, base: "一円単位まで覚えている財布を、海外旅行の初日に落とす。中身の額だけは、警察に正確に言える。",
+              fix:  "落とした財布が、中身が倍になって戻ってくる。拾ったのは石油王。" },
+      mid:  { age: 42, base: "だいたいの額しか分からないまま投資を始め、だいたい失う。",
+              fix:  "だいたいで始めた投資が、だいたい十倍になる。" },
+      low:  { age: 48, base: "財布の中身を気にせず生きてきて、ある日、全財産がポイントカードだったと気づく。",
+              fix:  "貯めこんだポイントカードのポイントで、家が一軒建つ。" } },
     { text: "初詣は、毎年欠かさず行く。",
-      high: "神様に毎年頼んでいる。今年は私に頼みに来た。神様が、気づかなければいいですが。",
-      low:  "神を頼らない。ここに来た時点で、もう矛盾していますが。" },
+      high: { age: 60, base: "毎年通った神社の神主に、『あなたのお願いは、多すぎます』と注意される。",
+              fix:  "毎年通った神社に、あなたの名前が刻まれた石碑が建つ。" },
+      mid:  { age: 52, base: "行くか迷った年の初詣だけ大吉で、行った年は全部凶だったと気づく。",
+              fix:  "迷って行った初詣で大吉を引き、その年から十年続けて良いことしか起きない。" },
+      low:  { age: 58, base: "神様を頼らずに生きてきたあなたに、なぜか神社の跡継ぎの話が来る。",
+              fix:  "神様を頼らずに生きてきたあなたが、なぜか神社で神様として祀られる。" } },
   ];
-  // 大のとき、言及のたびに挟む持ち上げ（順に使う）
+
+  /* ----------------------------------------------------------
+     カードの出来事 — 人生の「転機」。賄賂が「小」なら、まずここが書き直される
+     verdict: ふつうの占いの結論（賄賂なし）
+  ---------------------------------------------------------- */
+  var CARD_EVENT = {
+    tomoshibi: { age: 22, base: "終電を逃した夜、灯りのついた店に入る。そこで出会う人と、十年後に一緒に店を開く。店は、二年で潰れる。",
+                 fix:  "終電を逃した夜に入った店で出会う人と、十年後に店を開く。店は、全国に百店舗まで広がる。",
+                 verdict: "灯の先で、人生が決まる。消えるかどうかは、まだ分からない。" },
+    sakeme:    { age: 23, base: "信じていた親友と、ひとことで縁が切れる。仲直りのきっかけは、二十年来ない。",
+                 fix:  "親友と大げんかをするが、次の朝、お互い謝りに行こうとして玄関の前で鉢合わせる。一生の笑い話になる。",
+                 verdict: "何かが割れる。割れたまま、生きていく。" },
+    chinmoku:  { age: 27, base: "ずっと黙っていた人から、手紙が一通届く。読むと、人生の選択をひとつやり直したくなる。やり直せない。",
+                 fix:  "ずっと黙っていた人から、手紙が届く。中身は『好きでした。今も』。",
+                 verdict: "言われなかった言葉が、一生ついてくる。" },
+    suzu:      { age: 25, base: "知らない番号から電話が鳴る。出なかった。それが、人生でいちばん大きな誘いだった。",
+                 fix:  "知らない番号からの電話に出る。ハリウッド映画への出演の依頼。",
+                 verdict: "呼ばれる。気づくかどうかは、あなた次第。" },
+    kagi:      { age: 30, base: "拾った鍵がきっかけで、空き家を一軒受け継ぐ。家の中には、前の住人の借金の書類も入っている。",
+                 fix:  "拾った鍵で開けた空き家の床下から、江戸時代の小判が出てくる。全部、あなたのもの。",
+                 verdict: "扉は開く。中に何があるかは、開けた人の責任。" },
+    tori:      { age: 24, base: "いちばん大切な人が、遠い国へ旅立つ。空港で見送るとき、言いたいことをひとつも言えない。",
+                 fix:  "遠い国へ旅立つ大切な人が、搭乗口の前で引き返してくる。『一緒に来て』と言う。",
+                 verdict: "大切なものが、飛んでいく。" },
+    tsuki:     { age: 35, base: "十年前に別れた人と、同じ会社の同じ部署になる。席は、隣。",
+                 fix:  "十年前に別れた人と再会し、今度は最後まで一緒に生きる。",
+                 verdict: "終わったことが、形を変えて戻ってくる。" },
+    suna:      { age: 28, base: "こつこつ貯めたお金が、友達の『絶対もうかる話』で、砂のように消える。",
+                 fix:  "友達の『絶対もうかる話』が本当に絶対もうかる話で、貯金が百倍になる。",
+                 verdict: "握るほど、こぼれる。" },
+    ashioto:   { age: 26, base: "毎晩同じ時間に聞こえる足音の正体が、生き別れのきょうだいだと分かる。借金の相談に来ていた。",
+                 fix:  "毎晩聞こえる足音の正体は、生き別れのきょうだい。宝くじの当選金を、半分持ってきてくれた。",
+                 verdict: "誰かが来る。顔は、まだ見えない。" },
+    ito:       { age: 29, base: "小学校の同級生と偶然再会して、結婚する。相手の家族は全員あなたの昔の失敗を覚えていて、毎年お正月に話す。",
+                 fix:  "小学校の同級生と再会して、結婚する。相手の家族が、全員拍手であなたを迎える。",
+                 verdict: "切れたはずの縁が、結ばれる。" },
+  };
+
+  /* ----------------------------------------------------------
+     タイプの出来事 — 質問Bの答えが足りないとき（空欄が多いとき）の穴埋め
+  ---------------------------------------------------------- */
+  var SOU_EVENT = {
+    takibi:  { age: 45, base: "町いちばんの人気者になる。でも、家に帰ると誰もいない。", fix: "町いちばんの人気者になる。家に帰ると、全員が待っている。" },
+    yaiba:   { age: 38, base: "迷わず辞表を出す。次の日、会社が買収されて、残った全員の給料が上がる。", fix: "迷わず出した辞表が受理される前に、ライバル会社から社長として迎えられる。" },
+    shinkai: { age: 49, base: "ずっと沈めていた本音を、うっかり社長に言ってしまう。", fix: "うっかり社長に言った本音が採用され、会社の方針になる。" },
+    kiri:    { age: 41, base: "同窓会で、誰もあなたの名前を思い出せない。", fix: "同窓会で、全員があなたのことだけをはっきり覚えている。" },
+    iwa:     { age: 53, base: "頼られすぎて、ついに腰を痛める。お見舞いに来るのは、頼ってきた人たちだけ。", fix: "頼ってきた人たちが全員恩返しに来て、一生働かなくてよくなる。" },
+    kaze:    { age: 36, base: "ふらっと出た旅から、三年帰らない。帰ると、部屋に知らない人が住んでいる。", fix: "ふらっと出た旅先で、島をひとつ譲ってもらう。" },
+    kagami:  { age: 44, base: "人に合わせ続けた結果、自分の好きな食べ物を答えられなくなる。", fix: "人に合わせる才能を見込まれて、外交官になる。" },
+    tane:    { age: 57, base: "ようやく芽を出すと決めた日に、定年退職の案内が届く。", fix: "定年の日に始めた趣味が大当たりして、二度目の人生の方が稼ぐ。" },
+  };
+  var KAIZAN_FINALE = { age: 100, fix: "あなたの誕生日が、国の祝日になる。" };
+
+  // 答えの強さで、引用のあとに一言足す
+  var TONE = { 2: "言い切りましたね。", 1: "少し、控えめに。", 0: "『どちらでもない』。逃げましたね。" };
+  // 大のとき、言い直すたびに挟む持ち上げ（順に使う）
   var FLATTER = [
     "——いや、それがいい。それが実に、いい。",
     "——素晴らしい。本に、そう書き足しておきます。",
     "——完璧です。今日の客で、一番です。昨日の客を含めても。",
   ];
-  var MENTION_MID = "『どちらでもない』。そうやって、人生の半分を逃してきましたね。";
 
   /* ----------------------------------------------------------
-     心付けの位ごとの演じ方（占い師への指示）
+     賄賂のランクごとに、何が変わるか（占い師とお客さん向けの説明）と演じ方
   ---------------------------------------------------------- */
   var DIRECTION = {
-    mu:     { mentions: 1, note: "塩。抑揚ゼロ。目を合わせない。文を短く切る。読み終えたら紙を渡して「次の方」。" },
-    sho:    { mentions: 2, note: "普通に占う。低く、ゆっくり。助言は丁寧に。ここが「本物の占い」の基準になる。" },
-    dai:    { mentions: 3, note: "気持ち悪いくらい媚びる。前のめり、手をもむ。悪い兆は全部他人のせい。言及のたびに持ち上げる。" },
-    kaizan: { mentions: 3, note: "小と同じ調子で結論まで読み切る。三つ数えて黙る。鈴。立ち上がる。本を閉じてから新しい神託。両替商も一瞬止まる。" },
+    mu:     { change: "運命はそのまま", note: "賄賂なし。本を閉じて「以上です」。それだけ。" },
+    sho:    { change: "人生の転機（カードの出来事）を書き直す", note: "少し気まずそうに、丁寧に訂正する。「……失礼。読み違えていました」。" },
+    dai:    { change: "年表を全部書き直す＋べた褒め", note: "気持ち悪いくらい媚びる。前のめり、手をもむ。言い直すたびに持ち上げる。" },
+    kaizan: { change: "運命ごと書き換え＋伝説がひとつ増える", note: "三つ数えて黙る。鈴。立ち上がる。本を閉じてから、新しい運命を読み上げる。両替商も一瞬止まる。" },
   };
+  var BASE_NOTE = "まずは賄賂なしの、ふつうの占い。真顔で、低く、ゆっくり読む。いい話も悪い話も、そのまま。";
 
   /* ----------------------------------------------------------
      相の判定
@@ -343,10 +440,12 @@ export const ORACLE = (function () {
   }
 
   /* ----------------------------------------------------------
-     言及を選ぶ — 3から遠い答え（1 や 5）を優先。
+     年表に入れる答えを選ぶ — 1 や 5（言い切った答え）を優先し、
+     足りなければ 2 や 4、それでも足りなければ 3 を使う。空欄（null）は使わない。
+     それでも足りないときは、compose がタイプの出来事で埋める。
      同じ強さどうしは、占いごとに変わる順番で選ぶ（質問の並び順で選ぶと、
      いつも1問目のラーメンばかりになるため）。
-     answers: 言及用10問の答え（1〜5の配列）。n: 何個拾うか
+     answers: 言及用10問の答え（1〜5 か null の配列）。n: 何個拾うか
      seed: 占いの番号など。同じ占いなら、何度組み直しても同じ結果になる
   ---------------------------------------------------------- */
   function shuffleOrder(len, seed) {
@@ -366,13 +465,21 @@ export const ORACLE = (function () {
   }
   function pickMentions(answers, n, seed) {
     var tie = shuffleOrder(MENTION.length, seed);
-    var list = MENTION.map(function (q, i) {
-      var a = Number(answers[i]) || 3;
-      return { q: q, a: a, strength: Math.abs(a - 3), i: i };
-    }).sort(function (x, y) { return y.strength - x.strength || tie[x.i] - tie[y.i]; }).slice(0, n);
-    return list.map(function (m) {
-      var line = m.strength === 0 ? MENTION_MID : (m.a >= 4 ? m.q.high : m.q.low);
-      return { quote: "あなたは『" + m.q.text.replace(/。$/, "") + "』に " + m.a + " と答えましたね。", line: line };
+    var list = [];
+    MENTION.forEach(function (q, i) {
+      var a = Number(answers && answers[i]);
+      if (!(a >= 1 && a <= 5)) return;
+      list.push({ q: q, a: a, strength: Math.abs(a - 3), i: i });
+    });
+    list.sort(function (x, y) { return y.strength - x.strength || tie[x.i] - tie[y.i]; });
+    return list.slice(0, n).map(function (m) {
+      var ev = m.a >= 4 ? m.q.high : m.a <= 2 ? m.q.low : m.q.mid;
+      return {
+        i: m.i, answer: m.a, strength: m.strength,
+        quote: "あなたは『" + m.q.text.replace(/。$/, "") + "』に " + m.a + " と答えましたね。",
+        tone: TONE[m.strength],
+        event: ev,
+      };
     });
   }
 
@@ -380,62 +487,95 @@ export const ORACLE = (function () {
      台本を組み立てる
        sou      : SOU の要素（judge の結果、または直接指定）
        kizashi  : KIZASHI の要素
-       rankId   : "mu" | "sho" | "dai" | "kaizan"
-       mentions : pickMentions の結果
-     返り値: { parts: [{title, lines:[{t, kind}]}], oracle, direction }
-       kind: "say"（読む） / "cue"（演出の指示） / "quote"（言及）
+       rankId   : 賄賂のランク "mu" | "sho" | "dai" | "kaizan"
+       mentions : pickMentions の結果（ふつうは2つ）
+     返り値:
+       before   : 賄賂なしの、ふつうの占い { parts, oracle, direction }
+       after    : 賄賂を受け取ったあとの言い直し（mu なら null）
+       timeline : 人生の年表 [{ age, before, after }]（after は書き直されたときだけ）
+       oracle   : 最後にお客さんに届く一言（after があれば after の結論）
+     parts: [{title, lines:[{t, kind}]}]  kind: "say"（読む） / "cue"（演出の指示） / "quote"（質問票の答え）
   ---------------------------------------------------------- */
   function compose(sou, kizashi, rankId, mentions) {
-    var dir = DIRECTION[rankId];
-    var parts = [];
+    // 年表：答えから2つ（足りなければタイプの出来事）＋カードの転機
+    var events = (mentions || []).slice(0, 2).map(function (m) { return { from: "answer", ev: m.event, m: m }; });
+    if (events.length < 2) events.push({ from: "type", ev: SOU_EVENT[sou.id] });
+    events.push({ from: "card", ev: CARD_EVENT[kizashi.id] });
+    events.sort(function (a, b) { return a.ev.age - b.ev.age; });
+    var at = function (age, text) { return age + "歳。" + text; };
 
-    // 第一部 — 相の描写。常に真顔で正確に
-    var p1 = [{ t: "あなたの相は、『" + sou.name + "』。", kind: "say" }];
-    sou.describe.split("。").filter(Boolean).forEach(function (s, i) {
-      p1.push({ t: s + "。", kind: "say" });
-      if (i === 0) {
-        mentions.forEach(function (m, k) {
-          p1.push({ t: m.quote, kind: "quote" });
-          p1.push({ t: m.line, kind: "say" });
-          if (rankId === "dai") p1.push({ t: FLATTER[k % FLATTER.length], kind: "say" });
-        });
-      }
-    });
-    parts.push({ title: "相の描写", lines: p1 });
-
-    // 第二部 — 兆の解釈
-    var p2 = [{ t: "引いた兆は、『" + kizashi.name + "』。", kind: "say" }];
+    // ---------- ふつうの占い ----------
+    var p1 = [{ t: "あなたのタイプは、『" + sou.name + "』。", kind: "say" }];
+    sou.describe.split("。").filter(Boolean).forEach(function (s) { p1.push({ t: s + "。", kind: "say" }); });
+    var p2 = [{ t: "引いたカードは、『" + kizashi.name + "』。", kind: "say" }];
     kizashi.base.split("。").filter(Boolean).forEach(function (s) { p2.push({ t: s + "。", kind: "say" }); });
-    if (rankId !== "mu") {
-      p2.push({ t: kizashi.by[sou.id], kind: "say" });
-      if (rankId === "dai" && kizashi.omen !== "good") p2.push({ t: "……ですが、これはあなたの責任ではない。", kind: "say" });
-    }
-    parts.push({ title: "兆の解釈", lines: p2 });
+    p2.push({ t: kizashi.by[sou.id], kind: "say" });
+    var p3 = [{ t: "では、あなたの人生を読みます。", kind: "say" }];
+    events.forEach(function (e) {
+      if (e.from === "answer") { p3.push({ t: e.m.quote, kind: "quote" }); p3.push({ t: e.m.tone, kind: "say" }); }
+      if (e.from === "card") p3.push({ t: "カードが示す、人生の転機。", kind: "cue" });
+      p3.push({ t: at(e.ev.age, e.ev.base), kind: "say" });
+    });
+    var verdict = CARD_EVENT[kizashi.id].verdict;
+    var p4 = [
+      { t: verdict, kind: "say" },
+      { t: "本を閉じかけて、止まる。", kind: "cue" },
+      { t: "……この運命、書き換えることもできますが。", kind: "say" },
+      { t: "画面の「賄賂チャンスへ」を押す。", kind: "cue" },
+    ];
+    var before = {
+      parts: [{ title: "タイプを読む", lines: p1 }, { title: "カードを読む", lines: p2 }, { title: "人生の年表", lines: p3 }, { title: "結論", lines: p4 }],
+      oracle: verdict,
+      direction: BASE_NOTE,
+    };
 
-    // 第三部 — 結論
-    var endRank = rankId === "kaizan" ? "sho" : rankId;
-    var oracle = kizashi.ending[endRank];
-    var p3 = [{ t: oracle, kind: "say" }];
-    if (rankId === "mu") p3.push({ t: "次の方。", kind: "say" }, { t: "紙を渡す。目を合わせない。", kind: "cue" });
-    parts.push({ title: "結論", lines: p3 });
-
-    // 改竄 — 結論を読み終えた直後
-    if (rankId === "kaizan") {
-      oracle = sou.kaizan;
-      parts.push({
-        title: "改竄",
-        lines: [
-          { t: "三つ数えて、黙る。", kind: "cue" },
-          { t: "鈴を鳴らす。立ち上がる。本を閉じる。", kind: "cue" },
-          { t: "——いえ。この兆は、誤りでした。", kind: "say" },
-          { t: "本に書かれていたのは、別の神託です。", kind: "say" },
-          { t: oracle, kind: "say" },
-          { t: "座る。紙を渡す。外の両替商が一瞬止まる。", kind: "cue" },
-        ],
+    // ---------- 賄賂のあとの言い直し ----------
+    var changed = function (e) { return rankId === "dai" || rankId === "kaizan" || (rankId === "sho" && e.from === "card"); };
+    var after = null, oracle = verdict;
+    if (rankId === "sho") {
+      var card = events.filter(function (e) { return e.from === "card"; })[0];
+      oracle = kizashi.ending.sho;
+      after = { parts: [{ title: "言い直し", lines: [
+        { t: "本をめくり直す。少し気まずそうに。", kind: "cue" },
+        { t: "……失礼。一か所、読み違えていました。", kind: "say" },
+        { t: at(card.ev.age, "本当は——" + card.ev.fix), kind: "say" },
+        { t: "ほかは、そのままです。", kind: "say" },
+        { t: oracle, kind: "say" },
+      ] }] };
+    } else if (rankId === "dai") {
+      oracle = kizashi.ending.dai;
+      var ld = [
+        { t: "身を乗り出す。手をもむ。", kind: "cue" },
+        { t: "いえいえいえ。読み違えです。全部。", kind: "say" },
+      ];
+      events.forEach(function (e, k) {
+        ld.push({ t: at(e.ev.age, e.ev.fix), kind: "say" });
+        ld.push({ t: FLATTER[k % FLATTER.length], kind: "say" });
       });
+      ld.push({ t: oracle, kind: "say" });
+      after = { parts: [{ title: "言い直し", lines: ld }] };
+    } else if (rankId === "kaizan") {
+      oracle = sou.kaizan;
+      var lk = [
+        { t: "三つ数えて、黙る。", kind: "cue" },
+        { t: "鈴を鳴らす。立ち上がる。本を閉じる。", kind: "cue" },
+        { t: "——この本は、誤りでした。", kind: "say" },
+        { t: "あなたの本当の運命を、読み直します。", kind: "say" },
+      ];
+      events.forEach(function (e) { lk.push({ t: at(e.ev.age, e.ev.fix), kind: "say" }); });
+      lk.push({ t: "そして——" + at(KAIZAN_FINALE.age, KAIZAN_FINALE.fix), kind: "say" });
+      lk.push({ t: oracle, kind: "say" });
+      lk.push({ t: "座る。紙を渡す。外の両替商が一瞬止まる。", kind: "cue" });
+      after = { parts: [{ title: "改竄", lines: lk }] };
     }
+    if (after) { after.direction = DIRECTION[rankId].note; after.oracle = oracle; }
 
-    return { parts: parts, oracle: oracle, direction: dir.note };
+    var timeline = events.map(function (e) {
+      return { age: e.ev.age, before: e.ev.base, after: changed(e) ? e.ev.fix : null };
+    });
+    if (rankId === "kaizan") timeline.push({ age: KAIZAN_FINALE.age, before: null, after: KAIZAN_FINALE.fix });
+
+    return { before: before, after: after, timeline: timeline, oracle: oracle, oracleBefore: verdict };
   }
 
   return {
@@ -444,6 +584,8 @@ export const ORACLE = (function () {
     JUDGE: JUDGE,
     MENTION: MENTION,
     DIRECTION: DIRECTION,
+    CARD_EVENT: CARD_EVENT,
+    SOU_EVENT: SOU_EVENT,
     judge: judge,
     pickMentions: pickMentions,
     compose: compose,

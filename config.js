@@ -77,10 +77,10 @@ window.SITE = {
   /* ---------- 心付けの位 ----------
      min は下限。改竄の下限は kaizanThreshold を使う。 */
   ranks: [
-    { id: "mu",     name: "無",   min: 0,    attitude: "事実だけ言って、終わり。" },
-    { id: "sho",    name: "小",   min: 100,  attitude: "ふつうに占う。アドバイスもくれる。" },
-    { id: "dai",    name: "大",   min: 500,  attitude: "とにかく褒める。悪い結果は全部、他人のせい。" },
-    { id: "kaizan", name: "改竄", min: null, attitude: "占いの結果そのものを、書き換える。" },
+    { id: "mu",     name: "無",   min: 0,    attitude: "運命は、そのまま。" },
+    { id: "sho",    name: "小",   min: 100,  attitude: "人生の転機をひとつ、書き直してもらえる。" },
+    { id: "dai",    name: "大",   min: 500,  attitude: "人生の出来事を全部書き直す。占い師がべた褒めしてくる。" },
+    { id: "kaizan", name: "改竄", min: null, attitude: "鈴が鳴り、運命ごと書き換わる。伝説がひとつ増える。" },
   ],
 
   /* ---------- 結果・番付のシステムとの接続 ----------

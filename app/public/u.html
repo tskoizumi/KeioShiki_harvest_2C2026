@@ -111,6 +111,16 @@
     .res.kz .meta { color: #a29b9e; }
     .seal.sm { width: 30px; height: 30px; font-size: 13px; border-width: 1.5px; vertical-align: middle; margin-right: 6px; }
     .seal.sm.kaizan { font-size: 9px; }
+    .tl { grid-column: 1 / -1; border-top: 1px dashed var(--line); padding-top: 10px; }
+    .tl h4 { font-size: 13px; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
+    .tl .row { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 6px 0; }
+    .tl .row > b { font-family: var(--mincho); font-weight: 800; font-size: 15px; color: var(--plum); }
+    .tl p { font-size: 14px; line-height: 1.6; }
+    .tl p.old { color: var(--faint); text-decoration: line-through; text-decoration-color: rgba(159, 17, 17, 0.6); }
+    .tl p.new { margin-top: 2px; color: var(--red); font-weight: 700; }
+    .res.kz .tl h4, .res.kz .tl p.old { color: #a29b9e; }
+    .res.kz .tl p.new { color: #ff8a80; }
+    .res.kz .tl .row > b { color: #d9b8dc; }
     .again { margin-top: 12px; padding: 14px 16px; font-size: 14px; color: var(--muted); }
     .again b { color: var(--ink); }
 
@@ -538,6 +548,19 @@
       btns.appendChild(b1);
       body.appendChild(btns);
       row.appendChild(body);
+      if (r.timeline) {
+        // 人生の年表。賄賂で書き直したところは、元の運命を線で消して赤で書く
+        var tl = el('div', 'tl');
+        tl.appendChild(el('h4', '', r.rank === 'mu' ? '人生の年表（賄賂なし。運命はそのまま）' : '人生の年表（賄賂で書き直したところは赤）'));
+        r.timeline.forEach(function (t) {
+          var line = el('div', 'row'); line.appendChild(el('b', '', t.age + '歳'));
+          var tx = el('div');
+          if (t.before) tx.appendChild(el('p', t.after ? 'old' : '', t.before));
+          if (t.after) tx.appendChild(el('p', 'new', t.after));
+          line.appendChild(tx); tl.appendChild(line);
+        });
+        row.appendChild(tl);
+      }
       rd.appendChild(row);
     });
     // 新しい結果が届いたら、すぐに見せる
@@ -549,7 +572,7 @@
   }
   function cardUrl(r) {
     if (cardCache[r.id]) return cardCache[r.id].p;
-    var p = ShareCard.render({ name: me.nickname, sou: r.sou, kizashi: r.kizashi, amount: r.bribe, oracle: r.oracle, rank: r.rank }, { site: me.site })
+    var p = ShareCard.render({ name: me.nickname, sou: r.sou, kizashi: r.kizashi, amount: r.bribe, oracle: r.oracle, oracleBefore: r.rank !== 'mu' ? r.oracleBefore : null, rank: r.rank }, { site: me.site })
       .then(function (blob) { cardCache[r.id].blob = blob; return URL.createObjectURL(blob); });
     cardCache[r.id] = { p: p };
     return p;

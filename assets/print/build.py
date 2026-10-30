@@ -284,7 +284,7 @@ TELL_CSS = """
   .wrap { position: absolute; inset: 0; padding: 14mm 16mm; }
   h1 { font-family: var(--mincho); font-weight: 800; font-size: 22pt; margin-top: 5mm; }
   h2 { font-size: 10.5pt; font-weight: 900; color: var(--plum); letter-spacing: 0.12em; margin-top: 6mm; border-bottom: 0.4mm solid var(--ink); padding-bottom: 1mm; }
-  ol.steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin-top: 3mm; }
+  ol.steps { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3mm; margin-top: 3mm; }
   ol.steps li { padding: 3mm; border-radius: 3mm; background: #f3eef0; font-size: 9pt; line-height: 1.55; }
   ol.steps b { display: block; font-family: var(--mincho); font-size: 13pt; margin-bottom: 1mm; }
   table { width: 100%; border-collapse: collapse; margin-top: 2mm; }
@@ -300,19 +300,20 @@ TELL_CSS = """
 """
 dirs = O['dir']
 amt = {'mu': '0〜99縁', 'sho': '100〜499縁', 'dai': '500〜1,999縁', 'kaizan': '2,000縁〜'}
-rows = ''.join(f'<tr class="{"kz" if r == "kaizan" else ""}"><td>{n}</td><td>{amt[r]}</td><td>{e(dirs[r]["note"])}</td></tr>' for r, n in [('mu', '無'), ('sho', '小'), ('dai', '大'), ('kaizan', '改竄')])
+rows = ''.join(f'<tr class="{"kz" if r == "kaizan" else ""}"><td>{n}</td><td>{amt[r]}</td><td><b>{e(dirs[r]["change"])}</b><br>{e(dirs[r]["note"])}</td></tr>' for r, n in [('mu', '無'), ('sho', '小'), ('dai', '大'), ('kaizan', '改竄')])
 omtxt = {'good': '良いカード', 'bad': '悪いカード', 'mixed': 'どちらとも'}
 cardh = ''.join(f'<div><b>{e(k["name"])}</b><span>{omtxt[k["omen"]]}</span></div>' for k in O['k'])
 write('06-teller', '占い師の早見表',
       f'<section class="page"><div class="wrap">{BRAND}<h1>占い師の早見表</h1>'
       '<h2>手順（スタッフ画面の「占い」）</h2><ol class="steps">'
-      '<li><b>1 賄賂</b>お客さんが置いた額を入れて「受け取る」。何回かに分けてもいい。合計でランクが決まる。</li>'
-      '<li><b>2 質問</b>質問票の A1〜A9、B1〜B10 の答えを押す。A でタイプが決まる。</li>'
-      '<li><b>3 カード</b>お客さんが引いたカードを選ぶ。</li>'
-      '<li><b>4 台本</b>「演じ方」を見て読み上げる。最後に「占いを終える」で結果が届く。</li></ol>'
-      f'<h2>ランクと演じ方</h2><table>{rows}</table>'
+      '<li><b>1 質問</b>質問票の A1〜A9、B1〜B10 を押す。A でタイプ、B の 1・5 から人生の大事件が2つ決まる。</li>'
+      '<li><b>2 カード</b>お客さんが引いたカードを選ぶ。カードは人生の「転機」になる。</li>'
+      '<li><b>3 占う</b>賄賂なしの、ふつうの占い。真顔で読む。最後に「この運命、書き換えることもできますが」。</li>'
+      '<li><b>4 賄賂</b>払った額を入れて「受け取る」。払わないなら「賄賂なしで終える」。</li>'
+      '<li><b>5 言い直し</b>ランクに合わせて書き直した運命を読む。「占いを終える」で年表が届く。</li></ol>'
+      f'<h2>賄賂のランクで変わること・演じ方</h2><table>{rows}</table>'
       f'<h2>兆のカード（10枚）</h2><div class="cards">{cardh}</div>'
-      '<h2>決まり</h2><ul class="rules"><li>質問できついことは聞かない。本人が嫌がる話題には踏み込まない</li><li>台本の極端さは演技で出す。本気で傷つけない</li><li>改竄のときは鈴を鳴らしてから、台本の「改竄」を読む</li><li>同じお客さんを何回でも占える（終わった画面の「もう一度占う」）</li><li>困ったら画面を閉じずに責任者を呼ぶ。取りやめれば賄賂は返る</li></ul>'
+      '<h2>決まり</h2><ul class="rules"><li>質問できついことは聞かない。本人が嫌がる話題には踏み込まない</li><li>台本の極端さは演技で出す。本気で傷つけない</li><li>改竄のときは鈴を鳴らしてから、台本の「改竄」を読む</li><li>言い直しのあと、さらに賄賂を足して上のランクにしてもいい（画面の「← 賄賂を足す」）</li><li>同じお客さんを何回でも占える（終わった画面の「もう一度占う」）</li><li>困ったら画面を閉じずに責任者を呼ぶ。取りやめれば賄賂は返る</li></ul>'
       '</div></section>', TELL_CSS)
 
 # ============================================================

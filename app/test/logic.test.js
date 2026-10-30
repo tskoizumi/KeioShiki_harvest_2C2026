@@ -5,26 +5,56 @@ import { ORACLE } from '../src/oracle.js';
 import { computePayout } from '../src/plays.js';
 import { rankOf, normalizeCode, cleanNickname, shortCode, taxDiv, taxedMult } from '../src/util.js';
 
-test('占い：8相 × 10兆 × 4位 の全部で台本が組める', () => {
+test('占い：8タイプ × 10カード × 4ランク の全部で台本が組める', () => {
   let n = 0;
   for (const sou of ORACLE.SOU) for (const kz of ORACLE.KIZASHI) for (const rank of ['mu', 'sho', 'dai', 'kaizan']) {
-    const m = ORACLE.pickMentions([5, 1, 3, 4, 2, 3, 3, 5, 1, 3], ORACLE.DIRECTION[rank].mentions);
+    const m = ORACLE.pickMentions([5, 1, 3, 4, 2, 3, 3, 5, 1, 3], 2, n + 1);
     const r = ORACLE.compose(sou, kz, rank, m);
-    assert.ok(r.oracle && r.parts.length >= 3, `${sou.id}/${kz.id}/${rank}`);
-    assert.ok(!/undefined|null/.test(JSON.stringify(r)));
-    if (rank === 'kaizan') assert.equal(r.oracle, sou.kaizan);
+    const at = `${sou.id}/${kz.id}/${rank}`;
+    assert.ok(r.oracle && r.before.parts.length === 4, at);
+    assert.ok(!/undefined/.test(JSON.stringify(r)), at);
+    // 年表は3つ（答え2つ＋カード）。年齢の順
+    const ages = r.timeline.map((t) => t.age);
+    assert.deepEqual(ages, [...ages].sort((a, b) => a - b), at);
+    const changed = r.timeline.filter((t) => t.after).length;
+    if (r.after) assert.equal(r.after.oracle, r.oracle, at);
+    if (rank === 'mu') { assert.equal(r.after, null); assert.equal(changed, 0); assert.equal(r.oracle, r.oracleBefore); }
+    if (rank === 'sho') assert.equal(changed, 1, at);                 // カードの転機だけ
+    if (rank === 'dai') assert.equal(changed, 3, at);                 // 全部
+    if (rank === 'kaizan') { assert.equal(changed, 4, at); assert.equal(r.oracle, sou.kaizan); }   // 全部＋伝説
     n++;
   }
   assert.equal(n, 320);
 });
 
+test('占い：年表に使う答えは 1・5 → 2・4 → 3 の順。空欄は使わず、足りなければタイプの出来事で埋める', () => {
+  const pick = (answers, seed = 7) => ORACLE.pickMentions(answers, 2, seed);
+  // 5 と 1 があればそれを使う
+  assert.deepEqual(pick([3, 5, 2, 3, 1, 4, 3, 3, 3, 3]).map((m) => m.i).sort(), [1, 4]);
+  // 5・1 が1つしかなければ、もう1つは 2 か 4
+  const one = pick([3, 5, 2, 3, 3, 3, 3, 3, 3, 3]);
+  assert.equal(one[0].i, 1); assert.equal(one[1].i, 2);
+  // 全部3なら 3 の出来事（どちらでもない）
+  const mid = pick([3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);
+  assert.equal(mid.length, 2); assert.ok(mid.every((m) => m.event === ORACLE.MENTION[m.i].mid));
+  // 空欄だけなら0個 → compose がタイプの出来事で埋める（年表は2つ）
+  assert.equal(pick([]).length, 0);
+  const sou = ORACLE.SOU[0], kz = ORACLE.KIZASHI[0];
+  const r = ORACLE.compose(sou, kz, 'mu', pick([]));
+  assert.equal(r.timeline.length, 2);
+  assert.ok(r.timeline.some((t) => t.before === ORACLE.SOU_EVENT[sou.id].base));
+  // 答えが1つだけなら、答え1つ＋タイプ＋カード
+  assert.equal(ORACLE.compose(sou, kz, 'mu', pick([null, null, 5])).timeline.length, 3);
+});
+
 test('占い：答えが同じ強さなら、いつも1問目（ラーメン）にはならない', () => {
   const first = ORACLE.MENTION[0].text.replace(/。$/, '');
   const pick = (answers, seed) => ORACLE.pickMentions(answers, 1, seed)[0].quote;
-  // 何も答えていない（全部3）とき、100回の占いでラーメンが選ばれるのは一部だけ
+  // 全部3のとき、100回の占いでラーメンが選ばれるのは一部だけ
   let ramen = 0;
   const seen = new Set();
-  for (let id = 1; id <= 100; id++) { const q = pick([], id); seen.add(q); if (q.includes(first)) ramen++; }
+  const threes = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
+  for (let id = 1; id <= 100; id++) { const q = pick(threes, id); seen.add(q); if (q.includes(first)) ramen++; }
   assert.ok(ramen < 30, `ラーメンが ${ramen}/100 回`);
   assert.ok(seen.size >= 8, `選ばれた質問は ${seen.size} 種類`);
   // 1 や 5 と答えた質問は、3 の質問より必ず先に選ばれる

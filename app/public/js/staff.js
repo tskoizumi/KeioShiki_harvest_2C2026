@@ -50,7 +50,7 @@
   var HELP = {
     cust: ['お客さんの画面', '<b>1. お客さんを探す</b>\n「QRを読む」でお客さんのスマホかQRカードを読みます。読めないときは、番号（6文字）か名前で探します。\n\n<b>2. ゲームを始める</b>\nゲームを押すと、参加費がお客さんの残高から引かれます。間違えたら、すぐ出る「取り消す」で戻せます。ゲームの右上の ? でルールが見られます。\n\n<b>3. 結果を入れる</b>\nゲームが終わったら、結果のボタンを押します。払い戻しは自動でお客さんに入ります。\n\n占い師は、ここから「占いを始める」もできます。'],
     games: ['ゲーム中の画面', 'ゲームを始めて、まだ結果を入れていないお客さんの一覧です。別のスタッフが始めた分も出ます。\n\n「結果を入れる」を押すと、そのお客さんの画面が開きます。'],
-    teller: ['占いの画面', '<b>1. 賄賂</b>　お客さんが置いた額を入れて「受け取る」。何回かに分けても大丈夫。合計でランクが決まります。\n<b>2. 質問</b>　質問票の答え（1〜5）を押します。お客さんのタイプが決まります。\n<b>3. カード</b>　お客さんが引いたカードを選びます。\n<b>4. 台本</b>　「演じ方」を見てから、台本を読み上げます。最後に「占いを終える」を押すと、お客さんのスマホに結果が届きます。\n\n<b>ランク</b>\n無 = 賄賂が少ない。そっけなく、短く\n小 = 普通に丁寧に\n大 = べた褒めする\n改竄 = 鈴を鳴らして、結果を最高のものに書き換える\n\n同じお客さんを何回でも占えます。'],
+    teller: ['占いの画面', '<b>1. 質問</b>　質問票の答え（1〜5）を押します。A でお客さんのタイプが決まり、B の答えから人生の大事件が2つ選ばれます。\n<b>2. カード</b>　お客さんが引いたカードを選びます。カードは人生の「転機」になります。\n<b>3. 占う</b>　まずは賄賂なしの、ふつうの占い。台本を真顔で読みます。最後に「この運命、書き換えることもできますが」。\n<b>4. 賄賂</b>　お客さんが払った額を入れて「受け取る」。払わないなら「賄賂なしで終える」。\n<b>5. 言い直し</b>　ランクに合わせて、書き直した運命を読みます。「終える」で、お客さんのスマホに年表が届きます（書き直した所は赤）。\n\n<b>ランクで変わること</b>\n無 = そのまま\n小 = 人生の転機（カードの出来事）だけ書き直す\n大 = 年表を全部書き直して、べた褒め\n改竄 = 鈴を鳴らして運命ごと書き換え。最後に伝説がひとつ増える\n\n言い直しを聞いてから、さらに賄賂を足して上のランクにすることもできます。同じお客さんを何回でも占えます。'],
     reception: ['受付の画面', '<b>スマホがある人</b>　受付用のQRを見せて、自分で登録してもらいます。\n<b>スマホがない人</b>　印刷したQRカードを渡して、カードの番号と名前を入れます。\n<b>自分で登録できない人</b>　名前を入れて代わりに登録し、出てきたQRを読んでもらいます。\n\n登録すると、最初の縁（ふつうは100縁）が入ります。'],
     admin: ['管理の画面', '<b>概要</b>　いまの数字\n<b>設定</b>　ランクの境目、受付の開け閉め、最初に配る縁\n<b>ゲーム</b>　参加費・払い戻し・ルールの文章\n<b>スタッフ</b>　招待のQRを作って配る。権限やパスワードを変える\n<b>記録</b>　誰が何をしたか、CSVの書き出し'],
   };
@@ -500,7 +500,7 @@
     S.answers = r.answers ? { judge: r.answers.judge.slice(), mention: r.answers.mention.slice() } : { judge: [], mention: [] };
     S.souOverride = r.answers ? r.answers.souOverride : null;
     S.kizashiId = r.kizashi ? r.kizashi.id : null;
-    S.step = r.status !== 'open' ? 4 : r.script ? 4 : r.bribe > 0 ? 2 : 1;
+    S.step = r.status !== 'open' ? 5 : !(r.script && r.script.before) ? (r.kizashi ? 2 : 1) : r.bribe > 0 ? 5 : 3;
     if (S.view !== 'teller') go('teller'); else renderReading();
     window.scrollTo(0, 0);
   }
@@ -513,60 +513,79 @@
   function leaveReading() { S.reading = null; renderTeller(); poll(); window.scrollTo(0, 0); }
 
   function renderReading() {
-    var r = S.reading, el = $('teller'), O = S.oracle, rank = rankOf(r.bribe);
+    var r = S.reading, el = $('teller'), O = S.oracle, rank = rankOf(r.bribe), sc = r.script && r.script.before ? r.script : null;
     var h = '<div class="rd-head"><div class="top"><p class="nm">' + esc(r.nickname) + '<small>さん</small></p><span class="rank-seal" data-rank="' + rank + '">' + RANK[rank] + '</span></div>' +
       '<p class="hint" style="margin-top:2px">賄賂 ' + yen(r.bribe) + '縁・残高 ' + yen(r.balance) + '縁</p>' +
-      (r.status === 'open' ? '<div class="steps">' + [['賄賂', 1], ['質問', 2], ['カード', 3], ['台本', 4]].map(function (s) { return '<button data-step="' + s[1] + '" class="' + (S.step === s[1] ? 'on' : S.step > s[1] ? 'done' : '') + '"><i>' + s[1] + '</i>' + s[0] + '</button>'; }).join('') + '</div>' : '') + '</div>';
+      (r.status === 'open' ? '<div class="steps">' + STEPS.map(function (s) { return '<button data-step="' + s[1] + '" class="' + (S.step === s[1] ? 'on' : S.step > s[1] ? 'done' : '') + '"><i>' + s[1] + '</i>' + s[0] + '</button>'; }).join('') + '</div>' : '') + '</div>';
     var barBtns = [];
+    var voidBtn = '<div class="row" style="margin-top:16px;justify-content:center"><button class="btn danger sm" id="void-reading">' + (r.bribe > 0 ? '取りやめて ' + yen(r.bribe) + '縁を返す' : '占いを取りやめる') + '</button></div>';
 
     if (r.status !== 'open') {
-      h += '<div class="card done-box"><b>' + (r.status === 'done' ? 'お客さんに結果を送りました' : '取りやめました（賄賂は返金済み）') + '</b><p class="hint">' + (r.status === 'done' ? 'お客さんのスマホに結果の画像が届いています。' : '') + '</p>' +
+      h += '<div class="card done-box"><b>' + (r.status === 'done' ? 'お客さんに結果を送りました' : '取りやめました' + (r.bribe > 0 ? '（賄賂は返金済み）' : '')) + '</b><p class="hint">' + (r.status === 'done' ? 'お客さんのスマホに、年表と結果の画像が届いています。' : '') + '</p>' +
         '<button class="btn gold block huge" id="again" style="margin-top:16px">' + esc(r.nickname) + 'さんをもう一度占う</button>' +
         '<button class="btn block" id="leave2" style="margin-top:10px">占いの一覧に戻る</button></div>';
-      if (r.status === 'done' && r.script) h += scriptHtml(r);
+      if (r.status === 'done' && sc) h += timelineHtml(sc) + partsHtml(sc.before, 'ふつうの占い') + (sc.after ? partsHtml(sc.after, '言い直し（ランク ' + RANK[sc.rank] + '）') : '');
+      else if (r.status === 'done' && r.script) h += oldScriptHtml(r);
     } else if (S.step === 1) {
-      h += '<div class="card"><h3>お客さんが置いた賄賂</h3>' +
-        '<div class="amount"><input class="in big" id="bribe-amt" type="number" inputmode="numeric" min="1" placeholder="0"><span>縁</span></div>' +
-        '<div class="chips">' + [10, 50, 100, 500, 1000].map(function (n) { return '<button class="btn" data-bq="' + n + '">+' + n + '</button>'; }).join('') + '<button class="btn" data-bq="all">残高ぜんぶ</button><button class="btn ghost" data-bq="clear">0にする</button></div>' +
-        '<p class="hint" style="margin-top:10px" id="bribe-note"></p>' +
-        '<div class="ranks" id="ranks"></div>' +
-        '<button class="btn pri block huge" id="bribe-go" style="margin-top:14px">受け取る</button>' +
-        '<p class="hint" style="margin-top:10px">何回かに分けて受け取っても大丈夫です。合計でランクが決まります。</p></div>';
-      barBtns.push(mkBtn('grow', r.bribe > 0 ? '質問へ進む →' : '賄賂なしで進む →', function () { S.step = 2; renderReading(); window.scrollTo(0, 0); }, false, 'to-step2'));
-    } else if (S.step === 2) {
       var auto = judgeSou(), shown = S.souOverride ? O.sou.filter(function (s) { return s.id === S.souOverride; })[0] : auto;
       var answered = S.answers.judge.filter(function (v) { return v; }).length;
       h += '<div class="type-now"><div><p class="hint">いまのタイプ' + (S.souOverride ? '（手で選んだ）' : '') + '</p><b id="sou-live">' + esc(shown.name) + '</b></div><p class="hint" id="judge-n">9問中 ' + answered + '問</p></div>';
       h += '<div class="card"><h3>質問 A（9問）：タイプを決める</h3><p class="hint">質問票の A1〜A9 の答えを押します。答えていない質問は 3 として数えます。</p>' + O.judge.map(function (q, i) { return qRow('judge', i, q); }).join('') + '</div>';
-      h += '<div class="card"><h3>質問 B（10問）：台本で使う</h3><p class="hint">質問票の B1〜B10。1 か 5 の答えほど、台本で取り上げられます。</p>' + O.mention.map(function (q, i) { return qRow('mention', i, q); }).join('') + '</div>';
+      h += '<div class="card"><h3>質問 B（10問）：人生の年表に使う</h3><p class="hint">質問票の B1〜B10。1 か 5 の答えから順に2つ選んで、人生の大事件にします。1・5 が足りなければ 2・4、それもなければ 3 を使います。空欄が多いときは、タイプの出来事で埋めます。</p>' + O.mention.map(function (q, i) { return qRow('mention', i, q); }).join('') + '</div>';
       h += '<details class="mgr"><summary>タイプを手で選ぶ（ふつうは不要）</summary><div><div class="grid-cards">' + O.sou.map(function (s) { return '<button data-sou="' + s.id + '" class="' + (S.souOverride === s.id ? 'on' : !S.souOverride && s.id === auto.id ? 'auto' : '') + '"><b>' + esc(s.name) + '</b></button>'; }).join('') + '</div></div></details>';
-      barBtns.push(mkBtn('', '← 賄賂', function () { saveReading().then(function () { S.step = 1; renderReading(); }); }));
-      barBtns.push(mkBtn('pri grow', 'カードを選ぶ →', function () { saveReading().then(function (ok) { if (ok) { S.step = 3; renderReading(); window.scrollTo(0, 0); } }); }, false, 'to-step3'));
-    } else if (S.step === 3) {
+      barBtns.push(mkBtn('pri grow', 'カードを選ぶ →', function () { saveReading().then(function (ok) { if (ok) { S.step = 2; renderReading(); window.scrollTo(0, 0); } }); }, false, 'to-step2'));
+    } else if (S.step === 2) {
       h += '<div class="card"><h3>お客さんが引いたカード</h3><div class="grid-cards">' + O.kizashi.map(function (k) { return '<button data-kz="' + k.id + '" class="' + (S.kizashiId === k.id ? 'on' : '') + '"><b>' + esc(k.name) + '</b><span>' + ({ good: '良いカード', bad: '悪いカード', mixed: 'どちらとも' }[k.omen] || '') + '</span></button>'; }).join('') + '</div></div>';
-      barBtns.push(mkBtn('', '← 質問', function () { S.step = 2; renderReading(); }));
-      barBtns.push(mkBtn('pri grow', '台本を出す →', function () { saveReading().then(function (ok) { if (ok) { S.step = 4; renderReading(); window.scrollTo(0, 0); } }); }, !S.kizashiId, 'to-step4'));
+      barBtns.push(mkBtn('', '← 質問', function () { S.step = 1; renderReading(); }));
+      barBtns.push(mkBtn('pri grow', '占いの台本を出す →', function () { saveReading().then(function (ok) { if (ok) { S.step = 3; renderReading(); window.scrollTo(0, 0); } }); }, !S.kizashiId, 'to-step3'));
+    } else if (S.step === 3) {
+      if (!sc) h += '<div class="card"><p class="empty">台本がまだありません。カードを選んでください。</p></div>';
+      else h += partsHtml(sc.before, 'ふつうの占い（賄賂なし）');
+      h += voidBtn;
+      barBtns.push(mkBtn('', '← カード', function () { S.step = 2; renderReading(); }));
+      barBtns.push(mkBtn('pri grow', '賄賂チャンスへ →', function () { S.step = 4; renderReading(); window.scrollTo(0, 0); }, !sc, 'to-step4'));
+    } else if (S.step === 4) {
+      h += '<div class="card"><h3>賄賂チャンス</h3><p class="say-it">「この運命、賄賂で書き換えられます。いくら出しますか？」</p>' +
+        '<div class="ranks" id="ranks"></div>' +
+        '<div class="amount" style="margin-top:14px"><input class="in big" id="bribe-amt" type="number" inputmode="numeric" min="1" placeholder="0"><span>縁</span></div>' +
+        '<div class="chips">' + [10, 50, 100, 500, 1000].map(function (n) { return '<button class="btn" data-bq="' + n + '">+' + n + '</button>'; }).join('') + '<button class="btn" data-bq="all">残高ぜんぶ</button><button class="btn ghost" data-bq="clear">0にする</button></div>' +
+        '<p class="hint" style="margin-top:10px" id="bribe-note"></p>' +
+        '<button class="btn pri block huge" id="bribe-go" style="margin-top:14px">受け取る</button>' +
+        '<p class="hint" style="margin-top:10px">何回かに分けて受け取っても大丈夫です。合計でランクが決まります。払わないなら、下の「賄賂なしで終える」。</p></div>';
+      h += voidBtn;
+      barBtns.push(mkBtn('', '← 占い', function () { S.step = 3; renderReading(); }));
+      if (r.bribe > 0) barBtns.push(mkBtn('pri grow', '言い直しへ →', function () { S.step = 5; renderReading(); window.scrollTo(0, 0); }, false, 'to-step5'));
+      else barBtns.push(mkBtn('ok grow', '賄賂なしで終える', function () { finishReading(); }, !sc, 'finish'));
     } else {
-      if (!r.script) h += '<div class="card"><p class="empty">台本がまだありません。カードを選んでください。</p></div>';
-      else h += scriptHtml(r);
-      h += '<div class="row" style="margin-top:16px;justify-content:center"><button class="btn danger sm" id="void-reading">取りやめて ' + yen(r.bribe) + '縁を返す</button></div>';
-      barBtns.push(mkBtn('', '← カード', function () { S.step = 3; renderReading(); }));
-      barBtns.push(mkBtn('ok grow', '占いを終える（結果を送る）', function () { finishReading(); }, !r.script, 'finish'));
+      if (!sc || !sc.after) h += '<div class="card"><p class="empty">賄賂が ' + yen(r.bribe) + '縁で、ランクは「無」。運命は変わりません。<br>「← 賄賂を足す」で ' + yen(S.settings.rank_sho) + '縁以上にすると、言い直しができます。</p></div>';
+      else h += partsHtml(sc.after, '言い直し') + timelineHtml(sc);
+      h += voidBtn;
+      barBtns.push(mkBtn('', '← 賄賂を足す', function () { S.step = 4; renderReading(); }, false, 'back-bribe'));
+      barBtns.push(mkBtn('ok grow', '終える（結果を送る）', function () { finishReading(); }, !sc, 'finish'));
     }
     el.innerHTML = h;
     setBar(barBtns.length ? barBtns : null);
     bindReading(el);
   }
-  function scriptHtml(r) {
-    var sc = r.script, h = '';
-    h += '<div class="direction"><b>演じ方（ランク ' + esc(r.rankName) + '）</b>' + esc(sc.direction) + '</div>';
-    h += '<div class="row" style="margin-top:10px"><span class="pill">タイプ ' + esc(r.sou.name) + '</span><span class="pill">カード ' + esc(r.kizashi.name) + '</span></div>';
-    var names = { '相の描写': 'タイプを読む', '兆の解釈': 'カードを読む', '結論': 'まとめ', '改竄': '改竄（鈴を鳴らしてから読む）' };
-    sc.parts.forEach(function (p, i) {
-      h += '<div class="part' + (p.title === '改竄' ? ' kaizan' : '') + '"><h4>' + (p.title === '改竄' ? '' : (i + 1) + '. ') + esc(names[p.title] || p.title) + '</h4>' + p.lines.map(function (l) { return '<p class="line ' + (l.kind === 'say' ? '' : l.kind) + '">' + esc(l.t) + '</p>'; }).join('') + '</div>';
+  var STEPS = [['質問', 1], ['カード', 2], ['占う', 3], ['賄賂', 4], ['言い直し', 5]];
+  function partsHtml(sec, label) {
+    var h = '<div class="direction"><b>' + esc(label) + '：演じ方</b>' + esc(sec.direction) + '</div>';
+    sec.parts.forEach(function (p, i) {
+      var k = p.title === '改竄';
+      h += '<div class="part' + (k ? ' kaizan' : '') + '"><h4>' + (k ? '改竄（鈴を鳴らしてから読む）' : (sec.parts.length > 1 ? (i + 1) + '. ' : '') + esc(p.title)) + '</h4>' + p.lines.map(function (l) { return '<p class="line ' + (l.kind === 'say' ? '' : l.kind) + '">' + esc(l.t) + '</p>'; }).join('') + '</div>';
     });
-    h += '<div class="oracle-box">お客さんのスマホに届く一言<b>' + esc(r.oracle) + '</b></div>';
+    h += '<div class="oracle-box">お客さんのスマホに届く一言<b>' + esc(sec.oracle || '') + '</b></div>';
     return h;
+  }
+  // 年表：賄賂で何が変わったかを並べる（お客さんのスマホにも同じものが届く）
+  function timelineHtml(sc) {
+    return '<div class="part tl"><h4>人生の年表（' + (sc.after ? '賄賂で書き直したところは赤' : '賄賂なし。そのまま') + '）</h4>' + sc.timeline.map(function (t) {
+      return '<div class="tl-row"><b>' + t.age + '歳</b><div>' + (t.before ? '<p class="' + (t.after ? 'old' : '') + '">' + esc(t.before) + '</p>' : '') + (t.after ? '<p class="new">' + esc(t.after) + '</p>' : '') + '</div></div>';
+    }).join('') + '</div>';
+  }
+  // 古い形の台本（流れを変える前の占い）
+  function oldScriptHtml(r) {
+    return '<div class="part">' + r.script.parts.map(function (p) { return '<h4>' + esc(p.title) + '</h4>' + p.lines.map(function (l) { return '<p class="line ' + (l.kind === 'say' ? '' : l.kind) + '">' + esc(l.t) + '</p>'; }).join(''); }).join('') + '</div>';
   }
   function qRow(kind, i, text) {
     var v = S.answers[kind][i];
@@ -574,16 +593,16 @@
   }
   function bindReading(el) {
     var r = S.reading;
-    el.querySelectorAll('[data-step]').forEach(function (b) { b.addEventListener('click', function () { var s = Number(b.dataset.step); if (s === 4 && !r.script) return err('先にカードを選んでください'); var save = S.step === 2 || S.step === 3 ? saveReading() : Promise.resolve(true); save.then(function (ok) { if (ok) { S.step = s; renderReading(); } }); }); });
+    el.querySelectorAll('[data-step]').forEach(function (b) { b.addEventListener('click', function () { var s = Number(b.dataset.step); if (s >= 3 && !r.script) return err('先にカードを選んでください'); var save = S.step === 1 || S.step === 2 ? saveReading() : Promise.resolve(true); save.then(function (ok) { if (ok) { S.step = s; renderReading(); } }); }); });
     var again = el.querySelector('#again');
     if (again) again.addEventListener('click', function () { api('/api/staff/readings', 'POST', { userId: r.userId }).then(function (x) { if (!x.ok) return err(x.d.message); openReadingData(x.d); }); });
     var l2 = el.querySelector('#leave2'); if (l2) l2.addEventListener('click', leaveReading);
     if (r.status !== 'open') return;
-    if (S.step === 1) {
+    if (S.step === 4) {
       var inp = el.querySelector('#bribe-amt');
       var preview = function () {
         var add = Number(inp.value) || 0, t = r.bribe + add, rk = rankOf(t), s = S.settings;
-        el.querySelector('#ranks').innerHTML = [['mu', 0], ['sho', s.rank_sho], ['dai', s.rank_dai], ['kaizan', s.rank_kaizan]].map(function (x) { return '<div data-rank="' + x[0] + '" class="' + (x[0] === rk ? 'on' : '') + '"><b>' + RANK[x[0]] + '</b><span>' + yen(x[1]) + '〜</span></div>'; }).join('');
+        el.querySelector('#ranks').innerHTML = [['mu', 0], ['sho', s.rank_sho], ['dai', s.rank_dai], ['kaizan', s.rank_kaizan]].map(function (x) { return '<div data-rank="' + x[0] + '" class="' + (x[0] === rk ? 'on' : '') + '"><b>' + RANK[x[0]] + '</b><span>' + yen(x[1]) + '〜</span><em>' + esc(S.oracle.direction[x[0]].change) + '</em></div>'; }).join('');
         var next = rk === 'mu' ? Number(s.rank_sho) : rk === 'sho' ? Number(s.rank_dai) : rk === 'dai' ? Number(s.rank_kaizan) : null;
         el.querySelector('#bribe-note').textContent = (add ? '受け取ると合計 ' + yen(t) + '縁（ランク ' + RANK[rk] + '）。' : 'いまの合計 ' + yen(r.bribe) + '縁（ランク ' + RANK[rk] + '）。') + (next ? '次のランクまで あと ' + yen(next - t) + '縁。' : '') + (add > r.balance ? '　※残高（' + yen(r.balance) + '縁）より多いです' : '');
       };
@@ -594,11 +613,11 @@
         if (pending) return; pending = true;
         api('/api/staff/readings/' + r.id + '/bribe', 'POST', { amount: amt, requestId: newId() }).then(function (x) {
           if (!x.ok) return err(x.d.message);
-          S.reading = x.d; toast(yen(amt) + '縁を受け取りました（ランク ' + x.d.rankName + '）'); renderReading();
+          S.reading = x.d; toast(yen(amt) + '縁を受け取りました（ランク ' + x.d.rankName + '）'); S.step = 5; renderReading(); window.scrollTo(0, 0);
         }).finally(function () { pending = false; });
       });
     }
-    if (S.step === 2) {
+    if (S.step === 1) {
       el.querySelectorAll('[data-q]').forEach(function (b) {
         b.addEventListener('click', function () {
           var k = b.dataset.q, i = Number(b.dataset.i), v = Number(b.dataset.v);
@@ -612,10 +631,10 @@
       });
       el.querySelectorAll('[data-sou]').forEach(function (b) { b.addEventListener('click', function () { S.souOverride = S.souOverride === b.dataset.sou ? null : b.dataset.sou; renderReading(); }); });
     }
-    if (S.step === 3) el.querySelectorAll('[data-kz]').forEach(function (b) { b.addEventListener('click', function () { S.kizashiId = b.dataset.kz; renderReading(); }); });
-    if (S.step === 4) {
+    if (S.step === 2) el.querySelectorAll('[data-kz]').forEach(function (b) { b.addEventListener('click', function () { S.kizashiId = b.dataset.kz; renderReading(); }); });
+    if (S.step >= 3) {
       var v = el.querySelector('#void-reading');
-      if (v) v.addEventListener('click', function () { armed(v, 'もう一度押すと取りやめ（' + yen(r.bribe) + '縁を返す）', function () { api('/api/staff/readings/' + r.id + '/void', 'POST', {}).then(function (x) { if (!x.ok) return err(x.d.message); S.reading = x.d; toast('取りやめて返金しました'); renderReading(); poll(); }); }); });
+      if (v) v.addEventListener('click', function () { armed(v, r.bribe > 0 ? 'もう一度押すと取りやめ（' + yen(r.bribe) + '縁を返す）' : 'もう一度押すと取りやめ', function () { api('/api/staff/readings/' + r.id + '/void', 'POST', {}).then(function (x) { if (!x.ok) return err(x.d.message); S.reading = x.d; toast('取りやめて返金しました'); renderReading(); poll(); }); }); });
     }
   }
   function finishReading() {

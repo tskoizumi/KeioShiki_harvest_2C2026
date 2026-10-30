@@ -12,6 +12,7 @@ import { userKey, checkUserKey } from '../auth.js';
 import { listGames, shapePlay } from '../plays.js';
 import { rankings, lpRanking, positions } from '../rankings.js';
 import { SITE } from '../site.js';
+import { publicTimeline } from '../readings.js';
 
 const CORS = { 'access-control-allow-origin': '*' };
 
@@ -115,7 +116,7 @@ export async function me(request, env, token) {
     env.DB.prepare("SELECT id, bribe, rank, started_at FROM readings WHERE user_id = ? AND status = 'open' LIMIT 1").bind(u.id).first(),
     history(env.DB, u.id, 30),
     env.DB
-      .prepare("SELECT id, bribe, rank, sou_name, kizashi_name, oracle, finished_at FROM readings WHERE user_id = ? AND status = 'done' ORDER BY id DESC")
+      .prepare("SELECT id, bribe, rank, sou_name, kizashi_name, oracle, script, finished_at FROM readings WHERE user_id = ? AND status = 'done' ORDER BY id DESC")
       .bind(u.id)
       .all(),
     positions(env.DB, u.id),
@@ -139,6 +140,7 @@ export async function me(request, env, token) {
       sou: r.sou_name,
       kizashi: r.kizashi_name,
       oracle: r.oracle,
+      ...publicTimeline(r.script),
       finishedAt: r.finished_at,
     })),
     position: pos,

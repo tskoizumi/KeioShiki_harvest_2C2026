@@ -176,11 +176,11 @@ export async function resetTraining(env) {
   await play(takashi, 1, null, { outcome: 0 });
   await startPlay(db, { userId: takashi, gameId: 3, stake: null, staffId: staff, requestId: `seed:play:${takashi}:open` });
 
-  // 4. さくら：いま占いの最中（心付け300縁を置いたところ。占い師の画面の続きから練習できる）
+  // 4. さくら：いま占いの最中（ふつうの占いを読み終えて、賄賂チャンスのところ。占い師の画面の続きから練習できる）
   const sakura = await user('さくら');
   await give(sakura, 500, '両替（見本）');
   const sr = await openReading(db, sakura, teller);
-  await addBribe(db, sr.id, 300, teller, `seed:bribe:${sr.id}`);
+  await updateReading(db, sr.id, { judge: [5, 4, 4, 2, 1, 2, 4, 5, 5], mention: [5, null, 2, 1, 5, null, 3, 4, null, 2], kizashiId: 'sakeme' });
 
   // 5. ねこ：登録したばかり（100縁だけ）
   await user('ねこ', 'staff', staff);
@@ -193,7 +193,7 @@ export async function resetTraining(env) {
   // 7. うさぎ：印刷した札で登録した客（source = card）
   const usagi = await user('うさぎ', 'card', staff);
   await play(usagi, 3, null, { level: 6 });          // 積み 6段 +300
-  await reading(usagi, 0, 'chinmoku', [3, 3, 3, 3, 3, 3, 3, 3, 3], [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);   // 無（心付けなし）
+  await reading(usagi, 0, 'chinmoku', [3, 3, 3, 3, 3, 3, 3, 3, 3], [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);   // 無（賄賂なし。全部3でも、年表は「どちらでもない」の出来事で埋まる）
 
   // 8. 番付を埋める客たち
   const more = [

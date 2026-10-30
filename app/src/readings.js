@@ -1,4 +1,4 @@
-// 占い（1回分）の流れ：開始 → 心付け → 質問と兆 → 台本 → 終了
+// 占い（1回分）の流れ：開始 → 質問とカード → ふつうの占い → 賄賂チャンス → （賄賂があれば）言い直し → 終了
 // 台本の中身は oracle.js。ここは保存と金の出入りだけ。
 
 import { ORACLE } from './oracle.js';
@@ -63,38 +63,49 @@ export async function addBribe(db, id, amount, staffId, requestId) {
     const row = await db.prepare('SELECT bribe FROM readings WHERE id = ?').bind(id).first();
     const total = row.bribe + amount;
     await db.prepare('UPDATE readings SET bribe = ?, rank = ? WHERE id = ?').bind(total, rankOf(total, s), id).run();
+    await rebuild(db, id);   // ランクが変わると、言い直しの台本も変わる
   }
   return getReading(db, id);
 }
 
-// 質問の答えと兆を保存して、台本を組み立てる
+// 質問の答えとカードを保存して、台本を組み立てる
 export async function updateReading(db, id, { judge, mention, kizashiId, souId }) {
-  const r = await db.prepare('SELECT id, status, bribe FROM readings WHERE id = ?').bind(id).first();
+  const r = await db.prepare('SELECT id, status FROM readings WHERE id = ?').bind(id).first();
   if (!r) throw new ApiError('NOT_FOUND', 'その占いは見つかりません', 404);
   if (r.status !== 'open') throw new ApiError('CLOSED', 'この占いは終わっています', 409);
 
   const j = Array.from({ length: ORACLE.JUDGE.length }, (_, i) => clamp15(judge && judge[i]));
-  const m = Array.from({ length: ORACLE.MENTION.length }, (_, i) => clamp15(mention && mention[i]));
+  // 質問Bは空欄を空欄のまま残す（年表に使う答えが足りないときは、タイプの出来事で埋める）
+  const m = Array.from({ length: ORACLE.MENTION.length }, (_, i) => answerOrNull(mention && mention[i]));
   const sou = (souId && ORACLE.souById(souId)) || ORACLE.judge(j);
   const kz = kizashiId ? ORACLE.kizashiById(kizashiId) : null;
-  const s = await allSettings(db);
-  const rank = rankOf(r.bribe, s);
+  await db
+    .prepare('UPDATE readings SET sou_id = ?, sou_name = ?, kizashi_id = ?, kizashi_name = ?, answers = ? WHERE id = ?')
+    .bind(sou.id, sou.name, kz ? kz.id : null, kz ? kz.name : null, JSON.stringify({ judge: j, mention: m, souOverride: souId || null }), id)
+    .run();
+  await rebuild(db, id);
+  return getReading(db, id);
+}
 
+// 保存してある答え・カード・賄賂から、台本を組み立て直す
+async function rebuild(db, id) {
+  const r = await db.prepare('SELECT bribe, sou_id, kizashi_id, answers FROM readings WHERE id = ?').bind(id).first();
+  const kz = r.kizashi_id && ORACLE.kizashiById(r.kizashi_id);
+  const sou = r.sou_id && ORACLE.souById(r.sou_id);
+  const rank = rankOf(r.bribe, await allSettings(db));
   let script = null, oracle = null;
-  if (kz) {
-    const mentions = ORACLE.pickMentions(m, ORACLE.DIRECTION[rank].mentions, id);
-    const out = ORACLE.compose(sou, kz, rank, mentions);
-    script = { parts: out.parts, direction: out.direction };
+  if (kz && sou) {
+    const a = r.answers ? JSON.parse(r.answers) : {};
+    const out = ORACLE.compose(sou, kz, rank, ORACLE.pickMentions(a.mention || [], 2, id));
+    script = { rank, before: out.before, after: out.after, timeline: out.timeline, oracleBefore: out.oracleBefore };
     oracle = out.oracle;
   }
-  await db
-    .prepare(
-      `UPDATE readings SET rank = ?, sou_id = ?, sou_name = ?, kizashi_id = ?, kizashi_name = ?, answers = ?, script = ?, oracle = ?
-        WHERE id = ?`,
-    )
-    .bind(rank, sou.id, sou.name, kz ? kz.id : null, kz ? kz.name : null, JSON.stringify({ judge: j, mention: m, souOverride: souId || null }), script ? JSON.stringify(script) : null, oracle, id)
-    .run();
-  return getReading(db, id);
+  await db.prepare('UPDATE readings SET rank = ?, script = ?, oracle = ? WHERE id = ?').bind(rank, script ? JSON.stringify(script) : null, oracle, id).run();
+}
+
+function answerOrNull(v) {
+  const n = Number(v);
+  return v != null && v !== '' && Number.isFinite(n) && n >= 1 && n <= 5 ? Math.round(n) : null;
 }
 
 function clamp15(v) {
@@ -130,3 +141,13 @@ export const ORACLE_PUBLIC = {
   kizashi: ORACLE.KIZASHI.map((k) => ({ id: k.id, name: k.name, omen: k.omen })),
   direction: ORACLE.DIRECTION,
 };
+
+// お客さんに見せる年表（終わった占いの script から）
+export function publicTimeline(scriptJson) {
+  try {
+    const sc = JSON.parse(scriptJson || 'null');
+    return sc && sc.timeline ? { timeline: sc.timeline, oracleBefore: sc.oracleBefore } : { timeline: null, oracleBefore: null };
+  } catch {
+    return { timeline: null, oracleBefore: null };
+  }
+}

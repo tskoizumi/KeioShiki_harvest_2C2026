@@ -206,8 +206,18 @@ window.ShareCard = (function () {
     ctx.textAlign = "center";
     seal(ctx, rank.name, cx + 250, my + 70, 170, t.seal, -0.08);
 
-    // 神託
+    // 神託。賄賂で書き直したときは、元の一言を線で消して上に残す
     var oy = 1560;
+    if (d.oracleBefore) {
+      ctx.fillStyle = "#8a8385";
+      ctx.font = font(700, 32);
+      var ob = wrapBalanced(ctx, d.oracleBefore, W - 300)[0];
+      ctx.fillText(ob, cx, 1500);
+      var obw = ctx.measureText(ob).width;
+      ctx.strokeStyle = t.accent; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(cx - obw / 2 - 12, 1490); ctx.lineTo(cx + obw / 2 + 12, 1486); ctx.stroke();
+      oy = 1600;
+    }
     ctx.fillStyle = INK;
     ctx.font = font(800, 54);
     var lines = wrapBalanced(ctx, "「" + d.oracle + "」", W - 260).slice(0, 3);
@@ -343,11 +353,11 @@ window.ShareCard = (function () {
     });
   }
 
-  // d: { name, sou, kizashi, amount, oracle, rank }  rank: "mu" | "sho" | "dai" | "kaizan"
+  // d: { name, sou, kizashi, amount, oracle, oracleBefore（賄賂で書き直す前の一言。なければ空）, rank }  rank: "mu" | "sho" | "dai" | "kaizan"
   function render(d, opts) {
     opts = opts || {};
     site = opts.site || site;
-    var data = { name: d.name || "", sou: d.sou || "—", kizashi: d.kizashi || "—", amount: Number(d.amount) || 0, oracle: d.oracle || "" };
+    var data = { name: d.name || "", sou: d.sou || "—", kizashi: d.kizashi || "—", amount: Number(d.amount) || 0, oracle: d.oracle || "", oracleBefore: d.oracleBefore || "" };
     var rank = { id: d.rank || "mu", name: { mu: "無", sho: "小", dai: "大", kaizan: "改竄" }[d.rank] || "無" };
     var text = [site.name, site.event, site.className, data.name, data.sou, data.kizashi, data.oracle,
                 "あなたのタイプ引いたカード賄賂縁書き換えた結果このカードは、なかったことに。改竄済無小大0123456789,「」の　"].join("");

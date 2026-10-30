@@ -170,7 +170,7 @@
     .rd-head .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .rd-head .nm { font-family: var(--mincho); font-weight: 800; font-size: 32px; line-height: 1.15; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .rd-head .nm small { font-size: 0.5em; color: var(--muted); margin-left: 6px; font-family: var(--gothic); }
-    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+    .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
     .steps button { padding: 7px 4px; border-radius: 12px; background: var(--s1); border: 1.5px solid var(--line); font-size: 14px; font-weight: 800; color: var(--faint); line-height: 1.3; }
     .steps button i { font-style: normal; display: block; font-size: 12px; }
     .steps button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
@@ -186,7 +186,16 @@
     .ranks div { padding: 10px 4px; border-radius: 14px; background: #0c0a0b; border: 1.5px solid var(--line); text-align: center; }
     .ranks b { display: block; font-family: var(--mincho); font-weight: 800; font-size: 22px; }
     .ranks span { font-size: 12px; color: var(--faint); font-weight: 700; }
+    .ranks em { display: block; margin-top: 6px; font-style: normal; font-size: 11.5px; line-height: 1.45; color: var(--muted); font-weight: 600; text-align: left; }
     .ranks div.on { border-color: var(--gold); background: #2e2618; }
+    .ranks div.on em { color: var(--text); }
+    .say-it { margin-top: 6px; font-family: var(--mincho); font-weight: 800; font-size: 21px; line-height: 1.6; color: var(--gold); }
+    .tl-row { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+    .tl-row:first-of-type { border-top: 0; }
+    .tl-row > b { font-family: var(--mincho); font-weight: 800; font-size: 18px; color: var(--plum); }
+    .tl-row p { font-size: 15px; line-height: 1.65; }
+    .tl-row p.old { color: var(--faint); text-decoration: line-through; text-decoration-color: rgba(255, 84, 70, 0.7); }
+    .tl-row p.new { margin-top: 4px; color: #ffd0ca; font-weight: 700; }
     .ranks div.on[data-rank="kaizan"] { border-color: var(--red); background: rgba(255, 84, 70, 0.18); }
     .qa { padding: 14px 0; border-top: 1px solid var(--line); }
     .qa:first-of-type { border-top: none; }
