@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1d1c1a">
+  <title>撮影係</title>
+  <style>
+    /* 写真展の撮影係の画面：お客さんを選んで、撮った写真を上げる */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #f2f1ee; --paper: #fff; --ink: #1d1c1a; --muted: #6f6b66; --faint: #a19c96; --line: #e1ded8; --ok: #1e7a46; --err: #b3261e; --gothic: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+    body { min-height: 100dvh; background: var(--bg); color: var(--ink); font-family: var(--gothic); line-height: 1.55; padding-bottom: calc(30px + env(safe-area-inset-bottom)); }
+    button, input { font: inherit; color: inherit; }
+    [hidden] { display: none !important; }
+    .top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top)) 16px 10px; background: var(--ink); color: #fff; }
+    .top h1 { font-size: 16px; font-weight: 800; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .top button { border: 0; background: rgba(255, 255, 255, 0.12); color: #fff; border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+    main { max-width: 720px; margin: 0 auto; padding: 14px 16px; }
+    .card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-top: 12px; }
+    h2 { font-size: 15px; font-weight: 800; }
+    .hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    label { display: block; font-size: 13px; font-weight: 700; margin-top: 12px; }
+    .in { width: 100%; margin-top: 5px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 17px; outline: none; }
+    .in:focus { border-color: var(--ink); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .btn.pri { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .btn.block { display: flex; width: 100%; margin-top: 14px; }
+    .btn.big { padding: 18px; font-size: 18px; }
+    .btn.danger { color: var(--err); border-color: rgba(179, 38, 30, 0.35); }
+    .btn.sm { padding: 7px 12px; font-size: 13px; }
+    .btn:disabled { opacity: 0.5; }
+    .msg { margin-top: 10px; min-height: 1.3em; font-size: 14px; color: var(--err); }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row .in { margin-top: 0; }
+    .list { list-style: none; margin-top: 6px; }
+    .list li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 12px 4px; border-top: 1px solid var(--line); cursor: pointer; }
+    .list li:first-child { border-top: 0; }
+    .list .nm { font-size: 18px; font-weight: 800; word-break: break-all; }
+    .list .s { font-size: 12px; color: var(--muted); }
+    .list .n { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--bg); }
+    .list .n.zero { color: var(--err); background: rgba(179, 38, 30, 0.08); }
+    .empty { padding: 18px 4px; text-align: center; color: var(--muted); font-size: 14px; }
+    .guest-name { font-size: 30px; font-weight: 800; line-height: 1.25; word-break: break-all; }
+    .queue { list-style: none; margin-top: 10px; font-size: 13px; }
+    .queue li { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; color: var(--muted); }
+    .queue li.ok { color: var(--ok); } .queue li.ng { color: var(--err); }
+    .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+    .thumbs div { position: relative; aspect-ratio: 1; background: var(--bg) center / cover no-repeat; border-radius: 8px; }
+    .thumbs button { position: absolute; right: 4px; top: 4px; border: 0; border-radius: 999px; padding: 4px 9px; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 12px; cursor: pointer; }
+    .thumbs button.armed { background: var(--err); }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--muted); }
+    .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; }
+  </style>
+</head>
+<body>
+<div class="top"><h1 id="title">撮影係</h1><button id="back" type="button" hidden>← 一覧</button><button id="logout" type="button" hidden>ログアウト</button></div>
+<main>
+  <!-- ログイン -->
+  <section id="v-login" hidden>
+    <form class="card" id="f-login">
+      <h2>撮影係のログイン</h2>
+      <p class="hint">占いのスタッフ画面と同じ名前とパスワードです。アカウントがなければ、管理する人から招待のQRをもらってください。</p>
+      <label for="l-name">名前</label><input class="in" id="l-name" autocomplete="username">
+      <label for="l-pass">パスワード</label><input class="in" id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn pri block" type="submit">ログイン</button>
+      <p class="msg" id="l-msg"></p>
+    </form>
+  </section>
+
+  <!-- お客さんの一覧 -->
+  <section id="v-list" hidden>
+    <div class="card">
+      <h2>撮る前に：お客さんの登録</h2>
+      <p class="hint">お客さんが自分のスマホで登録していれば、下の一覧から名前を選ぶだけ。スマホがない・登録していない人は、ここで本人に名前とパスワードを入れてもらいます。</p>
+      <button class="btn block" id="new-open" type="button">＋ この端末でお客さんを登録</button>
+      <form id="f-new" hidden>
+        <label for="n-name">お客さんの名前</label><input class="in" id="n-name" maxlength="20" autocomplete="off">
+        <label for="n-pass">パスワード（4文字以上・お客さんが決める）</label><input class="in" id="n-pass" maxlength="64" autocomplete="off">
+        <p class="hint">入れてもらったら、名前とパスワードを控えるよう伝えてください。受け取りは <b id="site"></b> です。</p>
+        <button class="btn pri block" type="submit">登録する</button>
+        <p class="msg" id="n-msg"></p>
+      </form>
+    </div>
+    <div class="card">
+      <div class="row"><input class="in" id="q" placeholder="名前で探す" autocomplete="off" enterkeyhint="search"><button class="btn" id="reload" type="button" aria-label="更新">↻</button></div>
+      <ul class="list" id="list"></ul>
+    </div>
+    <details class="card" id="admin" hidden>
+      <summary>設定（責任者以上）</summary>
+      <label for="s-title">写真展の名前（お客さんのページの見出し）</label>
+      <div class="row" style="margin-top:5px"><input class="in" id="s-title" maxlength="40"><button class="btn" id="s-save" type="button">保存</button></div>
+      <div id="purge-box" hidden>
+        <label for="purge">展示が終わったら：写真とお客さんを全部消す（管理者だけ）</label>
+        <p class="hint">消すと元に戻せません。消すときは「全部消す」と入れてから押します。</p>
+        <div class="row" style="margin-top:5px"><input class="in" id="purge" placeholder="全部消す"><button class="btn danger" id="purge-go" type="button">全部消す</button></div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 1人のお客さん -->
+  <section id="v-guest" hidden>
+    <div class="card">
+      <p class="hint">このお客さんの写真を上げます</p>
+      <p class="guest-name" id="g-name"></p>
+      <p class="hint" id="g-meta"></p>
+      <label class="btn pri block big" for="files" style="margin-top:16px">写真を選んで上げる</label>
+      <input id="files" type="file" accept="image/*" multiple hidden>
+      <p class="hint">何枚でも一度に選べます。長い辺2560pxに縮めてから送ります。</p>
+      <ul class="queue" id="queue"></ul>
+    </div>
+    <div class="card">
+      <h2 id="g-count">上げた写真</h2>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+    <details class="card">
+      <summary>パスワードを忘れたお客さん</summary>
+      <p class="hint">本人だと確かめてから、新しいパスワードを本人に入れてもらってください。</p>
+      <div class="row" style="margin-top:8px"><input class="in" id="pw" maxlength="64" placeholder="新しいパスワード" autocomplete="off"><button class="btn" id="pw-go" type="button">変える</button></div>
+    </details>
+    <div id="del-box" hidden style="margin-top:16px;text-align:center"><button class="btn danger sm" id="del-guest" type="button">このお客さんと写真を全部消す</button></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var me = null, guest = null, qtimer = null;
+  var MAX = 2560, THUMB = 480;
+
+  function api(path, opts) {
+    opts = opts || {};
+    var init = { method: opts.method || 'GET', credentials: 'same-origin', headers: {} };
+    if (opts.form) init.body = opts.form;
+    else if (opts.body) { init.headers['content-type'] = 'application/json'; init.body = JSON.stringify(opts.body); }
+    return fetch(path, init).then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
+  }
+  function toast(t) { var d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 2200); }
+  function show(v) { ['login', 'list', 'guest'].forEach(function (k) { $('v-' + k).hidden = k !== v; }); $('back').hidden = v !== 'guest'; $('logout').hidden = v === 'login'; window.scrollTo(0, 0); }
+  function ago(iso) { var s = (Date.now() - new Date(iso.replace(' ', 'T') + (iso.endsWith('Z') ? '' : 'Z')).getTime()) / 1000; return s < 60 ? 'いま' : s < 3600 ? Math.floor(s / 60) + '分前' : s < 86400 ? Math.floor(s / 3600) + '時間前' : Math.floor(s / 86400) + '日前'; }
+  // 2回押すと実行する（消す操作）
+  function armed(btn, label, fn) {
+    if (btn.dataset.armed) { fn(); return; }
+    var old = btn.textContent; btn.dataset.armed = '1'; btn.textContent = label; btn.classList.add('armed');
+    setTimeout(function () { delete btn.dataset.armed; btn.textContent = old; btn.classList.remove('armed'); }, 3000);
+  }
+  $('site').textContent = location.host;
+
+  /* ---------- ログイン ---------- */
+  function start() {
+    api('/api/photo/staff/me').then(function (x) {
+      if (!x.ok) { show('login'); return; }
+      me = x.d; $('title').textContent = me.title + '・撮影係';
+      $('admin').hidden = me.level < 3; $('purge-box').hidden = me.level < 4; $('s-title').value = me.title;
+      show('list'); loadList();
+    });
+  }
+  $('f-login').addEventListener('submit', function (e) {
+    e.preventDefault();
+    api('/api/photo/staff/login', { method: 'POST', body: { name: $('l-name').value, code: $('l-pass').value } }).then(function (x) {
+      if (!x.ok) { $('l-msg').textContent = x.d.message || 'ログインできませんでした'; return; }
+      $('l-pass').value = ''; start();
+    });
+  });
+  $('logout').addEventListener('click', function () { api('/api/photo/staff/logout', { method: 'POST' }).then(function () { me = null; show('login'); }); });
+
+  /* ---------- 一覧 ---------- */
+  function loadList() {
+    api('/api/photo/staff/guests?q=' + encodeURIComponent($('q').value.trim())).then(function (x) {
+      if (!x.ok) return;
+      var ul = $('list'); ul.textContent = '';
+      if (!x.d.results.length) { var e = document.createElement('li'); e.className = 'empty'; e.style.display = 'block'; e.textContent = $('q').value ? '見つかりません' : 'まだ誰も登録していません'; ul.appendChild(e); return; }
+      x.d.results.forEach(function (g) {
+        var li = document.createElement('li');
+        var a = document.createElement('div'); var nm = document.createElement('p'); nm.className = 'nm'; nm.textContent = g.name; var s = document.createElement('p'); s.className = 's'; s.textContent = '登録 ' + ago(g.createdAt) + (g.seen ? '・本人が開いた' : '');
+        a.appendChild(nm); a.appendChild(s);
+        var n = document.createElement('span'); n.className = 'n' + (g.photos ? '' : ' zero'); n.textContent = g.photos + '枚';
+        li.appendChild(a); li.appendChild(n);
+        li.addEventListener('click', function () { openGuest(g.id); });
+        ul.appendChild(li);
+      });
+    });
+  }
+  $('q').addEventListener('input', function () { clearTimeout(qtimer); qtimer = setTimeout(loadList, 250); });
+  $('reload').addEventListener('click', loadList);
+  $('new-open').addEventListener('click', function () { $('f-new').hidden = !$('f-new').hidden; if (!$('f-new').hidden) $('n-name').focus(); });
+  $('f-new').addEventListener('submit', function (e) {
+    e.preventDefault();
+    api('/api/photo/staff/guests', { method: 'POST', body: { name: $('n-name').value, password: $('n-pass').value } }).then(function (x) {
+      if (!x.ok) { $('n-msg').textContent = x.d.message || '登録できませんでした'; return; }
+      $('n-name').value = ''; $('n-pass').value = ''; $('n-msg').textContent = ''; $('f-new').hidden = true;
+      toast(x.d.name + ' さんを登録しました'); openGuest(x.d.id);
+    });
+  });
+  $('s-save').addEventListener('click', function () {
+    api('/api/photo/staff/settings', { method: 'PUT', body: { title: $('s-title').value } }).then(function (x) {
+      if (!x.ok) return toast(x.d.message || '保存できませんでした');
+      me.title = x.d.title; $('title').textContent = me.title + '・撮影係'; toast('保存しました');
+    });
+  });
+  $('purge-go').addEventListener('click', function () {
+    api('/api/photo/staff/purge', { method: 'POST', body: { confirm: $('purge').value.trim() } }).then(function (x) {
+      if (!x.ok) return toast(x.d.message || '消せませんでした');
+      $('purge').value = ''; toast('全部消しました'); loadList();
+    });
+  });
+
+  /* ---------- 1人のお客さん ---------- */
+  function openGuest(id) {
+    api('/api/photo/staff/guests/' + id).then(function (x) {
+      if (!x.ok) return toast(x.d.message || '開けませんでした');
+      guest = x.d; $('queue').textContent = ''; renderGuest(); show('guest');
+      $('del-box').hidden = me.level < 3;
+    });
+  }
+  function renderGuest() {
+    $('g-name').textContent = guest.name;
+    $('g-meta').textContent = '登録 ' + ago(guest.createdAt) + (guest.seen ? '・本人がページを開きました' : '');
+    $('g-count').textContent = '上げた写真（' + guest.photos.length + '枚）';
+    var t = $('thumbs'); t.textContent = '';
+    guest.photos.forEach(function (p) {
+      var d = document.createElement('div'); d.style.backgroundImage = 'url(/api/photo/img/' + p.id + '/thumb)';
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = '消す';
+      b.addEventListener('click', function () { armed(b, 'もう一度で消す', function () { api('/api/photo/staff/photos/' + p.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return toast(x.d.message); refreshGuest(); }); }); });
+      d.appendChild(b); t.appendChild(d);
+    });
+  }
+  function refreshGuest() { return api('/api/photo/staff/guests/' + guest.id).then(function (x) { if (x.ok) { guest = x.d; renderGuest(); } }); }
+  $('back').addEventListener('click', function () { guest = null; show('list'); loadList(); });
+  $('pw-go').addEventListener('click', function () {
+    api('/api/photo/staff/guests/' + guest.id + '/password', { method: 'POST', body: { password: $('pw').value } }).then(function (x) {
+      if (!x.ok) return toast(x.d.message || '変えられませんでした');
+      $('pw').value = ''; toast('パスワードを変えました');
+    });
+  });
+  $('del-guest').addEventListener('click', function () {
+    var b = $('del-guest');
+    armed(b, 'もう一度押すと消します', function () { api('/api/photo/staff/guests/' + guest.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return toast(x.d.message); toast('消しました'); $('back').click(); }); });
+  });
+
+  /* ---------- 写真を縮めて送る ---------- */
+  function decode(file) {
+    if (window.createImageBitmap) return createImageBitmap(file, { imageOrientation: 'from-image' }).catch(function () { return viaImg(file); });
+    return viaImg(file);
+  }
+  function viaImg(file) {
+    return new Promise(function (res, rej) { var u = URL.createObjectURL(file), i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { rej(new Error('読めない写真です')); }; i.src = u; });
+  }
+  function shrink(src, max, q) {
+    var w = src.width, h = src.height, k = Math.min(1, max / Math.max(w, h));
+    var c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+    var x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, c.width, c.height);
+    return new Promise(function (res) { c.toBlob(function (b) { res({ blob: b, w: c.width, h: c.height }); }, 'image/jpeg', q); });
+  }
+  function sendOne(file, li, gid) {
+    li.lastChild.textContent = '縮めています…';
+    return decode(file).then(function (img) {
+      return shrink(img, MAX, 0.88).then(function (full) {
+        return (full.blob.size > 7 * 1024 * 1024 ? shrink(img, MAX, 0.75) : Promise.resolve(full)).then(function (f) {
+          return shrink(img, THUMB, 0.8).then(function (th) {
+            var fd = new FormData(); fd.append('full', f.blob, 'full.jpg'); fd.append('thumb', th.blob, 'thumb.jpg'); fd.append('w', f.w); fd.append('h', f.h);
+            li.lastChild.textContent = '送っています…（' + Math.round(f.blob.size / 1024) + 'KB）';
+            return api('/api/photo/staff/guests/' + gid + '/photos', { method: 'POST', form: fd });
+          });
+        });
+      });
+    }).then(function (x) {
+      if (!x.ok) throw new Error(x.d.message || '送れませんでした');
+      li.className = 'ok'; li.lastChild.textContent = '届きました';
+    }).catch(function (e) { li.className = 'ng'; li.lastChild.textContent = '失敗：' + e.message; });
+  }
+  $('files').addEventListener('change', function () {
+    var files = Array.prototype.slice.call($('files').files); $('files').value = '';
+    if (!files.length) return;
+    var gid = guest.id, q = $('queue');
+    var items = files.map(function (f) { var li = document.createElement('li'); var a = document.createElement('span'); a.textContent = f.name; var b = document.createElement('span'); b.textContent = '待っています'; li.appendChild(a); li.appendChild(b); q.appendChild(li); return li; });
+    // 1枚ずつ順に送る（電波が弱くても詰まらないように）
+    files.reduce(function (p, f, i) { return p.then(function () { return sendOne(f, items[i], gid); }); }, Promise.resolve()).then(function () {
+      if (guest && guest.id === gid) refreshGuest();
+      var ng = items.filter(function (li) { return li.className === 'ng'; }).length;
+      toast(ng ? ng + '枚失敗しました。もう一度選んでください' : files.length + '枚上げました');
+    });
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>

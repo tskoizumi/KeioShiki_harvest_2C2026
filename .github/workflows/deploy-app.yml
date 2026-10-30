@@ -83,3 +83,4 @@ jobs:
           echo "### デプロイ完了" >> "$GITHUB_STEP_SUMMARY"
           echo "- 本番: https://app.moneytalks-uranai.com/ （最初は /staff で管理者を作る）" >> "$GITHUB_STEP_SUMMARY"
           echo "- 研修: https://training.moneytalks-uranai.com/training" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 写真展（お客さん）: https://photo.moneytalks-uranai.com/ 　撮影係: https://photo.moneytalks-uranai.com/staff" >> "$GITHUB_STEP_SUMMARY"

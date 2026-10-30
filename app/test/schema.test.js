@@ -31,3 +31,14 @@ test('2つ目のマイグレーション（招待・ルール）も入り、4つ
   assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'tax_brackets'").get().value, '1000,3000,6000,10000');
   assert.ok(db.prepare("SELECT rules FROM games WHERE slug = 'chinchiro'").get().rules.includes('資産区分'));
 });
+
+test('4つ目のマイグレーション（写真展）：同じ名前は大文字小文字を区別せず1人だけ', () => {
+  const db = new DatabaseSync(':memory:');
+  for (const f of ['0001_init.sql', '0002_invites_rules.sql', '0003_tax_negative.sql', '0004_photos.sql']) {
+    for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  }
+  db.exec("INSERT INTO photo_guests (name, pass_hash, pass_salt) VALUES ('Aoi', 'h', 's')");
+  assert.throws(() => db.exec("INSERT INTO photo_guests (name, pass_hash, pass_salt) VALUES ('aoi', 'h', 's')"));
+  db.exec('INSERT INTO photos (guest_id, width, height, bytes) VALUES (1, 2560, 1707, 900000)');
+  assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'photo_title'").get().value, '写真展');
+});

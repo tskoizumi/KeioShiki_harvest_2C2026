@@ -17,11 +17,17 @@ async function hmac(secret, text) {
   return b64url(new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(text))));
 }
 
-function timingSafeEqual(a, b) {
+export function timingSafeEqual(a, b) {
   if (a.length !== b.length) return false;
   let r = 0;
   for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return r === 0;
+}
+
+// SESSION_SECRET で文字列に署名する（写真展のお客さんのログインなどで使う）
+export async function signText(env, text) {
+  if (!env.SESSION_SECRET) throw new ApiError('NO_SECRET', 'SESSION_SECRET が設定されていません', 500);
+  return hmac(env.SESSION_SECRET, text);
 }
 
 /* ---------- 合言葉 ---------- */

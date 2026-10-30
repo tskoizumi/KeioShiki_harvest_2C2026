@@ -7,7 +7,8 @@
 import SCHEMA_1 from '../migrations/0001_init.sql';
 import SCHEMA_2 from '../migrations/0002_invites_rules.sql';
 import SCHEMA_3 from '../migrations/0003_tax_negative.sql';
-const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3].join('\n;\n');
+import SCHEMA_4 from '../migrations/0004_photos.sql';
+const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4].join('\n;\n');
 import { trainingDb } from './training-do.js';
 import { json, fail, readJson, randomToken, shortCode, audit, cleanNickname } from './util.js';
 import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME } from './auth.js';

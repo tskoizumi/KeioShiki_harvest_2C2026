@@ -33,7 +33,7 @@ export class TrainingDb extends DurableObject {
       // 外部キーがあるので、参照する側から消す
       sql.exec('PRAGMA defer_foreign_keys = ON');
       const tables = sql.exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '\\_cf\\_%' ESCAPE '\\'").toArray().map((t) => t.name);
-      const order = ['audit_log', 'ledger', 'plays', 'readings', 'users', 'staff', 'games', 'settings'];
+      const order = ['photos', 'photo_guests', 'audit_log', 'ledger', 'plays', 'readings', 'users', 'staff', 'games', 'settings'];
       tables.sort((a, b) => (order.indexOf(a) === -1 ? 99 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 99 : order.indexOf(b)));
       for (const name of tables) sql.exec(`DROP TABLE IF EXISTS "${name.replace(/"/g, '""')}"`);
       for (const stmt of splitSql(schemaSql)) sql.exec(stmt);

@@ -1,6 +1,7 @@
 // 運命、賄賂で買いませんか？ — 受付・縁・占いのサーバー（Cloudflare Workers）
 // URLを見て、客のAPI／スタッフのAPI／画面に振り分ける
 // 研修用のホスト名（TRAINING_HOSTS）で来た要求は、別のデータベースに向けて同じ処理をする（training.js）
+// 写真展のホスト名（PHOTO_HOSTS）で来た要求は、写真の受け渡しサイト（photo.js）
 
 import { ApiError, fail } from './util.js';
 import { currentStaff } from './auth.js';
@@ -8,9 +9,12 @@ import * as pub from './routes/public.js';
 import * as staffRoutes from './routes/staff.js';
 import { isTraining, trainingFetch } from './training.js';
 export { TrainingDb } from './training-do.js';
+import { isPhotoHost, photoFetch } from './photo.js';
+export { PhotoStore } from './photo-do.js';
 
 export default {
   async fetch(request, env, ctx) {
+    if (isPhotoHost(request, env)) return photoFetch(request, env);   // 写真展（別のサイト）
     if (isTraining(request, env)) return trainingFetch(request, env, ctx, handle);
     return handle(request, env, ctx);
   },
@@ -53,6 +57,10 @@ async function handle(request, env, ctx) {
     if (p === '/staff' || p === '/staff/') return env.ASSETS.fetch(new Request(new URL('/staff', url), request));
     if (p === '/staff/cards') return env.ASSETS.fetch(new Request(new URL('/cards', url), request));
     if (p === '/staff/join') return env.ASSETS.fetch(new Request(new URL('/join', url), request));
+    if (p === '/photo' || p.startsWith('/photo/')) {   // 写真展の画面は photo. のホストだけ
+      const nf = await env.ASSETS.fetch(new Request(new URL('/404', url), request));
+      return new Response(nf.body, { status: 404, headers: nf.headers });
+    }
     if (p === '/training' || p === '/training/') {   // 手引きは研修ホストだけ
       const nf = await env.ASSETS.fetch(new Request(new URL('/404', url), request));
       return new Response(nf.body, { status: 404, headers: nf.headers });

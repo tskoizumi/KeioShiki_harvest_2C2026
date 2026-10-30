@@ -338,4 +338,28 @@ write('07-staff-qr', 'スタッフ用QR',
       '<b>困ったら</b>：画面を閉じずに責任者を呼ぶ。ゲームの取り消しはいつでもできます。<br>'
       '<b>縁の増減は必ず画面を通す</b>。口約束で足さない。</div></div></section>', STAFF_CSS)
 
+# ============================================================
+# 8. 写真展：写真の受け取りのQR（撮影する場所に貼る）
+# ============================================================
+PHOTO = 'https://photo.moneytalks-uranai.com/'
+PHOTO_CSS = """
+  .wrap { position: absolute; inset: 0; padding: 26mm 22mm; text-align: center; background: #f7f6f3; }
+  .k { font-size: 10pt; letter-spacing: 0.4em; color: var(--muted); }
+  h1 { margin-top: 6mm; font-family: var(--mincho); font-weight: 800; font-size: 34pt; line-height: 1.3; }
+  .rule { width: 14mm; height: 0.3mm; background: var(--ink); margin: 8mm auto 0; }
+  .qr { width: 92mm; margin: 14mm auto 0; padding: 6mm; background: #fff; border: 0.3mm solid var(--line); border-radius: 4mm; }
+  .url { margin-top: 5mm; font-size: 12pt; letter-spacing: 0.04em; }
+  ol { list-style: none; margin: 14mm auto 0; max-width: 140mm; text-align: left; display: grid; gap: 5mm; }
+  ol li { display: grid; grid-template-columns: 11mm 1fr; align-items: baseline; font-size: 13pt; line-height: 1.6; }
+  ol b { font-family: var(--mincho); font-size: 18pt; }
+  .small { margin-top: 12mm; font-size: 9.5pt; color: var(--muted); line-height: 1.8; }
+"""
+write('08-photo-qr', '写真の受け取り',
+      '<section class="page"><div class="wrap"><p class="k">PHOTOGRAPHS</p><h1>撮った写真は、<br>スマホで受け取れます</h1><div class="rule"></div>'
+      f'<div class="qr" data-qr="{PHOTO}"></div><p class="url">{PHOTO.replace("https://", "").rstrip("/")}</p>'
+      '<ol><li><b>1</b><span>撮影の前に、QRを読んで「はじめての方」から<strong>名前とパスワード</strong>を決める</span></li>'
+      '<li><b>2</b><span>撮影係に、その名前を伝える</span></li>'
+      '<li><b>3</b><span>撮り終わると、ページに写真が届く。あとで見るときも、同じ名前とパスワードで</span></li></ol>'
+      '<p class="small">スマホがない方は、撮影係の端末で登録できます。写真は展示の終了後に削除します。</p></div></section>', PHOTO_CSS)
+
 print('wrote', sorted(os.listdir(SRC)))

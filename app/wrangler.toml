@@ -8,7 +8,8 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 routes = [
   { pattern = "app.moneytalks-uranai.com", custom_domain = true },
-  { pattern = "training.moneytalks-uranai.com", custom_domain = true }
+  { pattern = "training.moneytalks-uranai.com", custom_domain = true },
+  { pattern = "photo.moneytalks-uranai.com", custom_domain = true }
 ]
 
 # 画面（public/）。Worker が先に経路を見て、API 以外を静的ファイルに回す
@@ -34,6 +35,15 @@ class_name = "TrainingDb"
 tag = "v1"
 new_sqlite_classes = ["TrainingDb"]
 
+# 写真展の写真の中身（Durable Object の SQLite）。目録は D1 の photos
+[[durable_objects.bindings]]
+name = "PHOTOS"
+class_name = "PhotoStore"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["PhotoStore"]
+
 # migrations/*.sql を文字列として import する（研修モードがスキーマを作るのに使う）
 [[rules]]
 type = "Text"
@@ -46,3 +56,5 @@ PUBLIC_ORIGIN = "https://app.moneytalks-uranai.com"
 LP_ORIGIN = "https://moneytalks-uranai.com"
 # このホスト名で来たら研修モード。手元では `npm run dev:training`（wrangler dev --host でこのホスト名を名乗る）
 TRAINING_HOSTS = "training.moneytalks-uranai.com"
+# このホスト名で来たら写真展の受け渡しサイト。手元では `npm run dev:photo`
+PHOTO_HOSTS = "photo.moneytalks-uranai.com"

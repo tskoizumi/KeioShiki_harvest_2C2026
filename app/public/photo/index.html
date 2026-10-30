@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f7f6f3">
+  <title>写真の受け取り</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* 写真展：撮った写真をお客さんが受け取るページ。写真が主役なので、画面はできるだけ静かに */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f7f6f3; --paper: #ffffff; --ink: #1d1c1a; --muted: #6f6b66; --faint: #a19c96; --line: #e4e1dc; --accent: #1d1c1a; --err: #b3261e;
+      --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+      --gothic: "Noto Sans JP", -apple-system, "Hiragino Sans", sans-serif;
+    }
+    html { -webkit-text-size-adjust: 100%; }
+    body { min-height: 100dvh; background: var(--bg); color: var(--ink); font-family: var(--gothic); line-height: 1.6; padding-bottom: env(safe-area-inset-bottom); }
+    button, input { font: inherit; color: inherit; }
+    [hidden] { display: none !important; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+    header { padding: calc(36px + env(safe-area-inset-top)) 0 20px; text-align: center; }
+    header .kicker { font-size: 11px; letter-spacing: 0.32em; color: var(--muted); }
+    header h1 { margin-top: 10px; font-family: var(--mincho); font-weight: 800; font-size: clamp(30px, 8vw, 46px); line-height: 1.25; letter-spacing: 0.06em; }
+    header .rule { width: 36px; height: 1px; background: var(--ink); margin: 18px auto 0; }
+
+    /* ログイン・登録 */
+    .panel { max-width: 420px; margin: 18px auto 0; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 22px 20px 24px; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border-radius: 12px; padding: 4px; gap: 4px; }
+    .tabs button { padding: 10px 6px; border: 0; border-radius: 9px; background: none; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; }
+    .tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
+    .lead { margin-top: 18px; font-size: 14px; color: var(--muted); }
+    label { display: block; margin-top: 16px; font-size: 13px; font-weight: 700; }
+    .field { position: relative; margin-top: 6px; }
+    .field input { width: 100%; padding: 14px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); font-size: 17px; outline: none; }
+    .field input:focus { border-color: var(--ink); }
+    .field .eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; padding: 8px 10px; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; }
+    .btn { display: block; width: 100%; margin-top: 22px; padding: 15px 16px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .btn:disabled { opacity: 0.5; }
+    .btn.line { background: none; color: var(--ink); border: 1px solid var(--line); }
+    .msg { margin-top: 12px; min-height: 1.4em; font-size: 14px; color: var(--err); text-align: center; }
+    .note { margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+
+    /* 登録したばかり */
+    .hello { max-width: 420px; margin: 18px auto 0; text-align: center; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 26px 20px; }
+    .hello p { font-size: 14px; color: var(--muted); }
+    .hello .nm { margin: 10px 0; font-family: var(--mincho); font-weight: 800; font-size: 34px; line-height: 1.3; color: var(--ink); word-break: break-all; }
+
+    /* 写真 */
+    .bar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .bar h2 { font-family: var(--mincho); font-weight: 800; font-size: 20px; line-height: 1.4; word-break: break-all; }
+    .bar h2 small { font-family: var(--gothic); font-weight: 500; font-size: 13px; color: var(--muted); margin-left: 6px; }
+    .bar button { flex-shrink: 0; border: 0; background: none; font-size: 13px; color: var(--muted); text-decoration: underline; cursor: pointer; }
+    .hint { margin-top: 12px; font-size: 13px; color: var(--muted); }
+    .grid { margin: 16px 0 40px; columns: 2; column-gap: 10px; }
+    @media (min-width: 640px) { .grid { columns: 3; column-gap: 14px; } }
+    .grid button { display: block; width: 100%; margin-bottom: 10px; padding: 0; border: 0; background: #e9e6e1; border-radius: 6px; overflow: hidden; break-inside: avoid; cursor: zoom-in; }
+    .grid img { display: block; width: 100%; height: auto; opacity: 0; transition: opacity 0.4s; }
+    .grid img.on { opacity: 1; }
+    .empty { margin: 30px auto 40px; max-width: 420px; text-align: center; padding: 30px 20px; border: 1px dashed var(--line); border-radius: 18px; color: var(--muted); font-size: 14px; }
+    .empty b { display: block; margin: 8px 0; font-family: var(--mincho); font-size: 26px; color: var(--ink); word-break: break-all; }
+
+    /* 1枚を大きく */
+    .lb { position: fixed; inset: 0; z-index: 50; background: rgba(12, 12, 11, 0.96); display: grid; grid-template-rows: auto 1fr auto; color: #fff; }
+    .lb .top { display: flex; justify-content: space-between; align-items: center; padding: calc(10px + env(safe-area-inset-top)) 12px 10px; font-size: 13px; color: #c9c5bf; }
+    .lb .top button { border: 0; background: none; color: #fff; font-size: 15px; padding: 8px 10px; cursor: pointer; }
+    .lb .stage { position: relative; display: grid; place-items: center; min-height: 0; padding: 0 8px; touch-action: pan-y; }
+    .lb .stage img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-select: none; }
+    .lb .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; border: 0; background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 22px; border-radius: 10px; cursor: pointer; }
+    .lb .prev { left: 8px; } .lb .next { right: 8px; }
+    .lb .bottom { padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 8px; max-width: 480px; width: 100%; margin: 0 auto; }
+    .lb .save { padding: 15px; border: 0; border-radius: 999px; background: #fff; color: var(--ink); font-size: 16px; font-weight: 700; cursor: pointer; }
+    .lb .tip { font-size: 12px; color: #a19c96; text-align: center; }
+    footer { padding: 20px 0 40px; text-align: center; font-size: 11px; color: var(--faint); letter-spacing: 0.1em; }
+  </style>
+</head>
+<body>
+<header class="wrap">
+  <p class="kicker">PHOTOGRAPHS</p>
+  <h1 id="title">写真展</h1>
+  <div class="rule"></div>
+</header>
+
+<main class="wrap">
+  <!-- ログイン・登録 -->
+  <section id="v-auth" hidden>
+    <div class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="t-login" aria-selected="true" type="button">写真を見る</button>
+        <button role="tab" id="t-new" aria-selected="false" type="button">はじめての方</button>
+      </div>
+      <form id="f-auth" autocomplete="off">
+        <p class="lead" id="auth-lead"></p>
+        <label for="a-name">名前</label>
+        <div class="field"><input id="a-name" maxlength="20" autocomplete="username" placeholder="例：あおい"></div>
+        <label for="a-pass">パスワード</label>
+        <div class="field"><input id="a-pass" type="password" maxlength="64" autocomplete="current-password" placeholder="4文字以上"><button class="eye" type="button" id="eye">表示</button></div>
+        <button class="btn" id="a-go" type="submit"></button>
+        <p class="msg" id="a-msg" role="alert"></p>
+        <p class="note" id="auth-note"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- 写真 -->
+  <section id="v-main" hidden>
+    <div class="hello" id="hello" hidden>
+      <p>登録しました。撮影係に、この名前を伝えてください。</p>
+      <p class="nm" id="hello-name"></p>
+      <p>撮った写真は、このページに届きます。<br>あとで見るときは、同じ名前とパスワードで開いてください。</p>
+      <button class="btn line" id="hello-ok" type="button">わかった</button>
+    </div>
+    <div class="bar"><h2 id="who"></h2><button id="logout" type="button">ログアウト</button></div>
+    <p class="hint" id="hint"></p>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>まだ写真がありません。<br>撮影係に名前を伝えてください。<b id="empty-name"></b>撮り終わると、ここに自動で出てきます。</div>
+  </section>
+</main>
+
+<div class="lb" id="lb" hidden>
+  <div class="top"><span id="lb-n"></span><button id="lb-close" type="button">閉じる ✕</button></div>
+  <div class="stage" id="lb-stage"><img id="lb-img" alt=""><button class="nav prev" id="lb-prev" type="button" aria-label="前の写真">‹</button><button class="nav next" id="lb-next" type="button" aria-label="次の写真">›</button></div>
+  <div class="bottom"><button class="save" id="lb-save" type="button">この写真を保存</button><p class="tip" id="lb-tip">保存できないときは、写真を長押しして「写真に追加」</p></div>
+</div>
+
+<footer>写真は展示の終了後に削除します</footer>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var mode = 'login', me = null, cur = 0, timer = null;
+
+  function api(path, opts) {
+    opts = opts || {};
+    return fetch(path, { method: opts.method || 'GET', headers: opts.body ? { 'content-type': 'application/json' } : {}, body: opts.body ? JSON.stringify(opts.body) : undefined, credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
+  }
+  function show(v) { $('v-auth').hidden = v !== 'auth'; $('v-main').hidden = v !== 'main'; }
+  function setTitle(t) { if (t) { $('title').textContent = t; document.title = t + '　写真の受け取り'; } }
+
+  /* ---------- ログイン・登録 ---------- */
+  function setMode(m) {
+    mode = m;
+    $('t-login').setAttribute('aria-selected', String(m === 'login'));
+    $('t-new').setAttribute('aria-selected', String(m === 'new'));
+    $('auth-lead').textContent = m === 'login' ? '撮影のときに決めた名前とパスワードを入れてください。' : '撮影の前に、名前とパスワードを決めてください。写真を受け取るときに使います。';
+    $('a-go').textContent = m === 'login' ? '写真を見る' : '登録する';
+    $('a-pass').setAttribute('autocomplete', m === 'login' ? 'current-password' : 'new-password');
+    $('auth-note').textContent = m === 'login' ? 'パスワードを忘れたら、撮影係に声をかけてください。' : '名前はほかの人と同じにはできません。パスワードは忘れないように、スクリーンショットで控えておくと安心です。';
+    $('a-msg').textContent = '';
+  }
+  $('t-login').addEventListener('click', function () { setMode('login'); });
+  $('t-new').addEventListener('click', function () { setMode('new'); });
+  $('eye').addEventListener('click', function () { var p = $('a-pass'); p.type = p.type === 'password' ? 'text' : 'password'; $('eye').textContent = p.type === 'password' ? '表示' : '隠す'; });
+  $('f-auth').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('a-name').value.trim(), pass = $('a-pass').value;
+    if (!name || !pass) { $('a-msg').textContent = '名前とパスワードを入れてください'; return; }
+    $('a-go').disabled = true; $('a-msg').textContent = '';
+    api(mode === 'login' ? '/api/photo/login' : '/api/photo/register', { method: 'POST', body: { name: name, password: pass } }).then(function (x) {
+      $('a-go').disabled = false;
+      if (!x.ok) { $('a-msg').textContent = x.d.message || 'うまくいきませんでした'; return; }
+      $('a-pass').value = '';
+      load(mode === 'new');
+    }).catch(function () { $('a-go').disabled = false; $('a-msg').textContent = '通信できませんでした。電波のよい所でもう一度'; });
+  });
+
+  /* ---------- 写真 ---------- */
+  function load(fresh) {
+    return api('/api/photo/me').then(function (x) {
+      if (x.status === 401) { show('auth'); return; }
+      if (!x.ok) return;
+      setTitle(x.d.title);
+      var before = me ? me.photos.length : -1;
+      me = x.d;
+      show('main');
+      if (fresh) { $('hello').hidden = false; $('hello-name').textContent = me.name; }
+      if (before !== me.photos.length) render();
+      schedule();
+    });
+  }
+  function render() {
+    $('who').innerHTML = '';
+    $('who').appendChild(document.createTextNode(me.name + ' さんの写真'));
+    var sm = document.createElement('small'); sm.textContent = me.photos.length ? me.photos.length + '枚' : ''; $('who').appendChild(sm);
+    $('hint').textContent = me.photos.length ? '写真をタップすると大きく見られます。保存もそこから。' : '';
+    $('empty').hidden = !!me.photos.length; $('empty-name').textContent = me.name;
+    var g = $('grid'); g.textContent = '';
+    me.photos.forEach(function (p, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', (i + 1) + '枚目を開く');
+      b.style.aspectRatio = p.w + ' / ' + p.h;
+      var img = new Image(); img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+      img.onload = function () { img.classList.add('on'); };
+      img.src = '/api/photo/img/' + p.id + '/thumb';
+      b.appendChild(img);
+      b.addEventListener('click', function () { open(i); });
+      g.appendChild(b);
+    });
+  }
+  // 写真がまだ少ないうちは、こまめに見に行く（撮影中に届く）
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(function () { if (!document.hidden && $('lb').hidden) load(false); else schedule(); }, me && me.photos.length ? 30000 : 10000);
+  }
+  $('hello-ok').addEventListener('click', function () { $('hello').hidden = true; });
+  $('logout').addEventListener('click', function () { api('/api/photo/logout', { method: 'POST' }).then(function () { me = null; clearTimeout(timer); setMode('login'); show('auth'); }); });
+
+  /* ---------- 1枚を大きく ---------- */
+  function open(i) {
+    cur = i; var p = me.photos[i];
+    $('lb').hidden = false; document.body.style.overflow = 'hidden';
+    $('lb-img').src = '/api/photo/img/' + p.id + '/thumb';
+    var full = new Image(); full.onload = function () { if (me.photos[cur] === p) $('lb-img').src = full.src; }; full.src = '/api/photo/img/' + p.id + '/full';
+    $('lb-n').textContent = (i + 1) + ' / ' + me.photos.length;
+    $('lb-prev').hidden = i === 0; $('lb-next').hidden = i === me.photos.length - 1;
+  }
+  function close() { $('lb').hidden = true; document.body.style.overflow = ''; }
+  $('lb-close').addEventListener('click', close);
+  $('lb-prev').addEventListener('click', function () { if (cur > 0) open(cur - 1); });
+  $('lb-next').addEventListener('click', function () { if (cur < me.photos.length - 1) open(cur + 1); });
+  document.addEventListener('keydown', function (e) { if ($('lb').hidden) return; if (e.key === 'Escape') close(); if (e.key === 'ArrowLeft') $('lb-prev').click(); if (e.key === 'ArrowRight') $('lb-next').click(); });
+  var sx = null;
+  $('lb-stage').addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; }, { passive: true });
+  $('lb-stage').addEventListener('touchend', function (e) { if (sx == null) return; var dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 50) (dx > 0 ? $('lb-prev') : $('lb-next')).click(); });
+  // 保存：スマホは共有メニュー（「画像を保存」）、使えなければダウンロード
+  $('lb-save').addEventListener('click', function () {
+    var p = me.photos[cur], url = '/api/photo/img/' + p.id + '/full', name = 'photo-' + p.id + '.jpg';
+    $('lb-save').disabled = true;
+    fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.blob(); }).then(function (blob) {
+      var file = new File([blob], name, { type: 'image/jpeg' });
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && /iPhone|iPad|Android/i.test(navigator.userAgent)) return navigator.share({ files: [file] }).catch(function () {});
+      var a = document.createElement('a'); a.href = url + '?dl'; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    }).finally(function () { $('lb-save').disabled = false; });
+  });
+
+  setMode('login');
+  api('/api/photo/config').then(function (x) { if (x.ok) setTitle(x.d.title); });
+  load(false);
+})();
+</script>
+</body>
+</html>

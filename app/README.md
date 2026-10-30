@@ -71,6 +71,17 @@ npm run dev                            # http://127.0.0.1:8788
 
 画面を変えたら作り直せる：`tools/video/` の `customer.js` / `staff.js` が、研修モードのサーバー（`npm run dev:training`）を Playwright で実際に操作しながら録る。`node tools/video/customer.js`。必要なものと、BGM や声の差し替え方は [`tools/video/README.md`](tools/video/README.md)。
 
+## 写真展の受け渡し（photo.moneytalks-uranai.com）
+
+クラスの写真展で撮った写真を、お客さんに渡すための別サイト。同じ Worker で動き、ホスト名で切り替える（`PHOTO_HOSTS`）。
+
+- お客さん：`/` で名前とパスワードを決めて登録（撮影係の端末でも登録できる）→ 写真が届くと自動で表示 → 1枚ずつ保存
+- 撮影係：`/staff`。占いのスタッフと同じアカウントでログイン → お客さんを選んで写真を上げる（端末で長い辺2560pxのJPEGに縮めてから送る）
+- 責任者以上：お客さんの削除、写真展の名前の変更。管理者：展示のあとに全部消す
+- 写真の中身は Durable Object（`PhotoStore`、SQLite に1MBずつ）、目録は D1 の `photo_guests` / `photos`（`migrations/0004_photos.sql`）
+- お客さんのログインは8回続けて間違えると5分ロック。名前は大文字小文字を区別せず1人だけ
+- 手元では `npm run dev:photo`（http://127.0.0.1:8790/）
+
 ## 本番に出す（GitHub Actions）
 
 `main` に `app/` の変更が入ると、`.github/workflows/deploy-app.yml` が自動でデプロイする。最初に一度だけ、GitHub の **Settings → Secrets and variables → Actions** に4つ入れる。
