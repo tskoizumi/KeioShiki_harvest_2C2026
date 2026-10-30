@@ -1,7 +1,7 @@
 // 研修モードは migrations/0001_init.sql を文ごとに分けて SQLite に流す。その分け方が正しいか
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { splitSql } from '../src/util.js';
 
@@ -82,4 +82,11 @@ test('8つ目のマイグレーション：スタッフごとの権限。前に�
   for (const f of ['0007_two_levels.sql', '0008_staff_perms.sql']) for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
   const rows = db.prepare('SELECT name, level, perms FROM staff ORDER BY id').all();
   assert.deepEqual(rows.map((r) => [r.name, r.level, r.perms && JSON.parse(r.perms).includes('fortune')]), [['teller', 1, true], ['staff', 1, null], ['joined', 1, true]]);
+});
+
+test('マイグレーションはどれも ; で終わる（本番では後ろに記録用の文がつながるため）', () => {
+  for (const f of readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql'))) {
+    const body = readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8').replace(/--.*$/gm, '').trim();
+    assert.ok(body.endsWith(';'), f + ' の最後に ; がない');
+  }
 });

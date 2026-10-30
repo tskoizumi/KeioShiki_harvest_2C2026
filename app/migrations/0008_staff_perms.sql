@@ -10,3 +10,4 @@ UPDATE staff SET perms = '["reception","games","fortune","adjust","cards","photo
    OR id IN (SELECT CAST(substr(target, 7) AS INTEGER) FROM audit_log WHERE action = 'スタッフ追加' AND detail LIKE '% 占い師')
    OR id IN (SELECT CAST(substr(target, 7) AS INTEGER) FROM audit_log WHERE action = 'スタッフ変更' AND detail LIKE '%"level":2%')
  )
+;
