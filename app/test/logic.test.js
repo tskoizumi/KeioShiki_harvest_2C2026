@@ -71,6 +71,14 @@ test('占い：全部3なら「種」、全部5なら「焚き火」', () => {
   assert.equal(ORACLE.judge([5, 5, 5, 5, 5, 5, 5, 5, 5]).name, '焚き火');
 });
 
+test('払い戻し：ラッキーパネルは入れた点の合計（マイナスもある）', () => {
+  const lp = { kind: 'score', config: { score: true, levels: [{ name: '難易度1', memorize: 20, miss: -10 }, { name: '難易度2', memorize: 30, miss: -20 }], plus: [10, 20] } };
+  assert.deepEqual(computePayout(lp, 50, { level: 1, points: [20, 20, -20, 30] }), { payout: 50, label: '難易度2・+50点' });
+  assert.equal(computePayout(lp, 50, { level: 0, points: [-10, -10] }).payout, -20);
+  assert.equal(computePayout(lp, 50, { points: [] }).label, '0点');
+  assert.throws(() => computePayout(lp, 50, { points: [1.5] }));
+});
+
 test('払い戻し：固定・段数・倍率', () => {
   const fixed = { kind: 'fixed', config: { outcomes: [{ label: 'はずれ', payout: 0 }, { label: '中心', payout: 50 }] } };
   assert.equal(computePayout(fixed, 10, { outcome: 1 }).payout, 50);

@@ -42,3 +42,15 @@ test('4つ目のマイグレーション（写真展）：同じ名前は大文�
   db.exec('INSERT INTO photos (guest_id, width, height, bytes) VALUES (1, 2560, 1707, 900000)');
   assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'photo_title'").get().value, '写真展');
 });
+
+test('5つ目のマイグレーション：ゲームの名前と並び、ラッキーパネルは点数を足し引きする', () => {
+  const db = new DatabaseSync(':memory:');
+  for (const f of ['0001_init.sql', '0002_invites_rules.sql', '0003_tax_negative.sql', '0004_photos.sql', '0005_game_names.sql']) {
+    for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  }
+  const names = db.prepare('SELECT name FROM games ORDER BY sort').all().map((g) => g.name);
+  assert.deepEqual(names, ['ストラックアウト', 'チンチロ', 'ブラックボックス', 'ラッキーパネル']);
+  const lp = JSON.parse(db.prepare("SELECT config FROM games WHERE slug = 'shinkei'").get().config);
+  assert.equal(lp.score, true);
+  assert.deepEqual(lp.levels.map((l) => l.miss), [-10, -20, -30]);
+});

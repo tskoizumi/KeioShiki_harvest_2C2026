@@ -249,7 +249,7 @@ export async function handle(request, env, url, staff) {
     const b = await body();
     const g = await db.prepare('SELECT * FROM games WHERE id = ?').bind(Number(mm[1])).first();
     if (!g) throw new ApiError('NOT_FOUND', 'そのゲームはありません', 404);
-    const cfg = validateGameConfig(g.kind, b.config ?? JSON.parse(g.config));
+    const cfg = validateGameConfig(JSON.parse(g.config).score ? 'score' : g.kind, b.config ?? JSON.parse(g.config));
     await db
       .prepare('UPDATE games SET name = ?, fee = ?, min_bet = ?, max_bet = ?, config = ?, role_label = ?, enabled = ?, rules = ? WHERE id = ?')
       .bind(
@@ -416,6 +416,18 @@ function toInt(v, fallback) {
 }
 
 function validateGameConfig(kind, cfg) {
+  if (kind === 'score') {
+    if (!Array.isArray(cfg.levels) || cfg.levels.length < 1 || cfg.levels.length > 6) throw new ApiError('CONFIG', '難易度を1〜6個入れてください');
+    const levels = cfg.levels.map((l) => {
+      const name = String(l.name || '').trim(), memorize = Number(l.memorize), miss = Number(l.miss);
+      if (!name) throw new ApiError('CONFIG', '難易度の名前が空です');
+      if (!Number.isInteger(memorize) || memorize < 0 || !Number.isInteger(miss) || miss > 0 || miss < -1000) throw new ApiError('CONFIG', '覚える秒数は0以上、減点は0以下の数字で');
+      return { name, memorize, miss };
+    });
+    const plus = (Array.isArray(cfg.plus) ? cfg.plus : []).map(Number).filter((n) => Number.isInteger(n) && n > 0 && n <= 1000).slice(0, 8);
+    if (!plus.length) throw new ApiError('CONFIG', '足す点のボタンを1つ以上入れてください');
+    return { score: true, levels, plus };
+  }
   if (kind === 'stack') {
     const per = Number(cfg.per_level), max = Number(cfg.max_level);
     if (!Number.isInteger(per) || per < 0 || !Number.isInteger(max) || max < 1) throw new ApiError('CONFIG', '段あたりの縁と最大段数を数字で');

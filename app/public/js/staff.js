@@ -1,7 +1,7 @@
 // スタッフの画面の動き（staff.html が読む）
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var S = { me: null, games: [], settings: {}, oracle: null, site: null, view: 'cust', cust: null, reading: null, step: 1, answers: { judge: [], mention: [] }, souOverride: null, kizashiId: null, openPlays: [], openReadings: [], adminTab: 'summary', betFor: null, histAll: false, lv: {}, mgrOpen: false };
+  var S = { me: null, games: [], settings: {}, oracle: null, site: null, view: 'cust', cust: null, reading: null, step: 1, answers: { judge: [], mention: [] }, souOverride: null, kizashiId: null, openPlays: [], openReadings: [], adminTab: 'summary', betFor: null, histAll: false, lv: {}, sc: {}, mgrOpen: false };
   var LV = { staff: 1, teller: 2, manager: 3, admin: 4 };
   var RANK = { mu: '無', sho: '小', dai: '大', kaizan: '改竄' };
   var TITLES = { login: 'スタッフ', cust: 'お客さん', games: 'ゲーム中', teller: '占い', reception: '受付', admin: '管理' };
@@ -351,6 +351,8 @@
       '<p class="hint">' + (p.stake ? yen(p.stake) + '縁を受け取り済み・' : '') + clock(p.startedAt) + ' に ' + esc(p.staffName) + ' が開始</p>';
     if (!g) {
       h += '<p style="margin-top:10px">このゲームは今は止めてあります。取り消して返金してください。</p>';
+    } else if (g.kind === 'score') {
+      h += scoreBody(p, g);
     } else if (g.kind === 'stack') {
       var per = g.config.per_level, max = g.config.max_level;
       var lv0 = S.lv[p.id] || 0;
@@ -369,6 +371,37 @@
     }
     h += '<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn danger sm" data-act="void">取り消して ' + yen(p.stake) + '縁を返す</button></div></div>';
     return h;
+  }
+  // ラッキーパネル：取った点・引かれた点を、その場で1つずつ足していく
+  function scoreState(id) {
+    if (!S.sc[id]) { var v = null; try { v = JSON.parse(localStorage.getItem('mt:sc:' + id)); } catch (e) {} S.sc[id] = v || { level: 0, pts: [] }; }
+    return S.sc[id];
+  }
+  function saveScore(id) { try { localStorage.setItem('mt:sc:' + id, JSON.stringify(S.sc[id])); } catch (e) {} }
+  function scoreBody(p, g) {
+    var st = scoreState(p.id), c = g.config, lv = c.levels[st.level] || c.levels[0];
+    var total = st.pts.reduce(function (a, n) { return a + n; }, 0);
+    var h = '<div class="sc-lv" style="margin-top:14px">' + c.levels.map(function (l, i) { return '<button class="btn' + (i === st.level ? ' on' : '') + '" data-act="sc-lv" data-i="' + i + '"><b>' + esc(l.name) + '</b><small>覚える ' + l.memorize + '秒<br>ドラキー ' + l.miss + '</small></button>'; }).join('') + '</div>';
+    h += '<p class="hint" style="margin-top:12px">めくるたびに押します（押しまちがえたら、下の記録の × で消せます）</p>';
+    h += '<div class="sc-keys">' + c.plus.map(function (n) { return '<button class="btn win" data-act="sc-add" data-n="' + n + '">+' + n + '</button>'; }).join('') +
+      '<button class="btn neg" data-act="sc-add" data-n="' + lv.miss + '">ドラキー ' + lv.miss + '</button></div>';
+    h += '<div class="row sc-free"><input class="in" type="number" inputmode="numeric" data-sc-free placeholder="ほかの点"><button class="btn" data-act="sc-free" data-sign="1">＋足す</button><button class="btn" data-act="sc-free" data-sign="-1">−引く</button></div>';
+    h += '<div class="sc-log">' + (st.pts.length ? st.pts.map(function (n, k) { return '<button class="' + (n < 0 ? 'neg' : '') + '" data-act="sc-del" data-k="' + k + '" aria-label="この点を消す">' + (n > 0 ? '+' : '') + n + ' ×</button>'; }).join('') : '<span class="hint">まだ点はありません</span>') + '</div>';
+    h += '<p class="sc-total ' + (total < 0 ? 'neg' : '') + '">合計 <b>' + (total > 0 ? '+' : '') + total + '</b>点<small>' + (total > 0 ? yen(total) + '縁が戻る' : total < 0 ? 'さらに ' + yen(-total) + '縁を払う' : '払い戻しなし') + '</small></p>';
+    h += '<button class="btn pri block huge" data-act="finish-score" style="margin-top:12px">この点数で決定</button>';
+    return h;
+  }
+  function scoreAct(a, b, card, root) {
+    var id = Number(card.dataset.play), st = scoreState(id);
+    if (a === 'sc-lv') st.level = Number(b.dataset.i);
+    if (a === 'sc-add') st.pts.push(Number(b.dataset.n));
+    if (a === 'sc-del') st.pts.splice(Number(b.dataset.k), 1);
+    if (a === 'sc-free') {
+      var inp = card.querySelector('[data-sc-free]'), n = Math.abs(Math.round(Number(inp.value)));
+      if (!n) return err('点数を入れてください');
+      st.pts.push(Number(b.dataset.sign) * n);
+    }
+    saveScore(id); renderCust();
   }
   function betCard(g, u) {
     var max = g.maxBet > 0 ? Math.min(g.maxBet, u.balance) : u.balance;
@@ -393,6 +426,7 @@
     if (a === 'to-reception') { go('reception'); $('card-code').value = u.shortCode; $('card-nick').focus(); return; }
     if (a === 'to-reading') { openReading(Number(b.dataset.id)); return; }
     var card = b.closest('[data-play]');
+    if (a === 'sc-lv' || a === 'sc-add' || a === 'sc-del' || a === 'sc-free') { scoreAct(a, b, card, root); return; }
     if (a === 'lv' || a === 'lv-set') { stepLv(card, a === 'lv' ? Number(b.dataset.d) : null, a === 'lv-set' ? Number(b.dataset.n) : null); return; }
     if (a === 'bet-n') { var m = root.querySelector('#bet-amt'); m.value = b.dataset.n === 'all' ? m.max : b.dataset.n; return; }
     if (pending) return;
@@ -402,7 +436,7 @@
       startPlay(g.id, undefined); return;
     }
     if (a === 'bet-go') { startPlay(Number(b.dataset.game), Number(root.querySelector('#bet-amt').value)); return; }
-    if (a === 'finish' || a === 'finish-stack' || a === 'void') { playAction(a, b, card); return; }
+    if (a === 'finish' || a === 'finish-stack' || a === 'finish-score' || a === 'void') { playAction(a, b, card); return; }
     if (a === 'reading') { busy(api('/api/staff/readings', 'POST', { userId: u.id }), function (r) { openReadingData(r); }, function () {}); return; }
     if (a === 'adjust') {
       var sign = Number((root.querySelector('[data-sign].on') || {}).dataset.sign || 1);
@@ -429,6 +463,7 @@
     var id = Number(card.dataset.play), req;
     if (a === 'finish') req = api('/api/staff/plays/' + id + '/finish', 'POST', { result: { outcome: Number(b.dataset.outcome) } });
     else if (a === 'finish-stack') req = api('/api/staff/plays/' + id + '/finish', 'POST', { result: { level: Number(card.querySelector('[data-lv]').textContent) } });
+    else if (a === 'finish-score') { var st = scoreState(id); req = api('/api/staff/plays/' + id + '/finish', 'POST', { result: { level: st.level, points: st.pts } }); req.then(function (x) { if (x.ok) { delete S.sc[id]; try { localStorage.removeItem('mt:sc:' + id); } catch (e) {} } }); }
     else {
       armed(b, 'もう一度押すと取り消し', function () { busy(api('/api/staff/plays/' + id + '/void', 'POST', {}), function () { toast('取り消して返金しました'); }); });
       return;
@@ -751,9 +786,12 @@
   }
   function gameEditor(g) {
     var cfg = g.config, h = '<div class="card" data-game-card="' + g.id + '"><div class="row" style="justify-content:space-between"><b style="font-family:var(--mincho);font-size:24px">' + esc(g.name) + '</b><label class="toggle" style="padding:8px 12px">使う<input type="checkbox" data-k="enabled"' + (g.enabled ? ' checked' : '') + '></label></div>';
+    h += '<div class="field"><label>ゲームの名前</label><input class="in" data-k="name" maxlength="20" value="' + esc(g.name) + '"></div>';
     if (g.kind === 'bet') h += '<div class="two"><div class="field"><label>賭け金の下限</label><input class="in" data-k="minBet" type="number" value="' + g.minBet + '"></div><div class="field"><label>賭け金の上限</label><input class="in" data-k="maxBet" type="number" value="' + g.maxBet + '"><p>0 = 残高まで</p></div></div>';
     else h += '<div class="field"><label>参加費（縁）</label><input class="in" data-k="fee" type="number" value="' + g.fee + '"></div>';
-    if (g.kind === 'stack') h += '<div class="two"><div class="field"><label>1段で戻る縁</label><input class="in" data-k="per_level" type="number" value="' + cfg.per_level + '"></div><div class="field"><label>最大の段数</label><input class="in" data-k="max_level" type="number" value="' + cfg.max_level + '"></div></div>';
+    if (g.kind === 'score') h += '<div class="orow-h" style="grid-template-columns:1fr 1fr 1fr"><span>難易度の名前</span><span>覚える秒</span><span>ドラキーの点</span></div>' + cfg.levels.map(function (l) { return '<div class="orow" data-lvrow style="grid-template-columns:1fr 1fr 1fr"><input class="in" data-l="name" value="' + esc(l.name) + '"><input class="in" data-l="memorize" type="number" value="' + l.memorize + '"><input class="in" data-l="miss" type="number" value="' + l.miss + '"></div>'; }).join('') +
+      '<div class="field"><label>足す点のボタン（カンマ区切り）</label><input class="in" data-k="plus" value="' + esc(cfg.plus.join(',')) + '"></div>';
+    else if (g.kind === 'stack') h += '<div class="two"><div class="field"><label>1段で戻る縁</label><input class="in" data-k="per_level" type="number" value="' + cfg.per_level + '"></div><div class="field"><label>最大の段数</label><input class="in" data-k="max_level" type="number" value="' + cfg.max_level + '"></div></div>';
     else h += (g.kind === 'bet' ? '<p class="hint" style="margin-top:12px">倍率は マイナスも入れられます（−1 = 賭け金を失ったうえ、さらに同じ額を払う）。</p>' : '') + '<div class="orow-h"><span>結果の名前</span><span>' + (g.kind === 'bet' ? '倍率' : '戻る縁') + '</span><span></span></div><div data-outs>' + cfg.outcomes.map(function (o) { return outRow(g, o); }).join('') + '</div><button class="btn sm" data-add style="margin-top:10px">結果を足す</button>';
     h += '<div class="field"><label>ルール（お客さんとスタッフの画面に出ます）</label><textarea class="in" data-k="rules">' + esc(g.rules || '') + '</textarea></div>';
     h += '<button class="btn pri block" data-save style="margin-top:14px">' + esc(g.name) + 'を保存</button></div>';
@@ -768,8 +806,11 @@
     if (add) add.addEventListener('click', function () { outs.insertAdjacentHTML('beforeend', outRow(g, g.kind === 'bet' ? { label: '', mult: 1 } : { label: '', payout: 0 })); bindDel(); });
     card.querySelector('[data-save]').addEventListener('click', function () {
       var v = function (k) { var i = card.querySelector('[data-k="' + k + '"]'); return i ? (i.type === 'checkbox' ? i.checked : i.value) : undefined; };
-      var body = { enabled: v('enabled'), fee: v('fee'), minBet: v('minBet'), maxBet: v('maxBet'), rules: v('rules') };
-      if (g.kind === 'stack') body.config = { per_level: Number(v('per_level')), max_level: Number(v('max_level')) };
+      var body = { name: v('name'), enabled: v('enabled'), fee: v('fee'), minBet: v('minBet'), maxBet: v('maxBet'), rules: v('rules') };
+      if (g.kind === 'score') {
+        body.config = { score: true, plus: String(v('plus')).split(/[,、\s]+/).filter(Boolean).map(Number), levels: [] };
+        card.querySelectorAll('[data-lvrow]').forEach(function (r) { var q = function (k) { return r.querySelector('[data-l="' + k + '"]').value; }; body.config.levels.push({ name: q('name').trim(), memorize: Number(q('memorize')), miss: Number(q('miss')) }); });
+      } else if (g.kind === 'stack') body.config = { per_level: Number(v('per_level')), max_level: Number(v('max_level')) };
       else {
         var list = [];
         card.querySelectorAll('.orow').forEach(function (r) { var l = r.querySelector('[data-o=label]').value.trim(), n = Number(r.querySelector('[data-o=num]').value); if (l) list.push(g.kind === 'bet' ? { label: l, mult: n } : { label: l, payout: n }); });

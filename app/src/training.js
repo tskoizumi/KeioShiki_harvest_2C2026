@@ -8,7 +8,8 @@ import SCHEMA_1 from '../migrations/0001_init.sql';
 import SCHEMA_2 from '../migrations/0002_invites_rules.sql';
 import SCHEMA_3 from '../migrations/0003_tax_negative.sql';
 import SCHEMA_4 from '../migrations/0004_photos.sql';
-const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4].join('\n;\n');
+import SCHEMA_5 from '../migrations/0005_game_names.sql';
+const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5].join('\n;\n');
 import { trainingDb } from './training-do.js';
 import { json, fail, readJson, randomToken, shortCode, audit, cleanNickname } from './util.js';
 import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME } from './auth.js';
@@ -159,8 +160,8 @@ export async function resetTraining(env) {
 
   // 1. ぽんず：ゲームを何回か遊び、占いを2回（小→大）。賄賂番付の上のほう
   const ponzu = await user('ぽんず');
-  await play(ponzu, 1, null, { outcome: 4 });        // 的当て 中心 +50
-  await play(ponzu, 2, null, { outcome: 3 });        // 神経衰弱 3組 +150
+  await play(ponzu, 1, null, { outcome: 4 });        // ストラックアウト 中心 +50
+  await play(ponzu, 2, null, { level: 1, points: [20, 20, -20, 30] });   // ラッキーパネル 難易度2 +50点
   await play(ponzu, 4, 60, { outcome: 3 });          // チンチロ ゾロ目 ×3
   await give(ponzu, 700, 'ゲームの景品（見本）');
   await reading(ponzu, 120, 'tomoshibi', [4, 5, 4, 2, 2, 1, 5, 4, 4], [5, 2, 3, 4, 1, 3, 5, 2, 4, 3]);
@@ -171,7 +172,7 @@ export async function resetTraining(env) {
   await give(mike, 2400, '両替（見本）');
   await reading(mike, 2100, 'suzu', [2, 1, 2, 5, 4, 5, 1, 2, 1], [4, 4, 2, 5, 3, 1, 2, 5, 4, 3]);
 
-  // 3. たかし：いま「積み」をプレイ中（卓の画面に出る）
+  // 3. たかし：いま「ブラックボックス」をプレイ中（卓の画面に出る）
   const takashi = await user('たかし', 'staff', staff);
   await give(takashi, 300, '両替（見本）');
   await play(takashi, 1, null, { outcome: 0 });
@@ -193,7 +194,7 @@ export async function resetTraining(env) {
 
   // 7. うさぎ：印刷した札で登録した客（source = card）
   const usagi = await user('うさぎ', 'card', staff);
-  await play(usagi, 3, null, { level: 6 });          // 積み 6段 +300
+  await play(usagi, 3, null, { level: 6 });          // ブラックボックス 6 +300
   await reading(usagi, 0, 'chinmoku', [3, 3, 3, 3, 3, 3, 3, 3, 3], [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);   // 無（賄賂なし。全部3でも、年表は「どちらでもない」の出来事で埋まる）
 
   // 8. 番付を埋める客たち

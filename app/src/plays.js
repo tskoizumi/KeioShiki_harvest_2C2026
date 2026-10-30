@@ -3,17 +3,20 @@
 import { applyDelta } from './ledger.js';
 import { ApiError, nowIso, allSettings, taxDiv, taxedMult } from './util.js';
 
+// 点数を足し引きするゲーム（ラッキーパネル）は、データベースでは kind = fixed のまま config.score で見分ける
+// （kind の制約を変えるにはテーブルを作り直す必要があるため）
 export function shapeGame(g) {
+  const config = JSON.parse(g.config);
   return {
     id: g.id,
     slug: g.slug,
     name: g.name,
     kana: g.kana,
-    kind: g.kind,
+    kind: config.score ? 'score' : g.kind,
     fee: g.fee,
     minBet: g.min_bet,
     maxBet: g.max_bet,
-    config: JSON.parse(g.config),
+    config,
     roleLabel: g.role_label,
     rules: g.rules || '',
     enabled: !!g.enabled,
@@ -73,6 +76,13 @@ export function computePayout(game, stake, result, div = 1) {
     if (!o) throw new ApiError('RESULT', '結果の選び方が不正です');
     return { payout: Math.max(0, Math.round(o.payout)), label: o.label };
   }
+  if (game.kind === 'score') {
+    const pts = Array.isArray(result.points) ? result.points.map(Number) : [];
+    if (pts.length > 300 || pts.some((n) => !Number.isInteger(n) || Math.abs(n) > 1000)) throw new ApiError('RESULT', '点数が不正です');
+    const total = Math.max(-5000, Math.min(5000, pts.reduce((a, n) => a + n, 0)));
+    const lv = (c.levels || [])[Number(result.level)];
+    return { payout: total, label: (lv ? lv.name + '・' : '') + (total > 0 ? '+' : '') + total + '点' };
+  }
   if (game.kind === 'stack') {
     const n = Number(result.level);
     if (!Number.isInteger(n) || n < 0) throw new ApiError('RESULT', '段数が不正です');
@@ -96,7 +106,7 @@ export async function finishPlay(db, playId, result, staffId) {
   const out = computePayout(game, p.stake, result || {}, p.tax_div || 1);
   const label = out.label;
   let payout = out.payout;
-  // マイナス（ションベン・ヒフミ）は残高から追加で引く。残高より多くは引かない
+  // マイナス（ションベン・ヒフミ、ラッキーパネルの減点）は残高から追加で引く。残高より多くは引かない
   if (payout < 0) {
     const u = await db.prepare('SELECT balance FROM users WHERE id = ?').bind(p.user_id).first();
     payout = -Math.min(-payout, u ? u.balance : 0);

@@ -130,6 +130,25 @@
     .tile .q { position: absolute; top: 10px; right: 10px; }
     .tile.on { border-color: var(--gold); background: #33291b; }
     .outcomes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* ラッキーパネル：点を足し引きする */
+    .sc-lv { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
+    .sc-lv .btn { width: 100%; min-width: 0; flex-direction: column; gap: 2px; padding: 10px 6px; border-radius: 14px; white-space: normal; line-height: 1.35; }
+    .sc-lv .btn b { font-size: 16px; }
+    .sc-lv .btn small { font-size: 11.5px; color: var(--muted); font-weight: 700; }
+    .sc-lv .btn.on { border-color: var(--gold); background: #2e2618; }
+    .sc-keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+    .sc-keys .btn { width: 100%; min-width: 0; min-height: 64px; font-size: 22px; border-radius: 16px; }
+    .sc-keys .btn.win { color: var(--ok); }
+    .sc-keys .btn.neg { grid-column: span 2; color: var(--red); font-size: 19px; }
+    .sc-free { margin-top: 10px; }
+    .sc-free .in { flex: 1; min-width: 0; }
+    .sc-log { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .sc-log button { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line2); background: var(--s1); color: var(--ok); font-weight: 800; font-size: 14px; }
+    .sc-log button.neg { color: var(--red); }
+    .sc-total { margin-top: 14px; text-align: center; font-size: 16px; font-weight: 800; }
+    .sc-total b { font-family: var(--mincho); font-size: 44px; margin: 0 4px; color: var(--ok); }
+    .sc-total.neg b { color: var(--red); }
+    .sc-total small { display: block; font-size: 14px; color: var(--muted); }
     .outcomes .btn { min-height: 76px; flex-direction: column; gap: 2px; border-radius: 18px; font-size: 19px; white-space: normal; text-align: center; }
     .outcomes .btn small { font-size: 15px; font-weight: 800; color: var(--muted); }
     .outcomes .btn.win small { color: var(--ok); }
