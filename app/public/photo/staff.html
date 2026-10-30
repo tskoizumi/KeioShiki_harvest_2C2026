@@ -155,6 +155,7 @@
       if (!x.ok) { show('login'); return; }
       me = x.d; $('title').textContent = me.title + '・撮影係';
       $('admin').hidden = me.level < 4; $('purge-box').hidden = me.level < 4; $('s-title').value = me.title;
+      if ((me.perms || []).indexOf('photo') < 0) { show('list'); $('list').innerHTML = '<li class="empty" style="display:block">「写真展」の権限がありません。管理者に頼んでください。</li>'; return; }
       show('list'); loadList();
     });
   }

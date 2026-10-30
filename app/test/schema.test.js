@@ -71,3 +71,15 @@ test('7つ目のマイグレーション：権限はスタッフ（1）と管理
   assert.deepEqual(db.prepare('SELECT level FROM staff ORDER BY name').all().map((r) => r.level), [1, 1, 4, 4]);
   assert.deepEqual(db.prepare('SELECT DISTINCT level FROM staff_invites').all().map((r) => r.level), [1]);
 });
+
+test('8つ目のマイグレーション：スタッフごとの権限。前に占い師だった人には占いが戻る', () => {
+  const db = new DatabaseSync(':memory:');
+  for (const f of ['0001_init.sql', '0002_invites_rules.sql', '0003_tax_negative.sql', '0004_photos.sql', '0005_game_names.sql', '0006_lucky_fee.sql']) {
+    for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  }
+  db.exec("INSERT INTO staff (id, name, level, code_hash, code_salt) VALUES (1, 'teller', 2, 'h', 's'), (2, 'staff', 1, 'h', 's'), (3, 'joined', 2, 'h', 's')");
+  db.exec("INSERT INTO audit_log (staff_id, action, target, detail) VALUES (1, 'スタッフ追加', 'staff:1', 'teller 占い師'), (3, '招待から登録', 'staff:3', 'joined 占い師（招待 5）')");
+  for (const f of ['0007_two_levels.sql', '0008_staff_perms.sql']) for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  const rows = db.prepare('SELECT name, level, perms FROM staff ORDER BY id').all();
+  assert.deepEqual(rows.map((r) => [r.name, r.level, r.perms && JSON.parse(r.perms).includes('fortune')]), [['teller', 1, true], ['staff', 1, null], ['joined', 1, true]]);
+});

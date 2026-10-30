@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { ORACLE } from '../src/oracle.js';
 import { computePayout } from '../src/plays.js';
 import { rankOf, normalizeCode, cleanNickname, shortCode, taxDiv, taxedMult } from '../src/util.js';
+import { permsOf, cleanPerms, needPerm } from '../src/auth.js';
 
 test('占い：8タイプ × 10カード × 4ランク の全部で台本が組める', () => {
   let n = 0;
@@ -135,4 +136,14 @@ test('札の番号は紛らわしい文字を使わず、入力は大文字に�
 
 test('ニックネームは全角を半角に、空白をまとめる', () => {
   assert.equal(cleanNickname('　ぽんず　 ２ '), 'ぽんず 2');
+});
+
+test('権限：占いは特殊権限で、決まりの組み合わせには入らない。管理者は全部', () => {
+  assert.ok(!permsOf({ level: 1, perms: null }).includes('fortune'));
+  assert.ok(permsOf({ level: 1, perms: null }).includes('games'));
+  assert.deepEqual(permsOf({ level: 1, perms: '["fortune","bogus"]' }), ['fortune']);
+  assert.ok(permsOf({ level: 4, perms: '[]' }).includes('fortune'));
+  assert.equal(cleanPerms(['games', 'x', 'fortune']), '["games","fortune"]');
+  assert.throws(() => needPerm({ level: 1, perms: '["games"]' }, 'fortune'), /占い/);
+  assert.doesNotThrow(() => needPerm({ level: 1, perms: '["games"]' }, 'games'));
 });

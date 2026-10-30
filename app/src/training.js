@@ -11,22 +11,24 @@ import SCHEMA_4 from '../migrations/0004_photos.sql';
 import SCHEMA_5 from '../migrations/0005_game_names.sql';
 import SCHEMA_6 from '../migrations/0006_lucky_fee.sql';
 import SCHEMA_7 from '../migrations/0007_two_levels.sql';
-const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7].join('\n;\n');
+import SCHEMA_8 from '../migrations/0008_staff_perms.sql';
+const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8].join('\n;\n');
 import { trainingDb } from './training-do.js';
 import { json, fail, readJson, randomToken, shortCode, audit, cleanNickname } from './util.js';
-import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME } from './auth.js';
+import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME, PERMS, permsOf } from './auth.js';
 import { applyDelta } from './ledger.js';
 import { startPlay, finishPlay } from './plays.js';
 import { openReading, addBribe, updateReading, finishReading } from './readings.js';
 import { grantStart } from './routes/public.js';
 
 // 見本の作り方の版。変えると、研修モードを次に開いたときに見本データを作り直す
-const SEED_VERSION = '2';
+const SEED_VERSION = '3';
 
-// 見本のスタッフ（管理者とスタッフ）。研修用なので合言葉は公開
+// 見本のスタッフ（管理者・占いもできるスタッフ・ふつうのスタッフ）。研修用なので合言葉は公開
 export const DEMO_STAFF = [
-  { name: '見本管理者', level: 4, code: 'kenshu-admin' },
-  { name: '見本スタッフ', level: 1, code: 'kenshu-staff' },
+  { name: '見本管理者', level: 4, code: 'kenshu-admin', role: 'admin' },
+  { name: '見本占い師', level: 1, code: 'kenshu-teller', role: 'teller', perms: ['reception', 'games', 'fortune', 'adjust', 'cards', 'photo'] },
+  { name: '見本スタッフ', level: 1, code: 'kenshu-staff', role: 'staff' },
 ];
 
 export function isTraining(request, env) {
@@ -91,7 +93,7 @@ const BANNER = `<a id="mt-training" href="/training" style="display:flex;align-i
 async function state(env) {
   const db = env.DB;
   const [staff, users, cards, open, readings] = await Promise.all([
-    db.prepare('SELECT id, name, level, active FROM staff ORDER BY level DESC, id').all(),
+    db.prepare('SELECT id, name, level, perms, active FROM staff ORDER BY level DESC, id').all(),
     db.prepare("SELECT id, nickname, token, short_code, balance, status, source FROM users WHERE nickname IS NOT NULL ORDER BY id").all(),
     db.prepare("SELECT short_code, token FROM users WHERE nickname IS NULL ORDER BY id").all(),
     db.prepare("SELECT COUNT(*) AS n FROM plays WHERE status = 'playing'").first(),
@@ -111,7 +113,7 @@ async function state(env) {
     });
   }
   return {
-    staff: staff.results.map((s) => ({ id: s.id, name: s.name, level: s.level, levelName: LEVEL_NAME[s.level], active: !!s.active, code: (DEMO_STAFF.find((d) => d.name === s.name) || {}).code || null })),
+    staff: staff.results.map((s) => ({ id: s.id, name: s.name, level: s.level, levelName: LEVEL_NAME[s.level], permNames: permsOf(s).map((k) => PERMS.find((p) => p.key === k).name).join('・'), active: !!s.active, code: (DEMO_STAFF.find((d) => d.name === s.name) || {}).code || null })),
     customers,
     cards: cards.results.map((c) => ({ shortCode: c.short_code, token: c.token, url: `/u/${c.token}` })),
     openPlays: open.n,
@@ -131,10 +133,10 @@ export async function resetTraining(env) {
   const staffId = {};
   for (const s of DEMO_STAFF) {
     const { hash, salt } = await hashCode(s.code);
-    const ins = await db.prepare('INSERT INTO staff (name, level, code_hash, code_salt) VALUES (?, ?, ?, ?)').bind(s.name, s.level, hash, salt).run();
-    staffId[s.level] = ins.meta.last_row_id;
+    const ins = await db.prepare('INSERT INTO staff (name, level, perms, code_hash, code_salt) VALUES (?, ?, ?, ?, ?)').bind(s.name, s.level, s.perms ? JSON.stringify(s.perms) : null, hash, salt).run();
+    staffId[s.role] = ins.meta.last_row_id;
   }
-  const admin = staffId[4], staff = staffId[1], manager = admin, teller = staff;
+  const admin = staffId.admin, staff = staffId.staff, teller = staffId.teller, manager = admin;
   await audit(db, admin, '初期設定', `staff:${admin}`, '研修用の見本データを作成');
 
   const user = async (nickname, source = 'self', by = null) => {

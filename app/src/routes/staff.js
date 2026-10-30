@@ -1,9 +1,10 @@
 // スタッフが使うAPI。権限は2つ
-//   1 スタッフ : 現場の作業は全部（客を探す、受付、ゲーム、占い、残高の修正、客を使えなくする、QRカードの発行）
-//   4 管理者   : ＋ 設定とゲームの変更、スタッフの招待と管理、概要、記録、書き出し
+//   1 スタッフ : 客を探す・ランキングは全員。あとはスタッフごとにオン・オフ（auth.js の PERMS）
+//                受付／ゲーム／占い（特殊権限。決まりではオフ）／残高を直す／QRカード／写真展
+//   4 管理者   : 全部 ＋ 設定とゲームの変更、スタッフの招待と管理、概要、記録、書き出し
 
 import { ApiError, json, readJson, randomToken, cleanNickname, normalizeCode, allSettings, audit, RANK_NAME } from '../util.js';
-import { LEVEL, LEVEL_NAME, hashCode, validCode, makeSession, sessionCookie, require as needLevel } from '../auth.js';
+import { LEVEL, LEVEL_NAME, PERMS, DEFAULT_PERMS, permsOf, cleanPerms, needPerm, hashCode, validCode, makeSession, sessionCookie, require as needLevel } from '../auth.js';
 import { applyDelta, history } from '../ledger.js';
 import { listGames, shapeGame, startPlay, finishPlay, voidPlay, getPlay, openPlays } from '../plays.js';
 import { openReading, getReading, addBribe, updateReading, finishReading, voidReading, ORACLE_PUBLIC } from '../readings.js';
@@ -55,7 +56,7 @@ export async function login(request, env) {
 
 async function finishLogin(request, env, staffId) {
   const sid = await makeSession(env, staffId);
-  const s = await env.DB.prepare('SELECT id, name, level FROM staff WHERE id = ?').bind(staffId).first();
+  const s = await env.DB.prepare('SELECT id, name, level, perms FROM staff WHERE id = ?').bind(staffId).first();
   return json(shapeStaff(s), 200, { 'set-cookie': sessionCookie(sid, request) });
 }
 
@@ -64,7 +65,7 @@ export function logout(request) {
 }
 
 function shapeStaff(s) {
-  return { id: s.id, name: s.name, level: s.level, levelName: LEVEL_NAME[s.level], active: s.active == null ? true : !!s.active, createdAt: s.created_at, viaInvite: s.invite_id != null };
+  return { id: s.id, name: s.name, level: s.level, levelName: LEVEL_NAME[s.level], perms: permsOf(s), active: s.active == null ? true : !!s.active, createdAt: s.created_at, viaInvite: s.invite_id != null };
 }
 
 export async function bootstrapState(env) {
@@ -84,7 +85,7 @@ export async function handle(request, env, url, staff) {
   let mm;
 
   if (p === '/me' && m === 'GET') {
-    return json({ ...shapeStaff(staff), games: await listGames(db, true), settings: await allSettings(db), oracle: ORACLE_PUBLIC, site: SITE, levels: LEVEL_NAME });
+    return json({ ...shapeStaff(staff), games: await listGames(db, true), settings: await allSettings(db), oracle: ORACLE_PUBLIC, site: SITE, levels: LEVEL_NAME, permDefs: PERMS });
   }
 
   /* ---------- 客を探す ---------- */
@@ -99,7 +100,7 @@ export async function handle(request, env, url, staff) {
 
   /* ---------- 受付 ---------- */
   if (p === '/register' && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'reception');
     const b = await body();
     const nickname = cleanNickname(b.nickname);
     validateNickname(nickname);
@@ -129,28 +130,28 @@ export async function handle(request, env, url, staff) {
 
   /* ---------- ゲーム ---------- */
   if (p === '/plays' && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'games');
     const b = await body();
     if (!b.requestId) throw new ApiError('REQUEST_ID', 'requestId が必要です');
     const play = await startPlay(db, { userId: Number(b.userId), gameId: Number(b.gameId), stake: b.stake, staffId: staff.id, requestId: String(b.requestId) });
     return json(play, 201);
   }
   if (p === '/plays/open' && m === 'GET') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'games');
     return json({ results: await openPlays(db) });
   }
   if ((mm = p.match(/^\/plays\/(\d+)$/)) && m === 'GET') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'games');
     return json(await getPlay(db, Number(mm[1])));
   }
   if ((mm = p.match(/^\/plays\/(\d+)\/finish$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'games');
     const b = await body();
     const play = await finishPlay(db, Number(mm[1]), b.result || {}, staff.id);
     return json(play);
   }
   if ((mm = p.match(/^\/plays\/(\d+)\/void$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'games');
     const play = await voidPlay(db, Number(mm[1]), staff.id);
     await audit(db, staff.id, 'ゲーム取消', `play:${play.id}`, `${play.gameName} ${play.stake}縁を返金`);
     return json(play);
@@ -158,40 +159,40 @@ export async function handle(request, env, url, staff) {
 
   /* ---------- 占い ---------- */
   if (p === '/readings' && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'fortune');
     const b = await body();
     return json(await openReading(db, Number(b.userId), staff.id), 201);
   }
   if (p === '/readings/open' && m === 'GET') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'fortune');
     const r = await db
       .prepare("SELECT r.id, r.user_id, r.bribe, r.rank, r.started_at, r.staff_id, u.nickname, u.short_code FROM readings r JOIN users u ON u.id = r.user_id WHERE r.status = 'open' ORDER BY r.id DESC LIMIT 30")
       .all();
     return json({ results: r.results.map((x) => ({ id: x.id, userId: x.user_id, nickname: x.nickname, shortCode: x.short_code, bribe: x.bribe, rank: x.rank, rankName: x.rank ? RANK_NAME[x.rank] : null, staffId: x.staff_id, startedAt: x.started_at })) });
   }
   if ((mm = p.match(/^\/readings\/(\d+)$/)) && m === 'GET') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'fortune');
     return json(await getReading(db, Number(mm[1])));
   }
   if ((mm = p.match(/^\/readings\/(\d+)\/bribe$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'fortune');
     const b = await body();
     if (!b.requestId) throw new ApiError('REQUEST_ID', 'requestId が必要です');
     return json(await addBribe(db, Number(mm[1]), Number(b.amount), staff.id, String(b.requestId)));
   }
   if ((mm = p.match(/^\/readings\/(\d+)$/)) && m === 'PUT') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'fortune');
     const b = await body();
     return json(await updateReading(db, Number(mm[1]), { judge: b.judge, mention: b.mention, kizashiId: b.kizashiId, souId: b.souId }));
   }
   if ((mm = p.match(/^\/readings\/(\d+)\/finish$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'fortune');
     const r = await finishReading(db, Number(mm[1]));
     await audit(db, staff.id, '占い終了', `reading:${r.id}`, `${r.nickname} ${r.bribe}縁 ${r.rankName}`);
     return json(r);
   }
   if ((mm = p.match(/^\/readings\/(\d+)\/void$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'fortune');
     const r = await voidReading(db, Number(mm[1]), staff.id);
     await audit(db, staff.id, '占い取りやめ', `reading:${r.id}`, `${r.bribe}縁を返金`);
     return json(r);
@@ -199,7 +200,7 @@ export async function handle(request, env, url, staff) {
 
   /* ---------- 残高の修正・使えなくする・設定 ---------- */
   if (p === '/adjust' && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'adjust');
     const b = await body();
     const note = cleanNickname(b.note);
     if (!note) throw new ApiError('NOTE', '理由を入れてください');
@@ -210,7 +211,7 @@ export async function handle(request, env, url, staff) {
     return json(r);
   }
   if ((mm = p.match(/^\/users\/(\d+)\/status$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'adjust');
     const b = await body();
     const st = b.status === 'disabled' ? 'disabled' : 'active';
     await db.prepare('UPDATE users SET status = ? WHERE id = ?').bind(st, Number(mm[1])).run();
@@ -266,7 +267,7 @@ export async function handle(request, env, url, staff) {
     return json(shapeGame(await db.prepare('SELECT * FROM games WHERE id = ?').bind(g.id).first()));
   }
   if (p === '/cards' && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'cards');
     const b = await body();
     const n = Math.min(500, Math.max(1, Number(b.n) || 0));
     const made = [];
@@ -281,7 +282,7 @@ export async function handle(request, env, url, staff) {
   }
   // 手元で作って印刷したQRカードを登録する（番号は公開リポジトリに置かず、管理画面のリンクから取り込む）
   if (p === '/cards/import' && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'cards');
     const b = await body();
     const list = Array.isArray(b.cards) ? b.cards.slice(0, 500) : [];
     let added = 0, already = 0;
@@ -297,7 +298,7 @@ export async function handle(request, env, url, staff) {
     return json({ added, already });
   }
   if (p === '/cards' && m === 'GET') {
-    needLevel(staff, LEVEL.staff);
+    needPerm(staff, 'cards');
     const r = await db.prepare('SELECT token, short_code, nickname, created_at FROM users WHERE source = ? ORDER BY id').bind('card').all();
     return json({ results: r.results.map((x) => ({ token: x.token, shortCode: x.short_code, nickname: x.nickname, createdAt: x.created_at })) });
   }
@@ -315,12 +316,13 @@ export async function handle(request, env, url, staff) {
     needLevel(staff, LEVEL.admin);
     const b = await body();
     const level = LEVEL.staff;   // 管理者は招待では作らない（一覧で権限を変える）
+    const perms = cleanPerms(Array.isArray(b.perms) ? b.perms : DEFAULT_PERMS);
     const hours = Math.min(24 * 14, Math.max(1, Number(b.hours) || 72));
     const maxUses = Math.min(200, Math.max(1, Number(b.maxUses) || 50));
     const code = inviteCode();
     const exp = new Date(Date.now() + hours * 3600 * 1000).toISOString();
-    const ins = await db.prepare('INSERT INTO staff_invites (code, level, created_by, max_uses, expires_at) VALUES (?, ?, ?, ?, ?)').bind(code, level, staff.id, maxUses, exp).run();
-    await audit(db, staff.id, '招待を作成', `invite:${ins.meta.last_row_id}`, `${LEVEL_NAME[level]} ${maxUses}人まで ${hours}時間`);
+    const ins = await db.prepare('INSERT INTO staff_invites (code, level, perms, created_by, max_uses, expires_at) VALUES (?, ?, ?, ?, ?, ?)').bind(code, level, perms, staff.id, maxUses, exp).run();
+    await audit(db, staff.id, '招待を作成', `invite:${ins.meta.last_row_id}`, `${LEVEL_NAME[level]}（${permNames(perms)}） ${maxUses}人まで ${hours}時間`);
     const i = await db.prepare('SELECT i.*, s.name AS by_name FROM staff_invites i LEFT JOIN staff s ON s.id = i.created_by WHERE i.id = ?').bind(ins.meta.last_row_id).first();
     return json(shapeInvite(i, 0), 201);
   }
@@ -339,7 +341,7 @@ export async function handle(request, env, url, staff) {
   /* ---------- 管理者 ---------- */
   if (p === '/accounts' && m === 'GET') {
     needLevel(staff, LEVEL.admin);
-    const r = await db.prepare('SELECT id, name, level, active, created_at, invite_id FROM staff ORDER BY level DESC, id').all();
+    const r = await db.prepare('SELECT id, name, level, perms, active, created_at, invite_id FROM staff ORDER BY level DESC, id').all();
     return json({ results: r.results.map(shapeStaff) });
   }
   if (p === '/accounts' && m === 'POST') {
@@ -353,9 +355,9 @@ export async function handle(request, env, url, staff) {
     const dup = await db.prepare('SELECT 1 FROM staff WHERE name = ?').bind(name).first();
     if (dup) throw new ApiError('DUP', 'その名前のスタッフはもういます', 409);
     const { hash, salt } = await hashCode(b.code);
-    const ins = await db.prepare('INSERT INTO staff (name, level, code_hash, code_salt) VALUES (?, ?, ?, ?)').bind(name, level, hash, salt).run();
+    const ins = await db.prepare('INSERT INTO staff (name, level, perms, code_hash, code_salt) VALUES (?, ?, ?, ?, ?)').bind(name, level, cleanPerms(b.perms), hash, salt).run();
     await audit(db, staff.id, 'スタッフ追加', `staff:${ins.meta.last_row_id}`, `${name} ${LEVEL_NAME[level]}`);
-    return json(shapeStaff(await db.prepare('SELECT id, name, level, active, created_at FROM staff WHERE id = ?').bind(ins.meta.last_row_id).first()), 201);
+    return json(shapeStaff(await db.prepare('SELECT id, name, level, perms, active, created_at, invite_id FROM staff WHERE id = ?').bind(ins.meta.last_row_id).first()), 201);
   }
   if ((mm = p.match(/^\/accounts\/(\d+)$/)) && m === 'PATCH') {
     needLevel(staff, LEVEL.admin);
@@ -370,13 +372,14 @@ export async function handle(request, env, url, staff) {
       await db.prepare('UPDATE staff SET level = ? WHERE id = ?').bind(level, id).run();
     }
     if (b.active != null) await db.prepare('UPDATE staff SET active = ? WHERE id = ?').bind(b.active ? 1 : 0, id).run();
+    if (Array.isArray(b.perms)) await db.prepare('UPDATE staff SET perms = ? WHERE id = ?').bind(cleanPerms(b.perms), id).run();
     if (b.code != null) {
       if (!validCode(b.code)) throw new ApiError('CODE', 'パスワードは6文字以上にしてください');
       const { hash, salt } = await hashCode(b.code);
       await db.prepare('UPDATE staff SET code_hash = ?, code_salt = ?, fail_count = 0, locked_until = NULL WHERE id = ?').bind(hash, salt, id).run();
     }
-    await audit(db, staff.id, 'スタッフ変更', `staff:${id}`, { level: b.level, active: b.active, code: b.code != null ? '変更' : undefined });
-    return json(shapeStaff(await db.prepare('SELECT id, name, level, active, created_at FROM staff WHERE id = ?').bind(id).first()));
+    await audit(db, staff.id, 'スタッフ変更', `staff:${id}`, { level: b.level, active: b.active, perms: Array.isArray(b.perms) ? permNames(cleanPerms(b.perms)) : undefined, code: b.code != null ? '変更' : undefined });
+    return json(shapeStaff(await db.prepare('SELECT id, name, level, perms, active, created_at, invite_id FROM staff WHERE id = ?').bind(id).first()));
   }
   if (p === '/audit' && m === 'GET') {
     needLevel(staff, LEVEL.admin);
@@ -461,8 +464,11 @@ function inviteState(i) {
   if (i.uses >= i.max_uses) return 'full';
   return 'open';
 }
+function permNames(json) {
+  return permsOf({ level: LEVEL.staff, perms: json }).map((k) => PERMS.find((p) => p.key === k).name).join('・') || 'なし';
+}
 function shapeInvite(i, joined) {
-  return { id: i.id, code: i.code, url: `/staff/join?c=${i.code}`, level: i.level, levelName: LEVEL_NAME[i.level], maxUses: i.max_uses, uses: i.uses, joined, expiresAt: i.expires_at, state: inviteState(i), byName: i.by_name || null, createdAt: i.created_at };
+  return { id: i.id, code: i.code, url: `/staff/join?c=${i.code}`, level: i.level, levelName: LEVEL_NAME[i.level], perms: permsOf(i), permNames: permNames(i.perms), maxUses: i.max_uses, uses: i.uses, joined, expiresAt: i.expires_at, state: inviteState(i), byName: i.by_name || null, createdAt: i.created_at };
 }
 
 // 招待のQRを開いたとき（ログイン不要）
@@ -470,7 +476,7 @@ export async function inviteInfo(env, code) {
   const i = await env.DB.prepare('SELECT * FROM staff_invites WHERE code = ?').bind(code).first();
   if (!i) throw new ApiError('NOT_FOUND', 'この招待は見つかりません。QRを作った人に確認してください', 404);
   const st = inviteState(i);
-  return json({ level: i.level, levelName: LEVEL_NAME[i.level], state: st, expiresAt: i.expires_at, site: SITE });
+  return json({ level: i.level, levelName: LEVEL_NAME[i.level], permNames: permNames(i.perms), state: st, expiresAt: i.expires_at, site: SITE });
 }
 
 // 招待から自分で登録する（ログイン不要）
@@ -490,7 +496,7 @@ export async function join(request, env, code) {
   const upd = await db.prepare('UPDATE staff_invites SET uses = uses + 1 WHERE id = ? AND active = 1 AND uses < max_uses').bind(i.id).run();
   if (!upd.meta.changes) throw new ApiError('INVITE', 'この招待はもう定員です', 403);
   const { hash, salt } = await hashCode(b.code);
-  const ins = await db.prepare('INSERT INTO staff (name, level, code_hash, code_salt, invite_id) VALUES (?, ?, ?, ?, ?)').bind(name, i.level, hash, salt, i.id).run();
+  const ins = await db.prepare('INSERT INTO staff (name, level, perms, code_hash, code_salt, invite_id) VALUES (?, ?, ?, ?, ?, ?)').bind(name, i.level, i.perms, hash, salt, i.id).run();
   await audit(db, ins.meta.last_row_id, '招待から登録', `staff:${ins.meta.last_row_id}`, `${name} ${LEVEL_NAME[i.level]}（招待 ${i.id}）`);
   return finishLogin(request, env, ins.meta.last_row_id);
 }

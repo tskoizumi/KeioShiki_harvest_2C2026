@@ -143,6 +143,16 @@
     .sc-keys .btn.win { color: var(--ok); }
     .sc-keys .btn.neg { grid-column: span 2; color: var(--red); font-size: 19px; }
     .sc-free { margin-top: 10px; }
+    /* スタッフごとの、できることのオン・オフ */
+    .perm-pick { display: grid; gap: 8px; margin-top: 12px; }
+    .pchk { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; }
+    .pchk input { width: 22px; height: 22px; margin-top: 2px; flex-shrink: 0; accent-color: var(--gold); }
+    .pchk span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .pchk b { display: block; font-size: 15px; color: var(--text); }
+    .perms-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+    .pchip { padding: 5px 11px; border-radius: 999px; border: 1.5px solid var(--line2); background: none; color: var(--faint); font-size: 13px; font-weight: 800; }
+    .pchip.on { border-color: var(--ok); color: var(--ok); background: rgba(111, 220, 140, 0.1); }
+    .pchip.special.on { border-color: var(--gold); color: var(--gold); background: #2e2618; }
     .sc-free .in { flex: 1; min-width: 0; }
     .sc-log { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
     .sc-log button { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line2); background: var(--s1); color: var(--ok); font-weight: 800; font-size: 14px; }

@@ -26,6 +26,9 @@
   }
   function err(t) { toast(t, { err: true }); }
   function can(level) { return S.me && S.me.level >= level; }
+  // このスタッフに許されていること（受付・ゲーム・占い・残高を直す・QRカード・写真展。管理者は全部）
+  function may(k) { return !!(S.me && (S.me.perms || []).indexOf(k) >= 0); }
+  var VIEW_PERM = { games: 'games', teller: 'fortune', reception: 'reception' };
   function rankOf(amount) { var s = S.settings; if (amount >= Number(s.rank_kaizan)) return 'kaizan'; if (amount >= Number(s.rank_dai)) return 'dai'; if (amount >= Number(s.rank_sho)) return 'sho'; return 'mu'; }
   function taxDiv(balance) { var marks = String(S.settings.tax_brackets || '').split(',').map(Number).filter(function (x) { return x > 0; }); return 1 + marks.filter(function (m) { return balance >= m; }).length; }
   function taxedMult(m, div) { m = Number(m); if (!(m > 1) || !(div > 1)) return m; return Math.max(1, Math.round(m / div * 100) / 100); }
@@ -103,9 +106,9 @@
     S.me = me; S.games = me.games; S.settings = me.settings; S.oracle = me.oracle; S.site = me.site;
     $('me-chip').hidden = false; $('help').hidden = false;
     $('me-av').textContent = me.name.slice(0, 1); $('me-name').textContent = me.name;
-    $('tab-teller').hidden = false;
+    document.querySelectorAll('#tabbar [data-view]').forEach(function (b) { var k = VIEW_PERM[b.dataset.view]; if (k) b.hidden = !may(k); });
     $('tab-admin').hidden = !can(LV.admin);
-    $('mgr-cards').hidden = false;
+    $('mgr-cards').hidden = !may('cards');
     $('tabbar').hidden = false;
     var v = 'cust';
     try { v = sessionStorage.getItem('mt:staff:view') || 'cust'; } catch (e) {}
@@ -118,7 +121,7 @@
   ============================================================ */
   function show(v) { ['login', 'cust', 'games', 'teller', 'reception', 'admin'].forEach(function (k) { $('v-' + k).hidden = k !== v; }); $('title').textContent = TITLES[v]; }
   function go(v, keepScan) {
-    if (v === 'admin' && !can(LV.admin)) v = 'cust';
+    if ((v === 'admin' && !can(LV.admin)) || (VIEW_PERM[v] && !may(VIEW_PERM[v]))) v = 'cust';
     S.view = v; show(v);
     document.querySelectorAll('#tabbar button').forEach(function (b) { b.classList.toggle('on', b.dataset.view === v); });
     try { sessionStorage.setItem('mt:staff:view', v); } catch (e) {}
@@ -149,8 +152,8 @@
   function poll() {
     clearTimeout(pollT);
     if (!S.me || document.hidden) { pollT = setTimeout(poll, 5000); return; }
-    var ps = [api('/api/staff/plays/open')];
-    ps.push(api('/api/staff/readings/open'));
+    var none = Promise.resolve({ ok: false });
+    var ps = [may('games') ? api('/api/staff/plays/open') : none, may('fortune') ? api('/api/staff/readings/open') : none];
     Promise.all(ps).then(function (r) {
       if (r[0].ok) { S.openPlays = r[0].d.results; badge('n-plays', S.openPlays.length); if (S.view === 'games') renderOpenPlays(); }
       if (r[1] && r[1].ok) { S.openReadings = r[1].d.results; badge('n-readings', S.openReadings.length); if (S.view === 'teller' && !S.reading) renderTellerList(); }
@@ -294,22 +297,22 @@
       '<div class="bal"><p>残高</p><b id="cust-bal">' + yen(u.balance) + '<small>縁</small></b></div></div>';
 
     if (!u.claimed) {
-      h += '<div class="card"><p>このQRカードには、まだ名前がありません。受付で名前をつけてください。</p><button class="btn gold block" data-act="to-reception" style="margin-top:12px">受付で名前をつける</button></div>';
+      h += '<div class="card"><p>このQRカードには、まだ名前がありません。受付で名前をつけてください。</p>' + (may('reception') ? '<button class="btn gold block" data-act="to-reception" style="margin-top:12px">受付で名前をつける</button>' : '') + '</div>';
     } else if (u.status !== 'active') {
-      h += '<div class="card"><p>このお客さんは使えなくしてあります。' + '戻すときは、下の「残高を直す・使えなくする」から。' + '</p></div>';
+      h += '<div class="card"><p>このお客さんは使えなくしてあります。' + (may('adjust') ? '戻すときは、下の「残高を直す・使えなくする」から。' : '管理者に声をかけてください。') + '</p></div>';
     } else if (u.openPlay) {
-      h += resultCard(u.openPlay);
+      h += may('games') ? resultCard(u.openPlay) : '<div class="card focus"><h3 style="color:var(--gold)">' + esc(u.openPlay.gameName) + 'をプレイ中です</h3><p>結果はゲームの係が入れます。</p></div>';
     } else if (u.openReading) {
       h += '<div class="card focus"><h3 style="color:var(--gold)">占いの最中です</h3><p>賄賂 ' + yen(u.openReading.bribe) + '縁（ランク ' + RANK[rankOf(u.openReading.bribe)] + '）。終わるまで、ゲームは始められません。</p>' +
-        '<button class="btn gold block huge" data-act="to-reading" data-id="' + u.openReading.id + '" style="margin-top:14px">占いの画面を開く</button></div>';
+        (may('fortune') ? '<button class="btn gold block huge" data-act="to-reading" data-id="' + u.openReading.id + '" style="margin-top:14px">占いの画面を開く</button>' : '<p class="hint" style="margin-top:8px">占い師の端末で進めています。</p>') + '</div>';
     } else {
-      h += '<h3>ゲームを始める</h3><div class="tiles">' + S.games.map(function (g) {
+      if (may('games')) h += '<h3>ゲームを始める</h3><div class="tiles">' + S.games.map(function (g) {
         var short = g.kind !== 'bet' && u.balance < g.fee;
         var sub = g.kind === 'bet' ? '賭け金を決める' : '参加費 ' + yen(g.fee) + '縁';
         return '<button class="tile' + (S.betFor === g.id ? ' on' : '') + '" data-act="start" data-game="' + g.id + '"' + (short ? ' disabled' : '') + '><b>' + esc(g.name) + '</b><span>' + (short ? '残高が足りません' : sub) + '</span>' + rulesBtn(g) + '</button>';
       }).join('') + '</div>';
       if (S.betFor) h += betCard(gameOf(S.betFor), u);
-      h += '<h3>占い</h3><button class="btn gold block huge" data-act="reading">占いを始める</button><p class="hint" style="margin-top:6px">同じお客さんを何回でも占えます。</p>';
+      if (may('fortune')) h += '<h3>占い</h3><button class="btn gold block huge" data-act="reading">占いを始める</button><p class="hint" style="margin-top:6px">同じお客さんを何回でも占えます。</p>';
     }
 
     h += '<h3>履歴</h3><div class="card tight"><ul class="hist">' + (u.history.length ? u.history.slice(0, S.histAll ? 99 : 5).map(function (r) {
@@ -319,7 +322,7 @@
       return '<li><span class="t">' + esc(r.sou) + ' × ' + esc(r.kizashi) + '（' + esc(r.rankName) + '）</span><span class="a bribe">' + yen(r.bribe) + '</span><span class="s">' + esc(r.oracle) + '</span></li>';
     }).join('') + '</ul></div>';
 
-    if (u.claimed) {
+    if (u.claimed && may('adjust')) {
       h += '<details class="mgr" id="mgr"' + (S.mgrOpen ? ' open' : '') + '><summary>残高を直す・使えなくする</summary><div>' +
         '<p class="hint">ゲームの景品は、必ずゲームの結果で入れてください。ここは間違いを直すときだけ使います。記録に残ります。</p>' +
         '<div class="sw" style="margin-top:12px"><button type="button" class="on plus" data-sign="1">増やす</button><button type="button" data-sign="-1">減らす</button></div>' +
@@ -827,26 +830,29 @@
     if (can(LV.admin)) ps.push(api('/api/staff/accounts'));
     Promise.all(ps).then(function (r) {
       var invites = r[0].ok ? r[0].d.results : [], accounts = r[1] && r[1].ok ? r[1].d.results : null;
-      var h = '<div class="card"><h3>招待のQRを作る</h3><p class="hint">クラスの人にこのQRを読んでもらうと、自分で名前とパスワードを決めて、スタッフとして登録できます。管理者にしたい人は、登録したあとに下の一覧で権限を変えてください。</p>' +
+      var defs = S.me.permDefs || [];
+      var h = '<div class="card"><h3>招待のQRを作る</h3><p class="hint">クラスの人にこのQRを読んでもらうと、自分で名前とパスワードを決めて、スタッフとして登録できます。下で選んだことができるようになります（あとから1人ずつ変えられます）。管理者にしたい人は、登録したあとに一覧で権限を変えてください。</p>' +
+        '<div class="perm-pick" id="inv-perms">' + defs.map(function (d) { return '<label class="pchk"><input type="checkbox" value="' + d.key + '"' + (d.def ? ' checked' : '') + '><span><b>' + esc(d.name) + '</b>' + esc(d.desc) + '</span></label>'; }).join('') + '</div>' +
         '<div class="two"><div class="field"><label for="inv-hours">使える期間</label><select class="in" id="inv-hours"><option value="24">1日</option><option value="72" selected>3日</option><option value="168">7日</option></select></div>' +
         '<div class="field"><label for="inv-max">登録できる人数</label><select class="in" id="inv-max"><option value="10">10人</option><option value="50" selected>50人</option><option value="100">100人</option></select></div></div>' +
         '<button class="btn gold block huge" id="inv-make" style="margin-top:14px">招待のQRを作る</button></div>';
       h += '<div class="card"><h3>作った招待</h3><ul class="list2">' + (invites.length ? invites.map(function (i) {
         var st = { open: '<span class="pill ok">使える</span>', expired: '<span class="pill">期限切れ</span>', full: '<span class="pill">定員</span>', stopped: '<span class="pill">止めた</span>' }[i.state];
-        return '<li><span class="t">' + esc(i.levelName) + st + '</span><span class="r">' + (i.state === 'open' ? '<button class="btn sm" data-inv-show="' + i.id + '">QRを出す</button><button class="btn sm danger" data-inv-stop="' + i.id + '">止める</button>' : '') + '</span>' +
+        return '<li><span class="t">' + esc(i.levelName) + '（' + esc(i.permNames || '') + '）' + st + '</span><span class="r">' + (i.state === 'open' ? '<button class="btn sm" data-inv-show="' + i.id + '">QRを出す</button><button class="btn sm danger" data-inv-stop="' + i.id + '">止める</button>' : '') + '</span>' +
           '<span class="s">' + i.uses + ' / ' + i.maxUses + '人が登録・' + timeOf(i.expiresAt) + 'まで' + (i.byName ? '・' + esc(i.byName) + 'が作成' : '') + '</span></li>';
       }).join('') : '<li class="empty">まだありません</li>') + '</ul></div>';
       if (accounts) {
         h += '<div class="card"><h3>スタッフの一覧（' + accounts.length + '人）</h3><ul class="list2">' + accounts.map(function (a) {
           return '<li><span class="t">' + esc(a.name) + (a.active ? '' : '<span class="pill">止めています</span>') + '</span><span class="r"><select class="in" data-acc-level="' + a.id + '" aria-label="' + esc(a.name) + 'の権限" style="min-height:40px;padding:6px 30px 6px 10px;font-size:14px;width:auto">' + [1, 4].map(function (l) { return '<option value="' + l + '"' + (a.level === l ? ' selected' : '') + '>' + S.me.levels[l] + '</option>'; }).join('') + '</select></span>' +
+            '<span class="s perms-row">' + (a.level >= LV.admin ? '<span class="hint">管理者は全部できます</span>' : defs.map(function (d) { var on = a.perms.indexOf(d.key) >= 0; return '<button type="button" class="pchip' + (on ? ' on' : '') + (d.key === 'fortune' ? ' special' : '') + '" data-perm-acc="' + a.id + '" data-perm="' + d.key + '" aria-pressed="' + on + '">' + (on ? '✓ ' : '') + esc(d.name) + '</button>'; }).join('')) + '</span>' +
             '<span class="s">' + (a.viaInvite ? '招待から登録・' : '') + '<button class="link" data-acc-code="' + a.id + '" style="padding:0;font-size:13px">パスワードを変える</button>　<button class="link danger" data-acc-active="' + a.id + '" data-v="' + (a.active ? '0' : '1') + '" style="padding:0;font-size:13px">' + (a.active ? '止める' : '戻す') + '</button></span></li>';
         }).join('') + '</ul>' +
           '<details class="mgr" style="margin-top:14px"><summary>手で追加する</summary><div><div class="field"><input class="in" id="acc-name" placeholder="名前"></div><div class="field"><select class="in" id="acc-level" aria-label="権限">' + [1, 4].map(function (l) { return '<option value="' + l + '">' + S.me.levels[l] + '</option>'; }).join('') + '</select></div><div class="field"><input class="in" id="acc-code" placeholder="パスワード（6文字以上）" autocomplete="new-password"></div><button class="btn pri block" id="acc-add" style="margin-top:12px">追加</button></div></details></div>';
       }
       el.innerHTML = h;
-      var showInv = function (i) { sheet({ k: 'スタッフの招待（' + i.levelName + '）', t: 'スマホのカメラで読んでください', url: location.origin + i.url, s: '名前とパスワードを決めると、' + i.levelName + 'として登録されます。' + timeOf(i.expiresAt) + 'まで・あと' + (i.maxUses - i.uses) + '人', copy: true }); };
+      var showInv = function (i) { sheet({ k: 'スタッフの招待（' + i.levelName + '）', t: 'スマホのカメラで読んでください', url: location.origin + i.url, s: '名前とパスワードを決めると、' + i.levelName + '（' + (i.permNames || '') + '）として登録されます。' + timeOf(i.expiresAt) + 'まで・あと' + (i.maxUses - i.uses) + '人', copy: true }); };
       el.querySelector('#inv-make').addEventListener('click', function () {
-        api('/api/staff/invites', 'POST', { level: 1, hours: Number(el.querySelector('#inv-hours').value), maxUses: Number(el.querySelector('#inv-max').value) }).then(function (x) {
+        api('/api/staff/invites', 'POST', { level: 1, perms: Array.prototype.map.call(el.querySelectorAll('#inv-perms input:checked'), function (c) { return c.value; }), hours: Number(el.querySelector('#inv-hours').value), maxUses: Number(el.querySelector('#inv-max').value) }).then(function (x) {
           if (!x.ok) return err(x.d.message);
           showInv(x.d); adminStaff(el);
         });
@@ -854,6 +860,14 @@
       el.querySelectorAll('[data-inv-show]').forEach(function (b) { b.addEventListener('click', function () { showInv(invites.filter(function (i) { return i.id === Number(b.dataset.invShow); })[0]); }); });
       el.querySelectorAll('[data-inv-stop]').forEach(function (b) { b.addEventListener('click', function () { armed(b, 'もう一度押す', function () { api('/api/staff/invites/' + b.dataset.invStop + '/stop', 'POST', {}).then(function (x) { if (!x.ok) return err(x.d.message); toast('招待を止めました'); adminStaff(el); }); }); }); });
       var send = function (id, body) { api('/api/staff/accounts/' + id, 'PATCH', body).then(function (x) { if (!x.ok) return err(x.d.message); toast('変更しました'); adminStaff(el); }); };
+      // できることのオン・オフ（押すとすぐ保存）
+      el.querySelectorAll('[data-perm-acc]').forEach(function (c) {
+        c.addEventListener('click', function () {
+          var a = accounts.filter(function (x) { return x.id === Number(c.dataset.permAcc); })[0], k = c.dataset.perm;
+          var next = a.perms.indexOf(k) >= 0 ? a.perms.filter(function (x) { return x !== k; }) : a.perms.concat([k]);
+          send(a.id, { perms: next });
+        });
+      });
       el.querySelectorAll('[data-acc-level]').forEach(function (c) { c.addEventListener('change', function () { send(Number(c.dataset.accLevel), { level: Number(c.value) }); }); });
       el.querySelectorAll('[data-acc-active]').forEach(function (c) { c.addEventListener('click', function () { armed(c, 'もう一度押す', function () { send(Number(c.dataset.accActive), { active: c.dataset.v === '1' }); }); }); });
       el.querySelectorAll('[data-acc-code]').forEach(function (c) {

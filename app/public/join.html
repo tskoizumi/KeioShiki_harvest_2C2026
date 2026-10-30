@@ -63,7 +63,7 @@
   fetch('/api/staff/join/' + code).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); }).then(function (x) {
     if (!x.ok) { bad(x.d.message || 'この招待は使えません'); return; }
     if (x.d.state !== 'open') { bad({ expired: 'この招待は期限が切れています。作った人に新しいQRをもらってください。', full: 'この招待は定員になりました。作った人に新しいQRをもらってください。', stopped: 'この招待は止められています。' }[x.d.state] || 'この招待は使えません'); return; }
-    $('lv').textContent = '権限：' + x.d.levelName; $('lv').hidden = false;
+    $('lv').textContent = '権限：' + x.d.levelName + (x.d.permNames ? '（' + x.d.permNames + '）' : ''); $('lv').hidden = false;
     $('form-card').hidden = false;
   }).catch(function () { bad('通信できませんでした。電波のいいところで開き直してください。'); });
   $('form').addEventListener('submit', function (e) {

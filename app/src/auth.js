@@ -9,6 +9,44 @@ import { ApiError, b64url } from './util.js';
 // 数字は前の4段階の名残り（1 と 4 だけを使う）
 export const LEVEL = { staff: 1, admin: 4 };
 export const LEVEL_NAME = { 1: 'スタッフ', 4: '管理者' };
+
+// スタッフごとにオン・オフできること。def = 何も決めていないスタッフに付く（占いは特殊権限なので付かない）
+export const PERMS = [
+  { key: 'reception', name: '受付', desc: 'お客さんの登録、QRカードに名前をつける', def: true },
+  { key: 'games', name: 'ゲーム', desc: 'ゲームの開始・結果・取り消し', def: true },
+  { key: 'fortune', name: '占い', desc: '占いをする（特殊権限）', def: false },
+  { key: 'adjust', name: '残高を直す', desc: '残高を直す、お客さんを使えなくする・戻す', def: true },
+  { key: 'cards', name: 'QRカード', desc: 'QRカードの発行・印刷', def: true },
+  { key: 'photo', name: '写真展', desc: '写真展の撮影係（写真を上げる・お客さんの登録）', def: true },
+];
+const PERM_KEYS = PERMS.map((p) => p.key);
+export const DEFAULT_PERMS = PERMS.filter((p) => p.def).map((p) => p.key);
+
+// このスタッフができること（管理者は全部）
+export function permsOf(s) {
+  if (!s) return [];
+  if (s.level >= LEVEL.admin) return PERM_KEYS.slice();
+  try {
+    const v = s.perms ? JSON.parse(s.perms) : null;
+    if (Array.isArray(v)) return PERM_KEYS.filter((k) => v.includes(k));
+  } catch {}
+  return DEFAULT_PERMS.slice();
+}
+
+// 入ってきた権限のリストを、知っているものだけにして保存用の文字列にする
+export function cleanPerms(list) {
+  if (!Array.isArray(list)) return null;
+  return JSON.stringify(PERM_KEYS.filter((k) => list.includes(k)));
+}
+
+export function needPerm(staff, key) {
+  if (!staff) throw new ApiError('LOGIN', 'スタッフとしてログインしてください', 401);
+  if (!permsOf(staff).includes(key)) {
+    const p = PERMS.find((x) => x.key === key);
+    throw new ApiError('FORBIDDEN', `「${p ? p.name : key}」の権限がありません。管理者に頼んでください`, 403);
+  }
+  return staff;
+}
 const COOKIE = 'mt_staff';
 const SESSION_HOURS = 20;
 
@@ -76,7 +114,7 @@ export async function currentStaff(request, env) {
   if (Number(exp) < Date.now()) return null;
   const want = await hmac(env.SESSION_SECRET, `${id}.${exp}`);
   if (!timingSafeEqual(want, sig)) return null;
-  const s = await env.DB.prepare('SELECT id, name, level, active FROM staff WHERE id = ?').bind(Number(id)).first();
+  const s = await env.DB.prepare('SELECT id, name, level, active, perms FROM staff WHERE id = ?').bind(Number(id)).first();
   if (!s || !s.active) return null;
   return s;
 }

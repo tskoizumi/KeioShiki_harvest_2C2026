@@ -4,7 +4,7 @@
 //   写真は撮影係の端末で長い辺2560pxに縮めてから届く。中身は PhotoStore、目録は D1
 
 import { ApiError, json, fail, readJson, cleanNickname, setting, audit, nowIso } from './util.js';
-import { hashCode, currentStaff, require as needLevel, LEVEL, signText, timingSafeEqual } from './auth.js';
+import { hashCode, currentStaff, require as needLevel, needPerm, permsOf, LEVEL, signText, timingSafeEqual } from './auth.js';
 import * as staffRoutes from './routes/staff.js';
 import { photoStore } from './photo-do.js';
 
@@ -187,7 +187,9 @@ export async function photoFetch(request, env) {
 async function staffApi(request, env, staff, p, m) {
   const db = env.DB;
   let mm;
-  if (p === '/me' && m === 'GET') return json({ id: staff.id, name: staff.name, level: staff.level, title: await setting(db, 'photo_title', '写真展') });
+  if (p === '/me' && m === 'GET') return json({ id: staff.id, name: staff.name, level: staff.level, perms: permsOf(staff), title: await setting(db, 'photo_title', '写真展') });
+  // 設定と全削除は管理者。それ以外は「写真展」の権限が要る
+  if (p !== '/settings' && p !== '/purge') needPerm(staff, 'photo');
   if (p === '/guests' && m === 'GET') {
     const q = cleanNickname(new URL(request.url).searchParams.get('q') || '');
     const r = await db
@@ -213,7 +215,6 @@ async function staffApi(request, env, staff, p, m) {
     return json({ id: g.id, name: g.name, createdAt: g.created_at, seen: !!g.last_login_at, photos: await photoList(env, g.id) });
   }
   if ((mm = p.match(/^\/guests\/(\d+)\/photos$/)) && m === 'POST') {
-    needLevel(staff, LEVEL.staff);
     return await upload(request, env, staff, Number(mm[1]));
   }
   // パスワードを忘れたお客さん：本人だと確かめてから、新しいパスワードを本人に入れてもらう
@@ -234,7 +235,6 @@ async function staffApi(request, env, staff, p, m) {
     return json({ ok: true });
   }
   if ((mm = p.match(/^\/guests\/(\d+)$/)) && m === 'DELETE') {
-    needLevel(staff, LEVEL.staff);
     const id = Number(mm[1]);
     const ids = (await db.prepare('SELECT id FROM photos WHERE guest_id = ?').bind(id).all()).results.map((x) => x.id);
     await deletePhotos(env, ids);
