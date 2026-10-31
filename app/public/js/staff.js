@@ -127,7 +127,7 @@
     try { sessionStorage.setItem('mt:staff:view', v); } catch (e) {}
     if (!keepScan) stopScan();
     setBar(null);
-    if (v === 'cust') { if (S.cust) refreshCust(); else renderCust(); }
+    if (v === 'cust') { if (S.cust || S.group) refreshCust(); else renderCust(); }
     if (v === 'games') loadOpenPlays();
     if (v === 'teller') { if (S.reading) renderReading(); else renderTeller(); }
     if (v === 'admin') renderAdmin();
@@ -159,6 +159,7 @@
       if (r[1] && r[1].ok) { S.openReadings = r[1].d.results; badge('n-readings', S.openReadings.length); if (S.view === 'teller' && !S.reading) renderTellerList(); }
       var typing = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
       if (S.view === 'cust' && S.cust && (S.cust.openPlay || S.cust.openReading) && !typing) refreshCust();
+      if (S.view === 'cust' && S.group && S.group.some(function (m) { return m.openPlay; }) && !typing) refreshGroup();
     }).finally(function () { pollT = setTimeout(poll, 6000); });
   }
   function badge(id, n) { var e = $(id); e.hidden = !n; e.textContent = n; }
@@ -176,7 +177,7 @@
   function renderRecent() {
     var r = recent(), box = $('recent'); box.innerHTML = '';
     $('recent-box').hidden = !r.length;
-    r.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x.name; b.addEventListener('click', function () { openCust(x.id); }); box.appendChild(b); });
+    r.forEach(function (x) { var b = document.createElement('button'); b.type = 'button'; b.textContent = x.name; b.addEventListener('click', function () { pickCust(x.id); }); box.appendChild(b); });
   }
   function lookup(q, pick) {
     var ul = $('q-results'); ul.innerHTML = '<li class="empty" style="cursor:default">探しています…</li>';
@@ -185,17 +186,18 @@
       if (!x.ok) { err(x.d.message || 'エラー'); return; }
       var rs = x.d.results;
       if (!rs.length) { ul.innerHTML = '<li class="empty" style="cursor:default">見つかりません。番号をもう一度確かめてください</li>'; return; }
-      if (rs.length === 1 || pick) { openCust(rs[0].id); return; }
+      if (rs.length === 1 || pick) { pickCust(rs[0].id); return; }
       rs.forEach(function (u) {
         var li = document.createElement('li');
         li.innerHTML = '<b>' + esc(u.nickname || '（名前のないQRカード）') + '</b><span>' + esc(u.shortCode) + '　' + yen(u.balance) + '縁</span>';
-        li.addEventListener('click', function () { openCust(u.id); });
+        li.addEventListener('click', function () { pickCust(u.id); });
         ul.appendChild(li);
       });
     });
   }
   $('find-form').addEventListener('submit', function (e) { e.preventDefault(); var v = $('q').value.trim(); if (v) lookup(v); });
   $('scan').addEventListener('click', function () { startScan(); });
+  $('group-start').addEventListener('click', function () { startGroup(); });
 
   /* ---------- カメラ ---------- */
   var stream = null, scanRaf = null, scanTarget = null;
@@ -274,8 +276,70 @@
       window.scrollTo(0, 0);
     });
   }
-  function refreshCust() { if (!S.cust) return Promise.resolve(); return api('/api/staff/users/' + S.cust.id).then(function (x) { if (x.ok) { S.cust = x.d; renderCust(); } }); }
+  function refreshCust() { if (S.group) return refreshGroup(); if (!S.cust) return Promise.resolve(); return api('/api/staff/users/' + S.cust.id).then(function (x) { if (x.ok) { S.cust = x.d; renderCust(); } }); }
   function closeCust() { S.cust = null; S.betFor = null; renderCust(); window.scrollTo(0, 0); }
+
+  /* ---------- 何人かまとめて（友達どうしで来たお客さん） ----------
+     QRを続けて読んで人を足していき、同じゲームを全員いっぺんに始める。結果は1人ずつ入れる */
+  function pickCust(id) { return S.group ? addToGroup(id) : openCust(id); }
+  function startGroup() {
+    S.group = S.cust ? [S.cust] : []; S.cust = null; S.betFor = null; S.scanOn = true;
+    renderCust(); startScan(null, 'QRを続けて読んでください。読むたびに1人ずつ足されます');
+  }
+  function addToGroup(id) {
+    if (S.group.some(function (m) { return m.id === id; })) { toast('その人はもう入っています'); return groupScanAgain(); }
+    if (S.group.length >= 8) { err('まとめられるのは8人までです'); return Promise.resolve(); }
+    return api('/api/staff/users/' + id).then(function (x) {
+      if (!x.ok) { err(x.d.message || 'エラー'); return; }
+      S.group.push(x.d); remember(x.d);
+      $('q-results').innerHTML = ''; $('q').value = '';
+      toast((x.d.nickname || x.d.shortCode) + 'さんを足しました（' + S.group.length + '人）');
+      renderCust(); groupScanAgain();
+    });
+  }
+  // 読み終わると止まるカメラを、少し待ってからまた動かす（同じQRを続けて読まないように）
+  function groupScanAgain() { setTimeout(function () { if (S.group && S.view === 'cust' && $('cam').hidden && S.group.length < 8 && S.scanOn) startScan(); }, 1300); return Promise.resolve(); }
+  function refreshGroup() {
+    if (!S.group) return Promise.resolve();
+    return Promise.all(S.group.map(function (m) { return api('/api/staff/users/' + m.id); })).then(function (rs) {
+      S.group = rs.map(function (x, i) { return x.ok ? x.d : S.group[i]; }); renderCust();
+    });
+  }
+  function endGroup() { S.group = null; S.scanOn = false; stopScan(); S.betFor = null; renderCust(); window.scrollTo(0, 0); }
+  function renderGroup(el) {
+    var g = S.group, h = '<div class="card group"><div class="row" style="justify-content:space-between"><h3 style="margin:0">まとめて ' + g.length + '人</h3><button class="btn sm" data-act="group-end">まとめるのをやめる</button></div>';
+    h += '<p class="hint" style="margin-top:6px">QRを続けて読むと、1人ずつ足されます。番号や名前で探しても足せます。</p>';
+    h += '<label class="toggle" style="margin-top:8px"><input type="checkbox" data-act="group-auto"' + (S.scanOn ? ' checked' : '') + '> 読んだら、すぐ次の人を読む</label>';
+    h += '<ul class="gmem">' + (g.length ? g.map(function (m) {
+      var st = !m.claimed ? '名前なし' : m.status !== 'active' ? '使えない' : m.openPlay ? m.openPlay.gameName + 'をプレイ中' : m.openReading ? '占いの最中' : '';
+      return '<li><b>' + esc(m.nickname || m.shortCode) + '</b><span>' + yen(m.balance) + '縁' + (st ? '・' + esc(st) : '') + '</span><button class="x" data-act="group-rm" data-id="' + m.id + '" aria-label="' + esc(m.nickname || m.shortCode) + 'を外す">×</button></li>';
+    }).join('') : '<li class="empty">まだ誰もいません。QRを読んでください</li>') + '</ul></div>';
+    var ready = g.filter(function (m) { return m.claimed && m.status === 'active' && !m.openPlay && !m.openReading; });
+    var playing = g.filter(function (m) { return m.openPlay; });
+    if (playing.length) h += '<h3>結果を1人ずつ入れる</h3>' + playing.map(function (m) { return '<p class="gname">' + esc(m.nickname) + 'さん</p>' + (may('games') ? resultCard(m.openPlay) : ''); }).join('');
+    if (ready.length && may('games')) {
+      h += '<h3>' + (playing.length ? 'ほかの ' + ready.length + '人で' : ready.length + '人で') + 'ゲームを始める</h3><div class="tiles">' + S.games.map(function (gm) {
+        var short = gm.kind !== 'bet' && ready.some(function (m) { return m.balance < gm.fee; });
+        return '<button class="tile' + (S.betFor === gm.id ? ' on' : '') + '" data-act="start" data-game="' + gm.id + '"' + (short ? ' disabled' : '') + '><b>' + esc(gm.name) + '</b><span>' + (short ? '残高が足りない人がいます' : gm.kind === 'bet' ? '賭け金を決める' : ready.length + '人いっぺんに') + '</span>' + rulesBtn(gm) + '</button>';
+      }).join('') + '</div>';
+      if (S.betFor) { var low = ready.reduce(function (a, m) { return Math.min(a, m.balance); }, Infinity); h += betCard(gameOf(S.betFor), { balance: low }).replace('の賭け金</h3>', 'の賭け金（' + ready.length + '人とも同じ額）</h3>'); }
+    }
+    el.innerHTML = h;
+    bindCust(el);
+  }
+  function startGroupPlay(gameId, stake) {
+    var ready = S.group.filter(function (m) { return m.claimed && m.status === 'active' && !m.openPlay && !m.openReading; });
+    if (!ready.length) return;
+    pending = true;
+    var ng = [];
+    ready.reduce(function (p, m) {
+      return p.then(function () { return api('/api/staff/plays', 'POST', { userId: m.id, gameId: gameId, stake: stake, requestId: newId() }).then(function (x) { if (!x.ok) ng.push((m.nickname || m.shortCode) + '：' + (x.d.message || 'エラー')); }); });
+    }, Promise.resolve()).then(function () {
+      S.betFor = null;
+      if (ng.length) err('始められなかった人がいます　' + ng.join('　')); else toast((gameOf(gameId) || {}).name + 'を ' + ready.length + '人で始めました');
+      return refreshGroup();
+    }).then(poll).finally(function () { pending = false; });
+  }
 
   function gameOf(id) { return S.games.filter(function (g) { return g.id === id; })[0]; }
   function rulesBtn(g) { return '<span class="q" role="button" tabindex="0" data-rules="' + g.id + '" aria-label="' + esc(g.name) + 'のルール">?</span>'; }
@@ -283,6 +347,9 @@
 
   function renderCust() {
     var el = $('cust'), u = S.cust;
+    $('group-start').hidden = !!S.group || !may('games');
+    if (S.group) { $('finder').hidden = false; $('scan-label').textContent = 'もう1人読む'; renderGroup(el); return; }
+    $('scan-label').textContent = 'QRを読む';
     $('finder').hidden = !!u;
     if (!u) { el.innerHTML = ''; renderRecent(); return; }
     var pills = '';
@@ -291,7 +358,8 @@
     if (u.openPlay) pills += '<span class="pill live">' + esc(u.openPlay.gameName) + 'をプレイ中</span>';
     if (u.openReading) pills += '<span class="pill live">占いの最中</span>';
     if (u.readings.length) pills += '<span class="pill gold">占い ' + u.readings.length + '回</span>';
-    var h = '<button class="back" type="button" data-act="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>別のお客さんを探す</button>';
+    var h = '<div class="row" style="justify-content:space-between"><button class="back" type="button" data-act="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>別のお客さんを探す</button>' +
+      (may('games') ? '<button class="btn sm" type="button" data-act="group-from">＋ 一緒に来た人もまとめる</button>' : '') + '</div>';
     h += '<div class="who"><p class="nm" id="cust-name">' + esc(u.nickname || '（名前なし）') + (u.nickname ? '<small>さん</small>' : '') + '</p>' +
       '<div class="sub"><span>番号 ' + esc(u.shortCode) + '</span>' + pills + '</div>' +
       '<div class="bal"><p>残高</p><b id="cust-bal">' + yen(u.balance) + '<small>縁</small></b></div></div>';
@@ -456,6 +524,10 @@
   function actCust(b, root) {
     var a = b.dataset.act, u = S.cust;
     if (a === 'close') { closeCust(); return; }
+    if (a === 'group-end') { endGroup(); return; }
+    if (a === 'group-from') { startGroup(); return; }
+    if (a === 'group-rm') { S.group = S.group.filter(function (m) { return m.id !== Number(b.dataset.id); }); renderCust(); return; }
+    if (a === 'group-auto') { S.scanOn = b.checked; if (S.scanOn && $('cam').hidden) startScan(); return; }
     if (a === 'hist') { S.histAll = !S.histAll; renderCust(); return; }
     if (a === 'to-reception') { go('reception'); $('card-code').value = u.shortCode; $('card-nick').focus(); return; }
     if (a === 'to-reading') { openReading(Number(b.dataset.id)); return; }
@@ -510,6 +582,7 @@
     busy(req, function (p) { toast(p.nickname + 'さん：' + p.result.label + '　' + (p.payout > 0 ? '+' + yen(p.payout) + '縁' : p.payout < 0 ? 'さらに ' + yen(-p.payout) + '縁を払う' : '払い戻しなし')); });
   }
   function startPlay(gameId, stake) {
+    if (S.group) { startGroupPlay(gameId, stake); return; }
     busy(api('/api/staff/plays', 'POST', { userId: S.cust.id, gameId: gameId, stake: stake, requestId: newId() }), function (p) {
       S.betFor = null;
       toast(p.gameName + 'を始めました（' + yen(p.stake) + '縁）', { action: '取り消す', fn: function () { busy(api('/api/staff/plays/' + p.id + '/void', 'POST', {}), function () { toast('取り消して返金しました'); }); } });

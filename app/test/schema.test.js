@@ -143,6 +143,15 @@ test('13個目のマイグレーション：印刷したQRカードは、初め�
   assert.equal((await findUserByToken(d1, fake, 'short_code')).short_code, 'TESTCD');   // 2回目はふつうに見つかる
 });
 
+test('14個目のマイグレーション：1人ずつ決めてあったスタッフにも占いが付く', () => {
+  const db = new DatabaseSync(':memory:');
+  const files = readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql')).sort();
+  for (const f of files.filter((f) => f < '0014')) for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  db.exec(`INSERT INTO staff (name, level, perms, code_hash, code_salt) VALUES ('a', 1, '["games"]', 'h', 's'), ('b', 1, NULL, 'h', 's'), ('c', 1, '["games","fortune"]', 'h', 's')`);
+  for (const s of splitSql(readFileSync(new URL('../migrations/0014_fortune_for_all.sql', import.meta.url), 'utf8'))) db.exec(s);
+  assert.deepEqual(db.prepare('SELECT perms FROM staff ORDER BY name').all().map((r) => r.perms && JSON.parse(r.perms)), [['games', 'fortune'], null, ['games', 'fortune']]);
+});
+
 test('マイグレーションはどれも ; で終わる（本番では後ろに記録用の文がつながるため）', () => {
   for (const f of readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql'))) {
     const body = readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8').replace(/--.*$/gm, '').trim();

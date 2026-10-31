@@ -149,8 +149,8 @@ test('ニックネームは全角を半角に、空白をまとめる', () => {
   assert.equal(cleanNickname('　ぽんず　 ２ '), 'ぽんず 2');
 });
 
-test('権限：占いは特殊権限で、決まりの組み合わせには入らない。管理者は全部', () => {
-  assert.ok(!permsOf({ level: 1, perms: null }).includes('fortune'));
+test('権限：決まりの組み合わせは全部オン（占いも）。1人ずつ外せる。管理者は全部', () => {
+  assert.ok(permsOf({ level: 1, perms: null }).includes('fortune'));
   assert.ok(permsOf({ level: 1, perms: null }).includes('games'));
   assert.deepEqual(permsOf({ level: 1, perms: '["fortune","bogus"]' }), ['fortune']);
   assert.ok(permsOf({ level: 4, perms: '[]' }).includes('fortune'));

@@ -10,11 +10,11 @@ import { ApiError, b64url } from './util.js';
 export const LEVEL = { staff: 1, admin: 4 };
 export const LEVEL_NAME = { 1: 'スタッフ', 4: '管理者' };
 
-// スタッフごとにオン・オフできること。def = 何も決めていないスタッフに付く（占いは特殊権限なので付かない）
+// スタッフごとにオン・オフできること。def = 何も決めていないスタッフに付く（今は全部オン）
 export const PERMS = [
   { key: 'reception', name: '受付', desc: 'お客さんの登録、QRカードに名前をつける', def: true },
   { key: 'games', name: 'ゲーム', desc: 'ゲームの開始・結果・取り消し', def: true },
-  { key: 'fortune', name: '占い', desc: '占いをする（特殊権限）', def: false },
+  { key: 'fortune', name: '占い', desc: '占いをする', def: true },
   { key: 'adjust', name: '残高を直す', desc: '残高を直す、お客さんを使えなくする・戻す', def: true },
   { key: 'cards', name: 'QRカード', desc: 'QRカードの発行・印刷', def: true },
   { key: 'photo', name: '写真展', desc: '写真展の撮影係（写真を上げる・お客さんの登録）', def: true },

@@ -1,6 +1,6 @@
 // スタッフが使うAPI。権限は2つ
 //   1 スタッフ : 客を探す・ランキングは全員。あとはスタッフごとにオン・オフ（auth.js の PERMS）
-//                受付／ゲーム／占い（特殊権限。決まりではオフ）／残高を直す／QRカード／写真展
+//                受付／ゲーム／占い／残高を直す／QRカード／写真展（最初は全部オン）
 //   4 管理者   : 全部 ＋ 設定とゲームの変更、スタッフの招待と管理、概要、記録、書き出し
 
 import { ApiError, json, readJson, randomToken, cleanNickname, normalizeCode, allSettings, audit, RANK_NAME } from '../util.js';
