@@ -105,6 +105,15 @@ test('10個目のマイグレーション：ストラックアウトは1球5縁�
   assert.deepEqual(Object.fromEntries(c.keys.map((k) => [k.label, k.pts])), { 赤: 50, 緑: 30, 黄: 20, 青: 10, 黒: -20, はずれ: 0 });
 });
 
+test('11個目のマイグレーション：ラッキーパネルの参加費は0', () => {
+  const db = new DatabaseSync(':memory:');
+  const files = readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql')).sort();
+  for (const f of files.filter((f) => f < '0012')) for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  const g = db.prepare("SELECT fee, rules FROM games WHERE slug = 'shinkei'").get();
+  assert.equal(g.fee, 0);
+  assert.ok(g.rules.includes('参加費なし') && !g.rules.includes('10縁。'));
+});
+
 test('マイグレーションはどれも ; で終わる（本番では後ろに記録用の文がつながるため）', () => {
   for (const f of readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql'))) {
     const body = readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8').replace(/--.*$/gm, '').trim();
