@@ -114,6 +114,7 @@
     </div>
     <div class="card">
       <h2 id="g-count">上げた写真</h2>
+
       <div class="thumbs" id="thumbs"></div>
     </div>
     <details class="card">
@@ -138,6 +139,7 @@
     else if (opts.body) { init.headers['content-type'] = 'application/json'; init.body = JSON.stringify(opts.body); }
     return fetch(path, init).then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
   }
+  window.phToast = function (t) { toast(t); };
   function toast(t) { var d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 2200); }
   function show(v) { ['login', 'list', 'guest'].forEach(function (k) { $('v-' + k).hidden = k !== v; }); $('back').hidden = v !== 'guest'; $('logout').hidden = v === 'login'; window.scrollTo(0, 0); }
   function ago(iso) { var s = (Date.now() - new Date(iso.replace(' ', 'T') + (iso.endsWith('Z') ? '' : 'Z')).getTime()) / 1000; return s < 60 ? 'いま' : s < 3600 ? Math.floor(s / 60) + '分前' : s < 86400 ? Math.floor(s / 3600) + '時間前' : Math.floor(s / 86400) + '日前'; }
@@ -155,6 +157,7 @@
       if (!x.ok) { show('login'); return; }
       me = x.d; $('title').textContent = me.title + '・撮影係';
       $('admin').hidden = me.level < 4; $('purge-box').hidden = me.level < 4; $('s-title').value = me.title;
+      if (!window.phUi) { window.phUi = 1; var sc = document.createElement('script'); sc.src = '/api/photo/staff/ui.js'; document.body.appendChild(sc); }
       if ((me.perms || []).indexOf('photo') < 0) { show('list'); $('list').innerHTML = '<li class="empty" style="display:block">「写真展」の権限がありません。管理者に頼んでください。</li>'; return; }
       show('list'); loadList();
     });
@@ -222,12 +225,14 @@
     $('g-meta').textContent = '登録 ' + ago(guest.createdAt) + (guest.seen ? '・本人がページを開きました' : '');
     $('g-count').textContent = '上げた写真（' + guest.photos.length + '枚）';
     var t = $('thumbs'); t.textContent = '';
-    guest.photos.forEach(function (p) {
-      var d = document.createElement('div'); d.style.backgroundImage = 'url(/api/photo/img/' + p.id + '/thumb)';
+    guest.photos.forEach(function (p, i) {
+      var d = document.createElement('div'); d.style.backgroundImage = 'url(/api/photo/img/' + p.id + '/thumb)'; d.dataset.i = i;
       var b = document.createElement('button'); b.type = 'button'; b.textContent = '消す';
       b.addEventListener('click', function () { armed(b, 'もう一度で消す', function () { api('/api/photo/staff/photos/' + p.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return toast(x.d.message); refreshGuest(); }); }); });
       d.appendChild(b); t.appendChild(d);
     });
+    if (window.phExtra) window.phExtra.onGuest(guest);
+    window.phCurrentGuest = function () { return guest; };
   }
   function refreshGuest() { return api('/api/photo/staff/guests/' + guest.id).then(function (x) { if (x.ok) { guest = x.d; renderGuest(); } }); }
   $('back').addEventListener('click', function () { guest = null; show('list'); loadList(); });

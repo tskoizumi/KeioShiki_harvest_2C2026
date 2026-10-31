@@ -49,6 +49,14 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
         if: steps.check.outputs.ready == 'true'
+      # リポジトリに置かない設定を Secrets から作る（なければ空）
+      - name: Local files
+        if: steps.check.outputs.ready == 'true'
+        env:
+          APP_UI_EXTRA: ${{ secrets.APP_UI_EXTRA }}
+        run: |
+          mkdir -p src/local
+          printf '%s' "$APP_UI_EXTRA" > src/local/ui.txt
       - run: npm test
         if: steps.check.outputs.ready == 'true'
 

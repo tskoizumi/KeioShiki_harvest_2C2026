@@ -21,3 +21,6 @@ app/tools/video/voice-human/
 # スマホがない人用のQRカード（中身がマイページの鍵なので公開しない）
 assets/print/private/
 __pycache__/
+
+# 手元・本番だけで使う設定（デプロイのときに Secrets から作る）
+app/src/local/

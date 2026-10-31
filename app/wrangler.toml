@@ -47,7 +47,7 @@ new_sqlite_classes = ["PhotoStore"]
 # migrations/*.sql を文字列として import する（研修モードがスキーマを作るのに使う）
 [[rules]]
 type = "Text"
-globs = ["**/*.sql"]
+globs = ["**/*.sql", "**/*.txt"]
 fallthrough = true
 
 # 秘密（SESSION_SECRET / SETUP_CODE）は wrangler secret put で入れる。ここには書かない

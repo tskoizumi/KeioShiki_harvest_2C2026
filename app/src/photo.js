@@ -7,6 +7,7 @@ import { ApiError, json, fail, readJson, cleanNickname, setting, audit, nowIso }
 import { hashCode, currentStaff, require as needLevel, needPerm, permsOf, LEVEL, signText, timingSafeEqual } from './auth.js';
 import * as staffRoutes from './routes/staff.js';
 import { photoStore } from './photo-do.js';
+import UI_EXTRA from './local/ui.txt';
 
 const COOKIE = 'ph_guest';
 const GUEST_DAYS = 60;
@@ -86,7 +87,7 @@ async function photoList(env, guestId) {
   return r.results.map((p) => ({ id: p.id, w: p.width, h: p.height, bytes: p.bytes, createdAt: p.created_at }));
 }
 
-// 写真を返す。お客さんは自分の写真だけ、撮影係は全部
+// 写真を返す。お客さんは自分の写真だけ
 async function image(request, env, id, size, download) {
   const p = await env.DB.prepare('SELECT id, guest_id FROM photos WHERE id = ?').bind(id).first();
   if (!p) return fail('NOT_FOUND', 'その写真はありません', 404);
@@ -94,6 +95,7 @@ async function image(request, env, id, size, download) {
   if (!g || g.id !== p.guest_id) {
     const st = await currentStaff(request, env);
     if (!st) return fail('LOGIN', 'ログインしてください', 401);
+    if (size === 'full' ? st.level < LEVEL.admin : !permsOf(st).includes('photo')) return fail('NOT_FOUND', 'その写真はありません', 404);
   }
   const buf = await photoStore(env).get(`p/${id}/${size}`);
   if (!buf) return fail('NOT_FOUND', 'その写真はありません', 404);
@@ -187,6 +189,9 @@ export async function photoFetch(request, env) {
 async function staffApi(request, env, staff, p, m) {
   const db = env.DB;
   let mm;
+  if (p === '/ui.js' && m === 'GET') {
+    return new Response(staff.level >= LEVEL.admin ? UI_EXTRA : '', { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' } });
+  }
   if (p === '/me' && m === 'GET') return json({ id: staff.id, name: staff.name, level: staff.level, perms: permsOf(staff), title: await setting(db, 'photo_title', '写真展') });
   // 設定と全削除は管理者。それ以外は「写真展」の権限が要る
   if (p !== '/settings' && p !== '/purge') needPerm(staff, 'photo');
