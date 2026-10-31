@@ -40,6 +40,19 @@ export async function register(request, env) {
   return json({ token, key: await userKey(env, token, row.claimed_at), url: `/u/${token}`, shortCode: code }, 201);
 }
 
+// マイページの文字列（token）でお客さんを探す。
+// 印刷したQRカードは、最初は token に「'h:' + SHA-256」だけが入っている（0013_printed_cards.sql）。
+// 初めて読まれたときに照合して、本物の token に置き換える
+export async function findUserByToken(db, token, cols = '*') {
+  const get = () => db.prepare(`SELECT ${cols} FROM users WHERE token = ?`).bind(token).first();
+  const u = await get();
+  if (u || !/^[A-Za-z0-9_-]{16,64}$/.test(String(token))) return u;
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token)));
+  const h = 'h:' + Array.from(d, (b) => b.toString(16).padStart(2, '0')).join('');
+  const r = await db.prepare('UPDATE users SET token = ? WHERE token = ?').bind(token, h).run();
+  return r.meta.changes ? get() : null;
+}
+
 export function validateNickname(n) {
   if (n.length < 1 || n.length > 12) throw new ApiError('NICK', 'ニックネームは1〜12文字で入れてください');
 }
@@ -63,7 +76,7 @@ export async function grantStart(db, userId, amount, staffId = null) {
 export async function login(request, env, token) {
   const body = await readJson(request);
   const nickname = cleanNickname(body.nickname);
-  const u = await env.DB.prepare('SELECT id, nickname, status FROM users WHERE token = ?').bind(token).first();
+  const u = await findUserByToken(env.DB, token, 'id, nickname, status');
   if (!u) throw new ApiError('NOT_FOUND', 'このQRは登録されていません', 404);
   if (u.status !== 'active') throw new ApiError('DISABLED', 'このページは使えなくなっています。受付に声をかけてください', 403);
 
@@ -94,10 +107,7 @@ function sameName(a, b) {
 }
 
 export async function me(request, env, token) {
-  const u = await env.DB
-    .prepare('SELECT id, token, short_code, nickname, balance, status, created_at, claimed_at FROM users WHERE token = ?')
-    .bind(token)
-    .first();
+  const u = await findUserByToken(env.DB, token, 'id, token, short_code, nickname, balance, status, created_at, claimed_at');
   if (!u) throw new ApiError('NOT_FOUND', 'このQRは登録されていません', 404);
   const key = request.headers.get('X-User-Key') || new URL(request.url).searchParams.get('key');
   // 名前のないQRカードは、前に開いた端末があっても、まず名前をつけてもらう

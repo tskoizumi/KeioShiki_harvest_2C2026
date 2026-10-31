@@ -125,6 +125,24 @@ test('12個目のマイグレーション：管理画面で変えていても、
   assert.equal(c.outcomes.find((o) => o.label === 'ションベン').mult, -1);
 });
 
+test('13個目のマイグレーション：印刷したQRカードは、初めて読まれたときに照合して使えるようになる', async () => {
+  const { findUserByToken } = await import('../src/routes/public.js');
+  const db = new DatabaseSync(':memory:');
+  const files = readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql')).sort();
+  for (const f of files) for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM users WHERE source = 'card' AND token LIKE 'h:%'").get().n, 30);
+  // D1 と同じ形で触れる薄い皮
+  const d1 = { prepare: (q) => ({ bind: (...a) => ({ first: async () => db.prepare(q).get(...a) ?? null, run: async () => ({ meta: { changes: db.prepare(q).run(...a).changes } }) }) }) };
+  // 本物の文字列を使わずに確かめる：仮の文字列の SHA-256 を入れた行を足す
+  const { createHash } = await import('node:crypto');
+  const fake = 'TestTokenForCardCheck0123';
+  db.exec(`INSERT INTO users (token, short_code, source) VALUES ('h:${createHash('sha256').update(fake).digest('hex')}', 'TESTCD', 'card')`);
+  const u = await findUserByToken(d1, fake, 'id, token, short_code, nickname');
+  assert.equal(u.short_code, 'TESTCD'); assert.equal(u.token, fake); assert.equal(u.nickname, null);
+  assert.equal(await findUserByToken(d1, 'NoSuchToken0123456789xx', 'id'), null);
+  assert.equal((await findUserByToken(d1, fake, 'short_code')).short_code, 'TESTCD');   // 2回目はふつうに見つかる
+});
+
 test('マイグレーションはどれも ; で終わる（本番では後ろに記録用の文がつながるため）', () => {
   for (const f of readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql'))) {
     const body = readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8').replace(/--.*$/gm, '').trim();

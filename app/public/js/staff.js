@@ -328,7 +328,7 @@
         '<div class="sw" style="margin-top:12px"><button type="button" class="on plus" data-sign="1">増やす</button><button type="button" data-sign="-1">減らす</button></div>' +
         '<div class="row" style="margin-top:10px"><input class="in" id="adj-amt" type="number" inputmode="numeric" min="1" placeholder="何縁" style="width:130px"><input class="in grow" id="adj-note" placeholder="理由（必ず書く）"></div>' +
         '<button class="btn block" data-act="adjust" style="margin-top:10px">残高を直す</button>' +
-        '<div class="row" style="margin-top:16px;justify-content:space-between"><a class="link" href="' + esc(u.url) + '" target="_blank" rel="noopener">マイページを開く</a>' +
+        '<div class="row" style="margin-top:16px;justify-content:space-between">' + (u.url ? '<a class="link" href="' + esc(u.url) + '" target="_blank" rel="noopener">マイページを開く</a>' : '<span></span>') +
         '<button class="btn danger sm" data-act="status" data-status="' + (u.status === 'active' ? 'disabled' : 'active') + '">' + (u.status === 'active' ? 'このお客さんを使えなくする' : '使えるように戻す') + '</button></div>' +
         '</div></details>';
     }

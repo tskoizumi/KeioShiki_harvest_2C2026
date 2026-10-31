@@ -9,7 +9,7 @@ import { applyDelta, history } from '../ledger.js';
 import { listGames, shapeGame, startPlay, finishPlay, voidPlay, getPlay, openPlays } from '../plays.js';
 import { openReading, getReading, addBribe, updateReading, finishReading, voidReading, ORACLE_PUBLIC } from '../readings.js';
 import { rankings, positions } from '../rankings.js';
-import { validateNickname, uniqueShortCode, grantStart } from './public.js';
+import { validateNickname, uniqueShortCode, grantStart, findUserByToken } from './public.js';
 import { SITE } from '../site.js';
 
 const SETTING_KEYS = ['starting_en', 'registration_open', 'max_users', 'rank_sho', 'rank_dai', 'rank_kaizan', 'first_title', 'rich_title', 'ranking_size', 'tax_brackets'];
@@ -289,6 +289,9 @@ export async function handle(request, env, url, staff) {
     for (const c of list) {
       const token = String(c.token || ''), code = normalizeCode(c.shortCode);
       if (!/^[A-Za-z0-9_-]{20,40}$/.test(token) || !/^[A-Z0-9]{4,10}$/.test(code)) throw new ApiError('BAD_INPUT', 'カードの番号の形がおかしいです', 400);
+      // 0013 で照合用の値だけ入っているカードなら、本物の token に置き換える
+      const known = await findUserByToken(db, token, 'id, short_code');
+      if (known && known.short_code === code) { already++; continue; }
       const r = await db.prepare("INSERT OR IGNORE INTO users (token, short_code, source) VALUES (?, ?, 'card')").bind(token, code).run();
       if (r.meta.changes) added++;
       else if (await db.prepare('SELECT 1 FROM users WHERE token = ? AND short_code = ?').bind(token, code).first()) already++;
@@ -299,7 +302,8 @@ export async function handle(request, env, url, staff) {
   }
   if (p === '/cards' && m === 'GET') {
     needPerm(staff, 'cards');
-    const r = await db.prepare('SELECT token, short_code, nickname, created_at FROM users WHERE source = ? ORDER BY id').bind('card').all();
+    // まだ一度も読まれていない印刷済みカード（token が 'h:…'）は、ここから刷り直せないので出さない
+    const r = await db.prepare("SELECT token, short_code, nickname, created_at FROM users WHERE source = ? AND token NOT LIKE 'h:%' ORDER BY id").bind('card').all();
     return json({ results: r.results.map((x) => ({ token: x.token, shortCode: x.short_code, nickname: x.nickname, createdAt: x.created_at })) });
   }
   /* ---------- スタッフの招待（管理者だけ。招待で作れるのはスタッフ） ---------- */
@@ -583,7 +587,7 @@ export async function lookup(db, q) {
   if (!q) return [];
   const tokenMatch = q.match(/\/u\/([A-Za-z0-9_-]{16,})/) || q.match(/^([A-Za-z0-9_-]{20,})$/);
   if (tokenMatch) {
-    const u = await db.prepare('SELECT * FROM users WHERE token = ?').bind(tokenMatch[1]).first();
+    const u = await findUserByToken(db, tokenMatch[1]);
     return u ? [shapeUser(u)] : [];
   }
   if (/^#?\d+$/.test(q)) {
@@ -600,7 +604,8 @@ export async function lookup(db, q) {
 }
 
 function shapeUser(u) {
-  return { id: u.id, nickname: u.nickname, shortCode: u.short_code, token: u.token, url: `/u/${u.token}`, balance: u.balance, status: u.status, source: u.source, createdAt: u.created_at, claimed: u.nickname != null };
+  const pending = String(u.token).startsWith('h:');   // 印刷したQRカードで、まだ一度も読まれていない
+  return { id: u.id, nickname: u.nickname, shortCode: u.short_code, token: pending ? null : u.token, url: pending ? null : `/u/${u.token}`, balance: u.balance, status: u.status, source: u.source, createdAt: u.created_at, claimed: u.nickname != null };
 }
 
 export async function userDetail(db, id) {
