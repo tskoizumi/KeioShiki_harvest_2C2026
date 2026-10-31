@@ -15,7 +15,8 @@ import SCHEMA_8 from '../migrations/0008_staff_perms.sql';
 import SCHEMA_9 from '../migrations/0009_blackbox.sql';
 import SCHEMA_10 from '../migrations/0010_strikeout.sql';
 import SCHEMA_11 from '../migrations/0011_lucky_free.sql';
-const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8, SCHEMA_9, SCHEMA_10, SCHEMA_11].join('\n;\n');
+import SCHEMA_12 from '../migrations/0012_chinchiro_negative.sql';
+const SCHEMA = [SCHEMA_1, SCHEMA_2, SCHEMA_3, SCHEMA_4, SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8, SCHEMA_9, SCHEMA_10, SCHEMA_11, SCHEMA_12].join('\n;\n');
 import { trainingDb } from './training-do.js';
 import { json, fail, readJson, randomToken, shortCode, audit, cleanNickname } from './util.js';
 import { hashCode, makeSession, sessionCookie, userKey, LEVEL_NAME, PERMS, permsOf } from './auth.js';
@@ -25,7 +26,7 @@ import { openReading, addBribe, updateReading, finishReading } from './readings.
 import { grantStart } from './routes/public.js';
 
 // 見本の作り方の版。変えると、研修モードを次に開いたときに見本データを作り直す
-const SEED_VERSION = '6';
+const SEED_VERSION = '7';
 
 // 見本のスタッフ（管理者・占いもできるスタッフ・ふつうのスタッフ）。研修用なので合言葉は公開
 export const DEMO_STAFF = [

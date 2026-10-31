@@ -114,6 +114,17 @@ test('11個目のマイグレーション：ラッキーパネルの参加費は
   assert.ok(g.rules.includes('参加費なし') && !g.rules.includes('10縁。'));
 });
 
+test('12個目のマイグレーション：管理画面で変えていても、チンチロのヒフミ・ションベンはマイナス', () => {
+  const db = new DatabaseSync(':memory:');
+  const files = readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql')).sort();
+  for (const f of files.filter((f) => f < '0012')) for (const s of splitSql(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))) db.exec(s);
+  db.exec(`UPDATE games SET config = '{"outcomes":[{"label":"ヒフミ","mult":2},{"label":"勝ち","mult":2}]}' WHERE slug = 'chinchiro'`);
+  for (const s of splitSql(readFileSync(new URL('../migrations/0012_chinchiro_negative.sql', import.meta.url), 'utf8'))) db.exec(s);
+  const c = JSON.parse(db.prepare("SELECT config FROM games WHERE slug = 'chinchiro'").get().config);
+  assert.equal(c.outcomes.find((o) => o.label === 'ヒフミ').mult, -2);
+  assert.equal(c.outcomes.find((o) => o.label === 'ションベン').mult, -1);
+});
+
 test('マイグレーションはどれも ; で終わる（本番では後ろに記録用の文がつながるため）', () => {
   for (const f of readdirSync(new URL('../migrations/', import.meta.url)).filter((x) => x.endsWith('.sql'))) {
     const body = readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8').replace(/--.*$/gm, '').trim();
